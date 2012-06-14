@@ -1,0 +1,1555 @@
+# -*- coding: utf8 -*-
+#
+# ***** BEGIN GPL LICENSE BLOCK *****
+#
+# --------------------------------------------------------------------------
+# Blender 2.5 Indigo Add-On
+# --------------------------------------------------------------------------
+#
+# Authors:
+# Doug Hammond
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+# ***** END GPL LICENCE BLOCK *****
+#
+import re, os, zipfile
+from copy import deepcopy
+
+import bpy		#@UnresolvedImport
+
+from extensions_framework import declarative_property_group
+from extensions_framework import util as efutil
+
+from indigo import IndigoAddon
+from indigo.core.util import getResourcesPath 
+from indigo.export.materials.Diffuse	import DiffuseMaterial
+from indigo.export.materials.Phong		import PhongMaterial
+from indigo.export.materials.Specular	import SpecularMaterial, SpecularMedium
+from indigo.export.materials.Blend		import BlendMaterial
+from indigo.export.materials.External	import ExternalMaterial
+
+PROPERTY_GROUP_USAGE = {
+	'colour': {'diffuse', 'phong'},
+	'specular': {'specular'},
+	'phong': {'phong'},
+	'diffuse': {'diffuse'},
+	'blended': {'blended'},
+	'external': {'external'},
+	'bumpmap': {'diffuse', 'phong', 'specular'},
+	'displacement': {'diffuse', 'phong', 'specular'},
+	'exponent': {'phong', 'specular'},
+	'blendmap': {'blended'},
+	'emission': {'diffuse', 'phong', 'specular'}
+}
+
+def build_material_features(PGU):
+	mf = {}
+	for k, v in PGU.items():
+		for mat_type in v:
+			if mat_type not in mf.keys():
+				mf[mat_type] = set()
+			mf[mat_type].add(k)
+	return mf
+
+# This is the inverse of PROPERTY_GROUP_USAGE
+MATERIAL_FEATURES = build_material_features(PROPERTY_GROUP_USAGE)
+
+class Spectrum(object):
+	
+	#channel_name = None
+	#name = None
+	#controls = None
+	#visibility = None
+	#properties = None
+	
+	def __init__(self, channel, **opts):
+		self.channel_name = channel
+		self.name = channel+'_SP'
+		defaults = {
+			'rgb':				False,
+			'rgbgain':			False,
+			'uniform':			False,
+			'peak':				False,
+			'blackbody':		False,
+			'tabulated':		False,
+			'master_colour':	False,
+		}
+		defaults.update(opts)
+		self.opts = defaults
+		
+		self.types = []
+		if self.opts['rgb']:
+			self.types.append( ('rgb', 'RGB', 'rgb') )
+		if self.opts['uniform']:
+			self.types.append( ('uniform', 'Uniform', 'uniform') )
+		if self.opts['peak']:
+			self.types.append( ('peak', 'Peak', 'peak') )
+		if self.opts['blackbody']:
+			self.types.append( ('blackbody', 'Black body', 'blackbody') )
+		if self.opts['tabulated']:
+			self.types.append( ('tabulated', 'Regular tabulated', 'tabulated') )
+		
+		self.controls = self.get_controls()
+		self.visibility = self.get_visibility()
+		self.properties = self.get_properties()
+	
+	def set_master_colour(self, s, c):
+		'''
+		This update callback will set the blender material colour to the value
+		given in the indigo material panel via the property's update function.
+		We can specify more than one property to be 'master_colour' so long as
+		they are not both visible in the panel simultaneously.
+		(for diffuse and phong we use the color_rgb property and for specular we
+		use medium_basic_rgb. We could perhaps do the arithmetic for blend too)
+		'''
+		
+		if self.opts['master_colour'] != False:
+			if c.material.diffuse_color != getattr(s, self.name+'_rgb'):
+				c.material.diffuse_color = getattr(s, self.name+'_rgb')
+	
+	def get_properties(self):
+		p = [{
+			'type': 'enum',
+			'attr': self.name + '_type',
+			'name': 'Colour Type',
+			'description': 'Type',
+			'default': self.types[0][0],
+			'items': self.types
+		},
+		{
+			'type': 'float_vector',
+			'attr': self.name + '_rgb',
+			'name': 'RGB Colour',
+			'description': 'RGB Colour',
+			'default': (0.8,0.8,0.8),
+			'min': 0.0,
+			'soft_min': 0.0,
+			'max': 1.0,
+			'soft_max': 1.0,
+			'subtype': 'COLOR',
+			'precision': 5,
+			'update': lambda s,c: self.set_master_colour(s, c)
+		},
+		{
+			'type': 'float',
+			'attr': self.name + '_uniform_val',
+			'name': 'Value',
+			'description': 'Value',
+			'min': 0.0,
+			'max': 1.0,
+			'default': 1.0,
+			'precision': 5,
+		},
+		{
+			'type': 'int',
+			'attr': self.name + '_uniform_exp',
+			'name': 'Exponent',
+			'description': 'Exponent',
+			'min': -5,
+			'max': 5,
+			'default': 0
+		},
+		{
+			'type': 'float',
+			'attr': self.name + '_blackbody_temp',
+			'name': 'Temperature',
+			'description': 'Temperature',
+			'min': 1000.0,
+			'max': 10000.0,
+			'default': 6500.0
+		},
+		{
+			'type': 'float',
+			'attr': self.name + '_blackbody_gain',
+			'name': 'Gain',
+			'description': 'Gain',
+			'min': 0.0,
+			'max': 1000000.0,
+			'default': 1.0,
+			'precision': 6,
+		}]
+		
+		if self.opts['rgbgain']:
+			p.append({
+				'type': 'float',
+				'attr': self.name + '_rgb_gain',
+				'name': 'RGB Gain',
+				'description': 'RGB Gain',
+				'min': 0.0,
+				'max': 1000000.0,
+				'default': 1.0,
+				'precision': 6,
+			})
+		
+		return p
+	
+	def get_visibility(self):
+		d = {
+			self.name + '_type':				{ self.channel_name + '_type': 'spectrum' },
+		}
+		if self.opts['rgb']:
+			d.update({
+				self.name + '_rgb':				{ self.channel_name + '_type': 'spectrum', self.name + '_type': 'rgb' },
+			})
+		if self.opts['rgbgain']:
+			d.update({
+				self.name + '_rgb_gain':		{ self.channel_name + '_type': 'spectrum', self.name + '_type': 'rgb' },
+			})
+		if self.opts['uniform']:
+			d.update({
+				self.name + '_uniform_val':		{ self.channel_name + '_type': 'spectrum', self.name + '_type': 'uniform' },
+				self.name + '_uniform_exp':		{ self.channel_name + '_type': 'spectrum', self.name + '_type': 'uniform' },
+			})
+		if self.opts['peak']:
+			d.update({
+			})
+		if self.opts['blackbody']:
+			d.update({
+				self.name + '_blackbody_temp':	{ self.channel_name + '_type': 'spectrum', self.name + '_type': 'blackbody' },
+				self.name + '_blackbody_gain':	{ self.channel_name + '_type': 'spectrum', self.name + '_type': 'blackbody' },
+			})
+		if self.opts['tabulated']:
+			d.update({
+			})
+		
+		return d
+	
+	def get_controls(self):
+		c = [ self.name + '_type' ] if len(self.types) > 1 else []
+		
+		if self.opts['rgb']:
+			c += [ self.name + '_rgb' ]
+			if self.opts['rgbgain']:
+				c += [ self.name + '_rgb_gain' ]
+		if self.opts['uniform']:
+			c += [[
+				self.name + '_uniform_val', self.name + '_uniform_exp'
+			]]
+		if self.opts['blackbody']:
+			c += [[
+				self.name + '_blackbody_temp', self.name + '_blackbody_gain'
+			]]
+		
+		return c
+
+class Shader(object):
+	
+	#channel_name = None
+	#name = None
+	
+	#controls = None
+	#visibility = None
+	#properties = None
+	
+	def __init__(self, channel, **opts):
+		self.channel_name = channel
+		self.name = channel+'_SH'
+		defaults = { }
+		defaults.update(opts)
+		self.opts = defaults
+		
+		self.controls = self.get_controls()
+		self.visibility = self.get_visibility()
+		self.properties = self.get_properties()
+	
+	def get_controls(self):
+		return [
+			self.name + '_sht',
+		]
+	
+	def get_visibility(self):
+		return {
+			self.name+'_sht':	{ self.channel_name+'_type': 'shader' },
+		}
+	
+	def get_properties(self):
+		return [
+			{
+				'type': 'prop_search',
+				'attr': self.name + '_sht',
+				'name': 'Shader text',
+				'src': lambda s,c: bpy.data,
+				'src_attr': 'texts',
+				'trg': lambda s,c: getattr(c, 'indigo_material_' + self.channel_name),
+				'trg_attr': self.name + '_text',
+			},
+			{
+				# this is a hidden attr that is fed by the UI list above
+				'type': 'string',
+				'attr': self.name + '_text',
+				'name': '_shader_text_',
+				'description': 'Shader text',
+			},
+		]
+
+class Texture(object):
+	
+	#channel_name = None
+	#name = None
+	#controls = None
+	#visibility = None
+	#properties = None
+	
+	def __init__(self, channel, **opts):
+		self.channel_name = channel
+		self.name = channel+'_TX'
+		defaults = { }
+		defaults.update(opts)
+		self.opts = defaults
+		
+		self.controls = self.get_controls()
+		self.enabled = self.get_enabled()
+		self.visibility = self.get_visibility()
+		self.properties = self.get_properties()
+	
+	def get_controls(self):
+		return [
+			self.name + '_texture_chooser',
+			self.name+'_A', self.name+'_B', self.name+'_C',
+			self.name + '_uvset_list',
+			[self.name+'_abc_from_tex', self.name+'_smooth'],
+		]
+	
+	def get_enabled(self):
+		return {
+			self.name+'_A':	{ self.name+'_abc_from_tex': False },
+			self.name+'_B':	{ self.name+'_abc_from_tex': False },
+			self.name+'_C':	{ self.name+'_abc_from_tex': False },
+		}
+	
+	def get_visibility(self):
+		return {
+			self.name+'_texture_chooser':	{ self.channel_name+'_type': 'texture' },
+			self.name+'_abc_from_tex':		{ self.channel_name+'_type': 'texture' },
+			self.name+'_smooth':			{ self.channel_name+'_type': 'texture' },
+			self.name+'_uvset_list':		{ self.channel_name+'_type': 'texture' },
+			self.name+'_A':					{ self.channel_name+'_type': 'texture' },
+			self.name+'_B':					{ self.channel_name+'_type': 'texture' },
+			self.name+'_C':					{ self.channel_name+'_type': 'texture' },
+		}
+	
+	def get_properties(self):
+		return [
+			{
+				'type': 'prop_search',
+				'attr': self.name + '_texture_chooser',
+				'name': 'Texture',
+				'description': 'Texture',
+				'src': lambda s,c: s.material,
+				'src_attr': 'texture_slots',
+				'trg': lambda s, c: getattr(c, 'indigo_material_' + self.channel_name),
+				'trg_attr': self.name + '_texture',
+			},
+			{
+				# this is a hidden attr that is fed by the UI list above
+				'type': 'string',
+				'attr': self.name + '_texture',
+				'name': 'Texture',
+				'description': 'Texture',
+			},
+			{
+				'type': 'bool',
+				'attr': self.name+'_abc_from_tex',
+				'name': 'Use texture A,B,C',
+				'default': False
+			},
+			{
+				'type': 'bool',
+				'attr': self.name+'_smooth',
+				'name': 'Smooth',
+				'description': 'Smooth the texture by up-converting from 8bit to 16bit (for bumpmaps etc)',
+				'default': False
+			},
+			{
+				'type': 'float',
+				'attr': self.name+'_A',
+				'name': '(A) Brightness',
+				'description': '(A) Brightness',
+				'default': 0.0,
+				'precision': 5,
+			},
+			{
+				'type': 'float',
+				'attr': self.name+'_B',
+				'name': '(B) Scale',
+				'description': '(B) Scale',
+				'default': 1.0,
+				'precision': 5,
+				#'sub_type': 'DISTANCE',
+				#'unit': 'LENGTH'
+			},
+			{
+				'type': 'float',
+				'attr': self.name+'_C',
+				'name': '(C) Offset',
+				'description': '(C) Offset',
+				'default': 0.0,
+				'precision': 5,
+				#'sub_type': 'DISTANCE',
+				#'unit': 'LENGTH'
+			},
+			{
+				'type': 'prop_search',
+				'attr': self.name+'_uvset_list',
+				'name': 'UV Set',
+				'description': 'UV Set',
+				'src': lambda s, c: s.object.data,
+				'src_attr': 'uv_textures',
+				'trg': lambda s, c: getattr(c, 'indigo_material_%s'%self.channel_name),
+				'trg_attr': self.name+'_uvset',
+			},
+			{
+				# this is a hidden attr that is fed by the UI list above
+				'type': 'string',
+				'attr': self.name+'_uvset',
+				'name': 'UV Set',
+				'description': 'UV Set',
+			},
+		]
+
+@IndigoAddon.addon_register_class
+class indigo_texture(declarative_property_group):
+	ef_attach_to = ['Texture']
+	
+	controls = [
+		'image_ref',
+		'image_chooser',
+		'path',
+		'gamma',
+		'A', 'B', 'C'
+	]
+	
+	visibility = {
+		'image_chooser':	{ 'image_ref': 'blender' },
+		'path':				{ 'image_ref': 'file' },
+	}
+	
+	properties = [
+		{
+			'type': 'enum',
+			'attr': 'image_ref',
+			'name': 'Image Type',
+			'items': [
+				('blender', 'Blender', 'Use blender image reference'),
+				('file', 'File', 'Use file reference')
+			],
+			'expand': True
+		},
+		{
+			'type': 'string',
+			'attr': 'image',
+			'name': 'Image'
+		},
+		{
+			'type': 'prop_search',
+			'attr': 'image_chooser',
+			'name': 'Image',
+			'description': 'Image',
+			'src': lambda s, c: bpy.data,
+			'src_attr': 'images',
+			'trg': lambda s, c: getattr(c, 'indigo_texture'),
+			'trg_attr': 'image',
+		},
+		{
+			'type': 'string',
+			'attr': 'path',
+			'name': 'File',
+			'description': 'File',
+			'default': '',
+			'subtype': 'FILE_PATH'
+		},
+		{
+			'type': 'float',
+			'attr': 'gamma',
+			'name': 'Gamma',
+			'description':'Gamma',
+			'default': 2.2,
+			'precision': 5,
+		},
+		{
+			'type': 'float',
+			'attr': 'A',
+			'name': '(A) Brightness',
+			'description': '(A) Brightness',
+			'default': 0.0,
+			'precision': 5,
+		},
+		{
+			'type': 'float',
+			'attr': 'B',
+			'name': '(B) Scale',
+			'description': '(B) Scale',
+			'default': 1.0,
+			'precision': 5,
+			#'sub_type': 'DISTANCE',
+			#'unit': 'LENGTH'
+		},
+		{
+			'type': 'float',
+			'attr': 'C',
+			'name': '(C) Offset',
+			'description': '(C) Offset',
+			'default': 0.0,
+			'precision': 5,
+			#'sub_type': 'DISTANCE',
+			#'unit': 'LENGTH'
+		}
+	]
+
+class MaterialChannel(object):
+	
+	#controls = None
+	#enabled = None
+	#visibility = None
+	#properties = None
+	
+	#spectrum = None
+	#texture = None
+	#shader = None
+	
+	def __init__(self, name, **opts):
+		
+		self.name = name
+		
+		defaults = {
+			'spectrum': False,
+			'texture': False,
+			'shader': False,
+			'switch': False,
+			'spectrum_types': { 'rgb': True },
+			'label': None,
+			'master_colour': False,
+		}
+		defaults.update(opts)
+		self.opts = defaults
+		self.types = []
+		
+		if self.opts['spectrum']:
+			self.types.append( ('spectrum', 'Colour', 'spectrum') )
+			if self.opts['master_colour']: self.opts['spectrum_types'].update({ 'master_colour': True })
+			self.spectrum = Spectrum(name, **self.opts['spectrum_types'])
+		else:
+			self.spectrum = None
+		
+		if self.opts['texture']:
+			self.types.append( ('texture', 'Texture', 'texture') )
+			self.texture = Texture(name)
+		else:
+			self.texture = None
+		
+		if self.opts['shader']:
+			self.types.append( ('shader', 'Shader', 'shader') )
+			self.shader = Shader(name)
+		else:
+			self.shader = None
+		
+		self.controls = self.get_controls()
+		self.enabled = self.get_enabled()
+		self.visibility = self.get_visibility()
+		self.properties = self.get_properties()
+	
+	def get_properties(self):
+		if self.opts['label'] is None:
+			p = [{
+				'type': 'text',
+				'attr': self.name+'_label',
+				'name': ' '.join([i.capitalize() for i in self.name.split('_')]),
+			}]
+		else:
+			p = [{
+				'type': 'text',
+				'attr': self.name+'_label',
+				'name': self.opts['label'],
+			}]
+		
+		if self.opts['switch']:
+			p += [{
+				'type': 'bool',
+				'attr': self.name + '_enabled',
+				'name': 'Enabled',
+				'description': 'Enabled',
+				'default': False
+			}]
+		
+		p += [{
+			'type': 'enum',
+			'attr': self.name + '_type',
+			'name': self.name + ' Type',
+			'description': 'Type',
+			'default': self.types[0][0],
+			'items': self.types
+		}]
+		
+		if self.spectrum is not None:
+			p += self.spectrum.properties
+		if self.texture is not None:
+			p += self.texture.properties
+		if self.shader is not None:
+			p += self.shader.properties
+			
+		return p
+	
+	def get_controls(self):
+		c = []
+		if self.opts['switch']:
+			c += [
+#				[self.name+'_label', self.name+'_enabled'],
+			]
+		
+		c += [ self.name+'_type' ] if len(self.types) > 1 else []
+		
+		if self.spectrum is not None:
+			c += self.spectrum.controls
+		
+		if self.texture is not None:
+			c += self.texture.controls
+			
+		if self.shader is not None:
+			c += self.shader.controls
+		
+		return c
+	
+	def get_enabled(self):
+		d= {}
+		
+		if self.texture is not None:
+			td = deepcopy(self.texture.enabled)
+			#if self.opts['switch']:
+			#	for v in td.values():
+			#		v.update({self.name+'_enabled': True})
+			d.update(td)
+		
+		return d
+	
+	def get_visibility(self):
+		if self.opts['switch']:
+			d = {
+				self.name+'_type':	{ self.name+'_enabled': True },
+			}
+		else:
+			d = {}
+		
+		if self.spectrum is not None:
+			sd = deepcopy(self.spectrum.visibility)
+			if self.opts['switch']:
+				for v in sd.values():
+					v.update({self.name+'_enabled': True})
+			d.update(sd)
+		
+		if self.texture is not None:
+			td = deepcopy(self.texture.visibility)
+			if self.opts['switch']:
+				for v in td.values():
+					v.update({self.name+'_enabled': True})
+			d.update(td)
+		
+		if self.shader is not None:
+			td = deepcopy(self.shader.visibility)
+			if self.opts['switch']:
+				for v in td.values():
+					v.update({self.name+'_enabled': True})
+			d.update(td)
+		
+		return d
+
+@IndigoAddon.addon_register_class
+class indigo_material(declarative_property_group):
+	ef_attach_to = ['Material']
+	
+	controls = [
+		'type'
+	]
+	
+	visibility = {}
+	
+	properties = [
+		# Master material type
+		{
+			'type': 'enum',
+			'attr': 'type',
+			'name': 'Material Type',
+			'description': 'Indigo Material Type',
+			'default': 'diffuse',
+			'items': [
+				('diffuse', 'Diffuse', 'diffuse'),
+				('phong', 'Phong', 'phong'),
+				('specular', 'Specular', 'specular'),
+				('blended', 'Blended', 'blended'),
+				('external', 'External', 'external')
+			]
+		},
+	]
+	
+	def get_name(self, blender_mat):
+		if self.type == 'external' and self.indigo_material_external.is_valid:
+			# print('IS EXTERNAL MAT: %s/%s' % (blender_mat.name, self.indigo_material_external.material_name))
+			return self.indigo_material_external.material_name
+		
+		return blender_mat.name
+	
+	# xml element factory
+	
+	def factory(self, obj, mat, scene):
+		out_elements = []
+		
+		# Gather elements from features compatible with current mat type
+		if self.type in MATERIAL_FEATURES.keys():
+			for feature in MATERIAL_FEATURES[self.type]:
+				fpg = getattr(self, 'indigo_material_%s'%feature)
+				out_elements.extend( fpg.get_output(obj, self, mat, scene) )
+		
+		return out_elements
+
+class indigo_material_feature(declarative_property_group):
+	ef_attach_to = ['indigo_material']
+
+Cha_Emit = MaterialChannel('emission', spectrum=True,  texture=True, shader=False, switch=True, label='Emission', spectrum_types={'rgb':True,'blackbody':True,'uniform':True})
+
+def EmissionLightLayerParameter():
+	return [
+		{
+			'attr': 'emit_layer',
+			'type': 'string',
+			'name': 'emit_layer',
+			'description': 'lightlayer; leave blank to use default'
+		},
+		{
+			'type': 'prop_search',
+			'attr': 'lightlayer_chooser',
+			'src': lambda s,c: s.scene.indigo_lightlayers,
+			'src_attr': 'lightlayers',
+			'trg': lambda s,c: c.indigo_material_emission,
+			'trg_attr': 'emit_layer',
+			'name': 'Light Layer'
+		},
+	]
+
+@IndigoAddon.addon_register_class
+class indigo_material_emission(indigo_material_feature):
+	
+	controls = Cha_Emit.controls + \
+	[
+		'lightlayer_chooser',
+		'emission_scale',
+		'emit_power',
+		['emit_gain_val', 'emit_gain_exp'],
+		['emission_scale_value', 'emission_scale_exp'],
+		'emission_scale_measure',
+		'emit_ies', 'emit_ies_path',
+	]
+	
+	visibility = {
+		'lightlayer_chooser':		{ 'emission_enabled': True },
+		'emit_power':				{ 'emission_enabled': True, 'emission_scale': False },
+		'emit_gain_val':			{ 'emission_enabled': True, 'emission_scale': False },
+		'emit_gain_exp':			{ 'emission_enabled': True, 'emission_scale': False },
+		'emission_scale':			{ 'emission_enabled': True },
+		'emission_scale_value':		{ 'emission_enabled': True, 'emission_scale': True },
+		'emission_scale_exp':		{ 'emission_enabled': True, 'emission_scale': True },
+		'emission_scale_measure':	{ 'emission_enabled': True, 'emission_scale': True },
+		'emit_ies':					{ 'emission_enabled': True },
+		'emit_ies_path':			{ 'emission_enabled': True, 'emit_ies': True},
+	}
+	
+	visibility.update( Cha_Emit.visibility )
+	
+	enabled = Cha_Emit.enabled
+	
+	properties = Cha_Emit.properties + \
+		EmissionLightLayerParameter() + \
+		[
+		{
+			'type': 'float',
+			'attr': 'emit_power',
+			'name': ' Power',
+			'description': ' Power',
+			'default': 1500.0,
+			'min': 0.0,
+			'max': 1000000.0
+		},
+		{
+			'type': 'float',
+			'attr': 'emit_gain_val',
+			'name': ' Gain',
+			'description': ' Gain',
+			'default': 1.0,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'int',
+			'attr': 'emit_gain_exp',
+			'name': '*10^',
+			'description': 'Exponent',
+			'default': 0,
+			'min': -30,
+			'max': 30
+		},
+		{
+			'type': 'bool',
+			'attr': 'emission_scale',
+			'name': 'Emission scale',
+			'description': 'Emission scale',
+			'default': False,
+		},
+		{
+			'type': 'enum',
+			'attr': 'emission_scale_measure',
+			'name': 'Unit',
+			'description': 'Units for emission scale',
+			'default': 'luminous_flux',
+			'items': [
+				('luminous_flux', 'lm', 'Luminous flux'),
+				('luminous_intensity', 'cd', 'Luminous intensity (lm/sr)'),
+				('luminance', 'nits', 'Luminance (lm/sr/m/m)'),
+				('luminous_emittance', 'lux', 'Luminous emittance (lm/m/m)')
+			],
+		},
+		{
+			'type': 'float',
+			'attr': 'emission_scale_value',
+			'name': 'Value',
+			'description': 'Emission scale value',
+			'default': 1.0,
+			'min': 0.0,
+			'soft_min': 0.0,
+			'max': 10.0,
+			'soft_max': 10.0,
+		},
+		{
+			'type': 'int',
+			'attr': 'emission_scale_exp',
+			'name': '*10^',
+			'description': 'Emission scale exponent',
+			'default': 0,
+			'min': -30,
+			'max': 30
+		},
+		{
+			'type': 'bool',
+			'attr': 'emit_ies',
+			'name': 'IES Profile',
+			'description': 'IES Profile',
+			'default': False,
+		},
+		{
+			'type': 'string',
+			'subtype': 'FILE_PATH',
+			'attr': 'emit_ies_path',
+			'name': ' IES Path',
+			'description': ' IES Path',
+			'default': '',
+		},
+	]
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		return []
+
+Cha_Colour = MaterialChannel('colour', spectrum=True, texture=True, shader=True, switch=False, master_colour=True)
+
+@IndigoAddon.addon_register_class
+class indigo_material_colour(indigo_material_feature):
+	
+	controls	= Cha_Colour.controls
+	visibility	= Cha_Colour.visibility
+	enabled		= Cha_Colour.enabled
+	properties	= Cha_Colour.properties
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		return []
+
+Cha_Bump = MaterialChannel('bumpmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Bump Map')
+
+@IndigoAddon.addon_register_class
+class indigo_material_bumpmap(indigo_material_feature):
+	
+	controls	= Cha_Bump.controls
+	visibility	= Cha_Bump.visibility
+	enabled		= Cha_Bump.enabled
+	properties	= Cha_Bump.properties
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		return []
+
+Cha_Disp = MaterialChannel('displacement', spectrum=False, texture=True,  shader=True,  switch=True, label='Displacement Map')
+
+@IndigoAddon.addon_register_class
+class indigo_material_displacement(indigo_material_feature):
+	
+	controls	= Cha_Disp.controls
+	visibility	= Cha_Disp.visibility
+	enabled		= Cha_Disp.enabled
+	properties	= Cha_Disp.properties
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		return []
+
+Cha_Exp = MaterialChannel('exponent', spectrum=False, texture=True,  shader=True,  switch=True, label='Exponent Map')
+
+@IndigoAddon.addon_register_class
+class indigo_material_exponent(indigo_material_feature):
+	
+	controls	= Cha_Exp.controls
+	visibility	= Cha_Exp.visibility
+	enabled		= Cha_Exp.enabled
+	properties	= Cha_Exp.properties
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		return []
+
+Cha_BlendMap  = MaterialChannel('blendmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Blend Map')
+
+@IndigoAddon.addon_register_class
+class indigo_material_blendmap(indigo_material_feature):
+	
+	controls	= Cha_BlendMap.controls
+	visibility	= Cha_BlendMap.visibility
+	enabled		= Cha_BlendMap.enabled
+	properties	= Cha_BlendMap.properties
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		return []
+
+Spe_SSS_Scatter = MaterialChannel('sss_scatter', spectrum=True, texture=False, shader=False, switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True})
+Spe_SSS_Phase = MaterialChannel('sss_phase_hg', spectrum=True, texture=False, shader=False, switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True})
+Spe_Medium_Basic = MaterialChannel('medium_basic', spectrum=True, texture=False, shader=False, switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True}, master_colour=True)
+
+@IndigoAddon.addon_register_class
+class indigo_material_specular(indigo_material_feature):
+	
+	controls = [
+		'type',
+		'transparent', 'exponent',
+		'precedence',
+		
+		'medium_type',
+		'medium_ior',
+		'medium_cauchy_b',
+		'medium_gain',
+	] + \
+	Spe_Medium_Basic.controls + \
+	[
+		'medium_haemoglobin',
+		'medium_melanin',
+		'medium_eumelanin',
+		'medium_turbidity',
+		
+		'sss',
+	] + \
+	Spe_SSS_Scatter.controls + \
+	[
+		
+		'sss_phase_function',
+	] + \
+	Spe_SSS_Phase.controls
+	
+	visibility = {
+		'transparent':			{ 'type':'specular'},
+		'exponent':				{ 'type': 'glossy_transparent' },
+		
+		'medium_ior':			{ 'medium_type': 'basic' },
+		'medium_cauchy_b':		{ 'medium_type': 'basic' },
+		
+		'medium_basic_type':	{ 'medium_type': 'basic' },
+		'medium_haemoglobin':	{ 'medium_type': 'dermis' },
+		'medium_melanin':		{ 'medium_type': 'epidermis' },
+		'medium_eumelanin':		{ 'medium_type': 'epidermis' },
+		'medium_turbidity':		{ 'medium_type': 'atmosphere' },
+		
+		'sss_scatter_type'	:	{ 'sss': True },
+		'sss_phase_function':	{ 'sss': True },
+		'sss_phase_hg_type':	{ 'sss': True, 'sss_phase_function': 'hg' },
+	}
+	
+	Spe_SSS_Scatter_vis = deepcopy(Spe_SSS_Scatter.visibility)
+	
+	for k,v in Spe_SSS_Scatter_vis.items():
+		v.update({ 'sss': True })
+	
+	visibility.update( Spe_SSS_Scatter_vis )
+	
+	Spe_SSS_Phase_vis = deepcopy(Spe_SSS_Phase.visibility)
+	
+	for k,v in Spe_SSS_Phase_vis.items():
+		v.update({ 'sss': True, 'sss_phase_function': 'hg' })
+	
+	visibility.update( Spe_SSS_Phase_vis )
+	
+	Spe_Medium_Basic_vis = deepcopy(Spe_Medium_Basic.visibility)
+	
+	for k,v in Spe_Medium_Basic_vis.items():
+		v.update({ 'medium_type': 'basic' })
+	
+	visibility.update( Spe_Medium_Basic_vis )
+	
+	properties = [
+		{
+			'type': 'enum',
+			'attr': 'type',
+			'name': 'Specular Type',
+			'description': 'Specular Type',
+			'default': 'specular',
+			'items': [
+				('specular', 'Specular', 'specular'),
+				('glossy_transparent', 'Glossy Transparent', 'glossy_transparent'),
+			]
+		},
+		{
+			'type': 'bool',
+			'attr': 'transparent',
+			'name': 'Transparent',
+			'description': 'Transparent',
+			'default': False,
+		},
+		{
+			'type': 'float',
+			'attr': 'exponent',
+			'name': 'Exponent',
+			'description': 'Exponent',
+			'default': 1000.0,
+			'min': 0.0,
+			'max': 1000000.0
+		},
+		{
+			'type': 'int',
+			'attr': 'precedence',
+			'name': 'Precedence',
+			'description': 'Precedence',
+			'default': 10,
+			'min': 1,
+			'max': 100
+		},
+		{
+			'type': 'bool',
+			'attr': 'sss',
+			'name': 'SSS',
+			'description': 'SSS',
+			'default': False,
+		},
+		{
+			'type': 'enum',
+			'attr': 'sss_phase_function',
+			'name': 'Phase Function',
+			'description': 'Phase Function',
+			'default': 'uniform',
+			'items': [
+				('uniform', 'Uniform', 'uniform'),
+				('hg', 'Henyey Greenstein', 'hg')
+			]
+		},
+		{
+			'type': 'enum',
+			'attr': 'medium_type',
+			'name': 'Medium Type',
+			'description': 'Medium Type',
+			'default': 'basic',
+			'items': [
+				('basic', 'Basic', 'basic'),
+				('dermis', 'Dermis', 'dermis'),
+				('epidermis', 'Epidermis', 'epidermis'),
+				('atmosphere', 'Atmosphere', 'atmosphere'),
+			]
+		},
+		{
+			'type': 'float',
+			'attr': 'medium_ior',
+			'name': 'IOR',
+			'description': 'IOR',
+			'default': 1.0,
+			'min': 0.0,
+			'max': 20.0,
+			'precision': 6
+		},
+		{
+			'type': 'float',
+			'attr': 'medium_cauchy_b',
+			'name': 'Cauchy B',
+			'description': 'Cauchy B',
+			'default': 0.0,
+			'min': 0.0,
+			'max': 1.0,
+			'precision': 6
+		},
+		{
+			'type': 'float',
+			'attr': 'medium_haemoglobin',
+			'name': 'Haemoglobin',
+			'description': 'Haemoglobin',
+			'default': 0.001,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'float',
+			'attr': 'medium_melanin',
+			'name': 'Melanin',
+			'description': 'Melanin',
+			'default': 0.15,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'float',
+			'attr': 'medium_eumelanin',
+			'name': 'Eumelanin',
+			'description': 'Eumelanin',
+			'default': 0.001,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'float',
+			'attr': 'medium_turbidity',
+			'name': 'Turbidity',
+			'description': 'Turbidity',
+			'default': 2.2,
+			'min': 1.0,
+			'max': 10.0
+		},
+	] + \
+		Spe_Medium_Basic.properties + \
+		Spe_SSS_Scatter.properties + \
+		Spe_SSS_Phase.properties
+	
+	def _copy_props(self, src, trg):
+		for prop in src.properties:
+			attr_name = prop['attr']
+			if hasattr(src, attr_name):
+				setattr(
+					trg,
+					attr_name,
+					getattr(src, attr_name)
+				)
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		im = SpecularMaterial(obj, blender_material.name, indigo_material, self).build_xml_element(
+			blender_material,
+			scene=scene
+		)
+		sm = SpecularMedium(blender_material.name, self)
+		self._copy_props(self, sm)
+		sme = sm.build_xml_element( blender_material )
+		
+		return [sme, im]
+
+@IndigoAddon.addon_register_class
+class indigo_material_diffuse(indigo_material_feature):
+	
+	channel_name = 'albedo'
+	
+	controls = [
+		'transmitter',
+		'sigma'
+	]
+	
+	visibility = {
+		'sigma': { 'transmitter': False }
+	}
+	
+	properties = [
+		{
+			'type': 'bool',
+			'attr': 'transmitter',
+			'name': 'Transmitter',
+			'description': 'Diffuse Transmitter',
+			'default': False,
+		},
+		{
+			'type': 'float',
+			'attr': 'sigma', # if sigma > 0, export an oren-nayar instead
+			'name': 'Sigma',
+			'description': 'Oren-Nayar Sigma Parameter',
+			'default': 0.0,
+			'min': 0.0,
+			'max': 20.0
+		},
+	]
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		im = DiffuseMaterial(obj, blender_material.name, indigo_material, self).build_xml_element(
+			blender_material,
+			scene=scene
+		)
+		return [im]
+
+NK_CACHE = {}
+
+def find_nkdata(self, context):
+	try:
+		nk_path = os.path.join(getResourcesPath(context.scene), 'nkdata')
+		if not os.path.exists(nk_path):
+			return []
+		
+		if nk_path in NK_CACHE.keys():
+			return NK_CACHE[nk_path]
+		
+		nks = os.listdir(nk_path)
+		nks = [('nkdata/' + nk, nk[:-3], nk[:-3]) for nk in nks if nk[0] != '.']
+		NK_CACHE[nk_path] = nks
+		return nks
+	except:
+		return []
+
+@IndigoAddon.addon_register_class
+class indigo_material_phong(indigo_material_feature):
+	
+	channel_name = 'diffuse_albedo'
+	
+	controls = [
+		'specular_reflectivity',
+		'exponent',
+		
+		'nk_data_type',
+		'nk_data_preset',
+		'nk_data_file',
+		
+		'ior'
+	]
+	
+	visibility = {
+		'ior':				{ 'nk_data_type': 'none' },
+		'nk_data_preset':	{ 'nk_data_type': 'preset' },
+		'nk_data_file':		{ 'nk_data_type': 'file' },
+	}
+	
+	properties = [
+		{
+			'type': 'bool',
+			'attr': 'specular_reflectivity',
+			'name': 'Specular Reflectivity',
+			'description': 'Specular Reflectivity',
+			'default': False
+		},
+		{
+			'type': 'enum',
+			'attr': 'nk_data_type',
+			'name': 'NK Type',
+			'items': [
+				('none', 'None', 'Do not use NK data'),
+				('preset', 'Preset', 'Use an NK preset'),
+				('file', 'File', 'Use specified NK file')
+			],
+			'default': 'none'
+		},
+		{
+			'type': 'enum',
+			'attr': 'nk_data_preset',
+			'name': 'NK Preset',
+			'items': find_nkdata
+		},
+		{
+			'type': 'string',
+			'attr': 'nk_data_file',
+			'name': 'NK Data',
+			'description': 'NK Data',
+			'default': '',
+			'subtype': 'FILE_PATH'
+		},
+		{
+			'type': 'float',
+			'attr': 'exponent',
+			'name': 'Exponent',
+			'description': 'Exponent',
+			'default': 1000.0,
+			'min': 0.0,
+			'max': 1000000.0
+		},
+		{
+			'type': 'float',
+			'attr': 'ior',
+			'name': 'IOR',
+			'description': 'IOR',
+			'default': 1.3,
+			'min': 0.0,
+			'max': 20.0,
+			'precision': 6
+		},
+	]
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		im = PhongMaterial(obj, blender_material.name, indigo_material, self).build_xml_element(
+			blender_material,
+			scene=scene
+		)
+		return [im]
+
+@IndigoAddon.addon_register_class
+class indigo_material_blended(indigo_material_feature):
+	
+	controls = [
+		'step',
+		[0.8, 'a', 'a_null'],
+		[0.8, 'b', 'b_null'],
+		'factor',
+	]
+	
+	visibility = {}
+	
+	enabled = {
+		'a': { 'a_null': False },
+		'b': { 'b_null': False }
+	}
+	
+	properties = [
+		{
+			'type': 'float',
+			'attr': 'factor',
+			'name': 'Blend Factor',
+			'description': 'Blend Factor',
+			'default': 0.5,
+			'min': 0.0,
+			'max': 1.0,
+		},
+		{
+			'type': 'bool',
+			'attr': 'step',
+			'name': 'Step Blend',
+			'description': 'Step Blend; use for "clip maps"',
+			'default': False,
+		},
+		{
+			'type': 'string',
+			'attr': 'a_index',
+			'name': 'a_index',
+			'description': 'a_index',
+		},
+		{
+			'attr': 'a',
+			'type': 'prop_search',
+			'name': 'Material A',
+			# source data list
+			'src': lambda s,c: bpy.data,
+			'src_attr': 'materials',
+			# target property
+			'trg': lambda s,c: c.indigo_material_blended,
+			'trg_attr': 'a_index',
+			'text': 'Material A',
+		},
+		{
+			'type': 'bool',
+			'attr': 'a_null',
+			'name': 'Null',
+			'description': 'Use Null material for slot A',
+			'default': False,
+		},
+		
+		{
+			'type': 'string',
+			'attr': 'b_index',
+			'name': 'b_index',
+			'description': 'b_index',
+		},
+		{
+			'attr': 'b',
+			'type': 'prop_search',
+			'name': 'Material B',
+			# source data list
+			'src': lambda s,c: bpy.data,
+			'src_attr': 'materials',
+			# target property
+			'trg': lambda s,c: c.indigo_material_blended,
+			'trg_attr': 'b_index',
+			'text': 'Material B',
+		},
+		{
+			'type': 'bool',
+			'attr': 'b_null',
+			'name': 'Null',
+			'description': 'Use Null material for slot B',
+			'default': False,
+		},
+	]
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		materials = []
+		
+		if not self.a_null and self.a_index in bpy.data.materials:
+			mata = bpy.data.materials[self.a_index]
+			materials.extend(
+				mata.indigo_material.factory(obj, mata, scene)
+			)
+		
+		if not self.b_null and self.b_index in bpy.data.materials:
+			matb = bpy.data.materials[self.b_index]
+			materials.extend(
+				matb.indigo_material.factory(obj, matb, scene)
+			)
+		
+		materials.append( BlendMaterial(obj, blender_material.name, indigo_material, self).build_xml_element(
+			blender_material,
+			scene=scene
+		) )
+		return materials
+
+def try_file_decode(raw_bytes):
+	if type(raw_bytes) != type(b''):
+		return raw_bytes
+	
+	# use these character encodings in order of preference
+	for encoding in ['utf-8', 'latin-1', 'ascii']:
+		try:
+			decoded_string = raw_bytes.decode(encoding)
+			return decoded_string
+		except:
+			continue
+	
+	raise Exception('Cannot decode bytes from file')
+
+def check_pigm(self, context):
+	try:
+		self.material_name = 'Checking...'
+		extmat_file = efutil.filesystem_path( self.filename )
+		if not os.path.exists(extmat_file):
+			ex_str = 'Invalid file path for External material'
+			if (hasattr(context, "name")):
+				ex_str += ' "%s"' % context.name
+			raise Exception(ex_str)
+			
+		if self.filename[-5:].lower() == '.pigm':
+			
+			if not zipfile.is_zipfile( extmat_file ):
+				ex_str = 'Invalid PIGM file for External material'
+				if (hasattr(context, "name")):
+					ex_str += ' "%s"' % context.name
+				raise Exception(ex_str)
+			
+			with zipfile.ZipFile(extmat_file, 'r') as zf:
+				igm_filename = ''
+				for zf_internal in zf.namelist():
+					if zf_internal[-4:].lower() == '.igm':
+						igm_filename = zf_internal
+						break
+				
+				if igm_filename == '':
+					ex_str = 'No IGM found in PIGM for External material'
+					if (hasattr(context, "name")):
+						ex_str += ' "%s"' % context.name
+					raise Exception(ex_str)
+				
+				with zf.open(igm_filename, 'r') as igm_file:
+					igm_data = try_file_decode(igm_file.read())
+		
+		elif self.filename[-4:].lower() == '.igm':
+			with open(extmat_file, 'r') as igm_file:
+				igm_data = try_file_decode(igm_file.read())
+		else:
+			ex_str = 'Not an IGM or PIGM file for External material'
+			if (hasattr(context, "name")):
+				ex_str += ' "%s"' % context.name
+			raise Exception(ex_str)
+		
+		igm_name_matches = re.findall('<name>(.*)</name>', igm_data, re.IGNORECASE)
+		if igm_name_matches == None:
+			ex_str = 'Cannot find IGM name for External material'
+			if (hasattr(context, "name")):
+				ex_str += ' "%s"' % context.name
+			raise Exception(ex_str)
+		
+		igm_name = igm_name_matches[-1]	# take the last material definition in the file
+		if igm_name == '':
+			ex_str = 'Cannot find IGM name for External material'
+			if (hasattr(context, "name")):
+				ex_str += ' "%s"' % context.name
+			raise Exception(ex_str)
+		
+		self.material_name = igm_name
+		
+		if 'material_name' in self.alert:
+			del self.alert['material_name']
+		
+		self.is_valid = True
+	except Exception as err:
+		#print('%s' % err)
+		self.alert['material_name'] = True
+		self.material_name = '%s' % err
+		self.is_valid = False
+		raise err
+
+@IndigoAddon.addon_register_class
+class indigo_material_external(indigo_material_feature):
+	
+	controls = [
+		'filename',
+		'material_name'
+	]
+	
+	visibility = {}
+	
+	alert = {}
+	
+	enabled = {
+		'material_name': False
+	}
+	
+	properties = [
+		{
+			'type': 'string',
+			'subtype': 'FILE_PATH',
+			'attr': 'filename',
+			'name': 'IGM or PIGM file',
+			'description': 'IGM or PIGM file',
+			'default': '',
+			'update': check_pigm
+		},
+		{
+			'type': 'string',
+			'attr': 'material_name',
+			'name': 'Name'
+		},
+		{
+			'type': 'bool',
+			'attr': 'is_valid',
+			'default': False
+		},
+	]
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		check_pigm(self, blender_material)
+		
+		if self.is_valid:
+			
+			extmat_file = efutil.filesystem_path( self.filename )
+			if not os.path.exists(extmat_file):
+				return []
+			
+			if self.filename[-5:].lower() == '.pigm':
+				
+				if not zipfile.is_zipfile( extmat_file ):
+					return []
+				
+				with zipfile.ZipFile(extmat_file) as zf:
+					igm_filename = ''
+					for zf_internal in zf.namelist():
+						if zf_internal[-4:].lower() == '.igm':
+							igm_filename = zf_internal
+							break
+					
+					if igm_filename == '':
+						return []
+					
+					zf.extractall(efutil.export_path)
+			
+			elif self.filename[-4:].lower() == '.igm':
+				extmat_file = efutil.path_relative_to_export( self.filename )
+				igm_filename = extmat_file
+			else:
+				return []
+			
+			im = ExternalMaterial(igm_filename).build_xml_element(
+				blender_material
+			)
+			return [im]
+		else:
+			return []
