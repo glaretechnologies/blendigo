@@ -440,7 +440,10 @@ class igmesh_stream(igmesh):
 		self.num_vert_positions-=1
 		if self.num_vert_positions == 0:
 			self.SEQ+=1
-	
+
+	def add_vert_position_fast(self, vec3f):
+		self.file_handle.write(self.pack(self.f3, *vec3f[:]))
+
 	def add_num_vert_normals(self, val):
 		self.check_sequence(self.SEQ_NVN)
 		self.encode_uint32(val)
@@ -454,6 +457,9 @@ class igmesh_stream(igmesh):
 		self.num_vert_normals-=1
 		if self.num_vert_normals == 0:
 			self.SEQ+=1
+
+	def add_vert_normal_fast(self, vec3f):
+		self.file_handle.write(self.pack(self.f3, *vec3f[:]))
 	
 	def add_num_uv_pairs(self, val):
 		self.check_sequence(self.SEQ_NUP)
@@ -468,6 +474,9 @@ class igmesh_stream(igmesh):
 		self.num_uv_pairs -= 1
 		if self.num_uv_pairs == 0:
 			self.SEQ+=1
+	
+	def add_uv_pair_fast(self, vec2f):
+		self.file_handle.write(self.pack(self.f2, *vec2f[:]))
 	
 	def add_num_triangles(self, val):
 		#if self.debug:
@@ -485,3 +494,11 @@ class igmesh_stream(igmesh):
 		if self.num_triangles == 0:
 			self.SEQ+=1
 			self.finish()
+
+	def add_triangle_fast(self, vert_idx, uv_idx, mat_idx):
+
+		self.file_handle.write( self.pack(self.I3, *vert_idx ))
+		self.file_handle.write( self.pack(self.I3, *uv_idx ))
+		self.file_handle.write( self.pack(self.I1, mat_idx ))
+
+		self.bytes_written += 7 * 4 #7 * self.calcsize('I')

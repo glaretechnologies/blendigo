@@ -119,23 +119,25 @@ class igmesh_writer(object):
 		
 		if len(mesh.vertices) < 1:
 			raise UnexportableObjectException('Object %s has no verts!' % obj.name)
-		
+
 		render_uvs = [uvt for uvt in mesh.tessface_uv_textures]
 		num_uv_sets = len(render_uvs)
-		
+
 		igo.add_num_uv_mappings(num_uv_sets)
-		
+
+		total_tris = 0
 		used_mat_indices = set()
 		for face in mesh.tessfaces:
+			total_tris += len(face.vertices) - 2
 			used_mat_indices.add(face.material_index)
-		
+
 		mats = []
 		if len(obj.material_slots) > 0:
 			# need to attach all mats up to max used index
-			for mi in range(max(used_mat_indices)+1): #sorted([mi for mi in used_mat_indices]):
+			for mi in range(max(used_mat_indices) + 1): #sorted([mi for mi in used_mat_indices]):
 				mat = obj.material_slots[mi].material
 				if mat == None: continue
-				mats.append( mat )
+				mats.append(mat)
 		
 		num_mats = len(mats)
 		if num_mats == 0:
@@ -159,10 +161,10 @@ class igmesh_writer(object):
 		igo.add_num_uv_set_expositions(num_uv_sets)
 		for i,uvt in enumerate(render_uvs):
 			igo.add_uv_set_exposition(uvt.name, i)
-		
+
 		vert_cache = []
 		normal_cache = []
-		
+
 		# Write vertices and normals, and collate face indices against
 		# verts using vert normal or face normal
 		
@@ -202,20 +204,26 @@ class igmesh_writer(object):
 		
 		del vert_vno_indices
 		del vert_use_vno
-		
+
+
 		igo.add_num_vert_positions(len(vert_cache))
 		for v in vert_cache:
-			igo.add_vert_position(v)
-		
+			igo.add_vert_position_fast(v)
+
+		igo.SEQ += 1
+
 		igo.add_num_vert_normals(len(normal_cache))
 		for n in normal_cache:
-			igo.add_vert_normal(n)
-		
+			igo.add_vert_normal_fast(n)
+
+		igo.SEQ += 1
+
+
 		del vert_cache
 		del normal_cache
-		
+
 		igo.add_num_uv_pairs(4*len(mesh.tessfaces)*num_uv_sets)
-		
+
 		if num_uv_sets > 0:
 			# UVs are interleaved thus -
 			# face[0].uv[0].co[0]
@@ -225,51 +233,55 @@ class igmesh_writer(object):
 			# ..
 			# face[1].uv[*].co[*]
 			for face in mesh.tessfaces:
-				add_blank_uv4 = len(face.vertices)==3
+				add_blank_uv4 = len(face.vertices) == 3
 				for uv_coord_idx in range(4):
 					for uv_index in range(num_uv_sets):
-						if add_blank_uv4 and uv_coord_idx==3:
-							igo.add_uv_pair( tuple([0,0]) )
+						if add_blank_uv4 and uv_coord_idx == 3:
+							igo.add_uv_pair_fast(tuple([0,0]))
 						else:
-							igo.add_uv_pair( tuple(render_uvs[uv_index].data[face.index].uv[uv_coord_idx]) )
-		
-		total_tris = 0
-		for face in mesh.tessfaces:
-			total_tris+=1
-			if len(face.vertices) > 3: total_tris+=1
-		
+							igo.add_uv_pair_fast(tuple(render_uvs[uv_index].data[face.index].uv[uv_coord_idx]))
+
+			igo.SEQ += 1
+
+
 		igo.add_num_triangles(total_tris)
+
 		
 		# Write triangles
-		
+
 		if num_uv_sets > 0:
 			for face in mesh.tessfaces:
 				uv_idx = face.index * 4
-				igo.add_triangle({
-					'vertex_indices': face_vert_indices[face.index][0:3],
-					'uv_indices': (uv_idx, uv_idx+1, uv_idx+2),
-					'tri_mat_index': face.material_index
-				})
+				igo.add_triangle_fast(
+					face_vert_indices[face.index][0:3],
+					(uv_idx, uv_idx + 1, uv_idx + 2),
+					face.material_index
+				)
 				if len(face.vertices) > 3:
-					igo.add_triangle({
-						'vertex_indices': (face_vert_indices[face.index][0], face_vert_indices[face.index][2], face_vert_indices[face.index][3]),
-						'uv_indices': (uv_idx, uv_idx+2, uv_idx+3),
-						'tri_mat_index': face.material_index
-					})
+					igo.add_triangle_fast(
+						(face_vert_indices[face.index][0], face_vert_indices[face.index][2], face_vert_indices[face.index][3]),
+						(uv_idx, uv_idx + 2, uv_idx + 3),
+						face.material_index
+					)
 		else:
 			for face in mesh.tessfaces:
-				igo.add_triangle({
-					'vertex_indices': face_vert_indices[face.index][0:3],
-					'uv_indices': (0,0,0),
-					'tri_mat_index': face.material_index
-				})
+				igo.add_triangle_fast(
+					face_vert_indices[face.index][0:3],
+					(0, 0, 0),
+					face.material_index
+				)
 				if len(face.vertices) > 3:
-					igo.add_triangle({
-						'vertex_indices': (face_vert_indices[face.index][0], face_vert_indices[face.index][2], face_vert_indices[face.index][3]),
-						'uv_indices': (0,0,0),
-						'tri_mat_index': face.material_index
-					})
-		
+					igo.add_triangle_fast(
+						(face_vert_indices[face.index][0], face_vert_indices[face.index][2], face_vert_indices[face.index][3]),
+						(0, 0, 0),
+						face.material_index
+					)
+
+		igo.SEQ += 1
+
+		igo.finish()
+
+
 		if len(obj.modifiers) > 0 or obj.type in ['SURFACE', 'FONT', 'CURVE']:
 			# Remove mesh with applied modifiers
 			bpy.data.meshes.remove(mesh)
