@@ -17,7 +17,7 @@ if __name__ == '__main__':
 		TAG			= '.'.join(['%i'%i for i in bl_info['version']])
 		BL_VERSION	= '.'.join(['%i'%i for i in bl_info['blender']])
 		
-		ZIP_NAME = "blendigo-2.5-%s.zip" % TAG
+		ZIP_NAME = "blendigo-2.6-%s.zip" % TAG
 		
 		# update code to tagged version
 		#subprocess.call("hg update -r %s" % TAG)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 		# Make windows installer
 		os.environ['BLENDIGO_VERSION'] = TAG
 		os.environ['BLENDER_VERSION'] = '%i.%i%i' % bl_info['blender']
-		INSTALLER_NAME = "blendigo-2.5-%s-installer.exe" % TAG
+		INSTALLER_NAME = "blendigo-2.6-%s-installer.exe" % TAG
 		os.chdir('./installer_windows')
 		subprocess.call("makensis blendigo-25.nsi")
 		os.chdir(cwd)

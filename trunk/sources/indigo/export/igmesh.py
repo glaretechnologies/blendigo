@@ -167,41 +167,41 @@ class igmesh_writer(object):
 
 		# Write vertices and normals, and collate face indices against
 		# verts using vert normal or face normal
-		
+
 		face_vert_indices = {}		# mapping of face index to list of exported vert indices for that face
 		vert_vno_indices = {}		# mapping of vert index to exported vert index for verts with vert normals
 		vert_use_vno = set()		# Set of vert indices that use vert normals
-		
+
 		vert_index = 0				# exported vert index
 		for face in mesh.tessfaces:
 			face_vert_indices[face.index] = []
-			
+
 			for vertex in face.vertices:
 				v = mesh.vertices[vertex]
-				
+
 				if face.use_smooth:
-					
+
 					if vertex not in vert_use_vno:
 						vert_use_vno.add(vertex)
-						
+
 						vert_cache.append(v.co)
 						normal_cache.append(v.normal)
 						vert_vno_indices[vertex] = vert_index
 						face_vert_indices[face.index].append(vert_index)
-						
+
 						vert_index += 1
 					else:
 						face_vert_indices[face.index].append(vert_vno_indices[vertex])
-					
+
 				else:
-					
+
 					# face-vert-co-no are all unique, no caching
 					# possible
 					vert_cache.append(v.co)
 					normal_cache.append(face.normal)
 					face_vert_indices[face.index].append(vert_index)
 					vert_index += 1
-		
+
 		del vert_vno_indices
 		del vert_use_vno
 
