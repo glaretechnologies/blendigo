@@ -3,11 +3,11 @@
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
 # --------------------------------------------------------------------------
-# Blender 2.5 Indigo Add-On
+# Blender 2.6 Indigo Add-On
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond
+# Doug Hammond, Thomas Ludwig
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 bl_info = {
 	"name": "Blendigo",
 	"author": "Glare Technologies Ltd.",
-	"version": (3, 2, 14, 0),
+	"version": (3, 2, 14, 1),
 	"blender": (2, 6, 3),
 	"api": 44136,
 	"category": "Render",

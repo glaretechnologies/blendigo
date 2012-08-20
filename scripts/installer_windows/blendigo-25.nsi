@@ -10,10 +10,10 @@
 !define BLENDER_VERSION $%BLENDER_VERSION%
 
 ; The name of the installer
-Name "Blendigo-2.5 ${BLENDIGO_VERSION} for Blender ${BLENDER_VERSION}"
+Name "Blendigo-2.6 ${BLENDIGO_VERSION} for Blender ${BLENDER_VERSION}"
 
 ; The file to write
-OutFile "blendigo-2.5-${BLENDIGO_VERSION}-installer.exe"
+OutFile "blendigo-2.6-${BLENDIGO_VERSION}-installer.exe"
 
 ;--------------------------------
 ; New style GUI setup
@@ -156,12 +156,12 @@ Section "" ;No components page, name is not important
   File /r ..\..\sources\indigo\*.py
   
   ; Write the uninstall keys for Windows
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.5" "DisplayName" "Blendigo-2.5"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.5" "BlenderVersion" "${BLENDER_VERSION}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.5" "InstallDir" "$INSTDIR"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.5" "UninstallString" '"$INSTDIR\${BLENDER_VERSION}\scripts\addons\Blendigo_uninstall.exe"'
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.5" "NoModify" 1
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.5" "NoRepair" 1
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "DisplayName" "Blendigo-2.6"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "BlenderVersion" "${BLENDER_VERSION}"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "InstallDir" "$INSTDIR"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "UninstallString" '"$INSTDIR\${BLENDER_VERSION}\scripts\addons\Blendigo_uninstall.exe"'
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "NoModify" 1
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "NoRepair" 1
   WriteUninstaller "$INSTDIR\${BLENDER_VERSION}\scripts\addons\Blendigo_uninstall.exe"
   
 SectionEnd ; end the section
@@ -169,10 +169,10 @@ SectionEnd ; end the section
 Section "Uninstall"
   
   Var /GLOBAL BLENDER_VERSION
-  ReadRegStr $BLENDER_VERSION HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.5" "BlenderVersion"
+  ReadRegStr $BLENDER_VERSION HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "BlenderVersion"
   
   Var /GLOBAL INSTALL_DIR
-  ReadRegStr $INSTALL_DIR HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.5" "InstallDir"
+  ReadRegStr $INSTALL_DIR HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "InstallDir"
   
   ; Remove files and uninstaller
   Delete $INSTALL_DIR\$BLENDER_VERSION\scripts\addons\Blendigo_uninstall.exe
@@ -180,6 +180,6 @@ Section "Uninstall"
   rmdir $INSTALL_DIR\$BLENDER_VERSION\scripts\addons\indigo
 
   ; Remove registry keys
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.5"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6"
 
 SectionEnd
