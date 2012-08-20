@@ -232,6 +232,7 @@ class GeometryExporter(SceneIterator):
 	
 	# serial counter for instances exported
 	object_id = 0
+	mesh_num = 0
 	
 	def __init__(self, scene, background_set=None):
 		self.scene = scene
@@ -380,9 +381,11 @@ class GeometryExporter(SceneIterator):
 			# This should auto-allow per-instance materials by renaming the underlying mesh
 			# with the material names used
 			exported_mesh_name = obj.data.name
-			for ms in obj.material_slots:
-				if ms.material != None:
-					exported_mesh_name += '.' + ms.material.name
+			#for ms in obj.material_slots:
+			#	if ms.material != None:
+			#		exported_mesh_name += '.' + ms.material.name
+			exported_mesh_name += '_' + str(self.mesh_num)
+			self.mesh_num += 1
 			
 			exported_mesh_name = bpy.path.clean_name(exported_mesh_name)
 			
