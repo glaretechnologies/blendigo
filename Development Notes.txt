@@ -1,0 +1,30 @@
+
+Testing Changes
+==========================================
+
+Step 1
+------------
+Make changes to source code
+
+Step 2
+------------
+Run 
+	ruby .\copy_to_addons_dir.rb
+to copy source files to your Blender directory.  Note you may have to change the Blender path in copy_to_addons_dir.rb.
+
+Step 3
+------------
+Reload blendigo script in Blender.
+
+Can press F8 to reload scripts, but this doesn't always seem to work.
+Restart Blender to be sure.
+
+
+
+
+To make a new release
+===========================================
+
+
+cd scripts
+python make_release.py USERNAME

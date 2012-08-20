@@ -53,17 +53,22 @@ if __name__ == '__main__':
 		if os.path.exists(ZIP_NAME):
 			# use 3rd argument as debug switch; prevents upload and emails
 			# upload the release and notify via email
-			subprocess.call("pscp -i \"%(UP)s/.ssh/id_rsa.ppk\" %(ZN)s %(UN)s@indigorenderer.com:/home/%(UN)s/blendigo" % {'ZN':ZIP_NAME, 'UN':SERVER_USER, 'UP': os.environ['USERPROFILE']})
-			subprocess.call("pscp -i \"%(UP)s/.ssh/id_rsa.ppk\" installer_windows\%(IN)s %(UN)s@indigorenderer.com:/home/%(UN)s/blendigo" % {'IN': INSTALLER_NAME, 'UN':SERVER_USER, 'UP': os.environ['USERPROFILE']})
+			#subprocess.call("pscp -i \"%(UP)s/.ssh/id_rsa.ppk\" %(ZN)s %(UN)s@indigorenderer.com:/home/%(UN)s/blendigo" % {'ZN':ZIP_NAME, 'UN':SERVER_USER, 'UP': os.environ['USERPROFILE']})
+			#subprocess.call("pscp -i \"%(UP)s/.ssh/id_rsa.ppk\" installer_windows\%(IN)s %(UN)s@indigorenderer.com:/home/%(UN)s/blendigo" % {'IN': INSTALLER_NAME, 'UN':SERVER_USER, 'UP': os.environ['USERPROFILE']})
+			#subprocess.call("pscp %(ZN)s %(UN)s@indigorenderer.com:/home/%(UN)s/blendigo" % {'ZN':ZIP_NAME, 'UN':SERVER_USER, 'UP': os.environ['USERPROFILE']})
+			#subprocess.call("pscp installer_windows\%(IN)s %(UN)s@indigorenderer.com:/home/%(UN)s/blendigo" % {'IN': INSTALLER_NAME, 'UN':SERVER_USER, 'UP': os.environ['USERPROFILE']})
 			
-			from send_release_email import send_release_email
-			DIST_URL = "http://www.indigorenderer.com/dist/exporters/blendigo/"
-			send_release_email(
-				TAG,
-				"%(DU)s%(ZN)s\n%(DU)s%(IN)s" % { 'DU': DIST_URL, 'ZN': ZIP_NAME, 'IN': INSTALLER_NAME},
-				BL_VERSION,
-				rt_log
-			)
+			subprocess.call("pscp %(ZN)s %(UN)s@indigorenderer.com:/var/www/indigorenderer.com/dist/exporters/blendigo" % {'ZN':ZIP_NAME, 'UN':SERVER_USER, 'UP': os.environ['USERPROFILE']})
+			subprocess.call("pscp installer_windows\%(IN)s %(UN)s@indigorenderer.com:/var/www/indigorenderer.com/dist/exporters/blendigo" % {'IN': INSTALLER_NAME, 'UN':SERVER_USER, 'UP': os.environ['USERPROFILE']})
+			
+			#from send_release_email import send_release_email
+			#DIST_URL = "http://www.indigorenderer.com/dist/exporters/blendigo/"
+			#send_release_email(
+			#	TAG,
+			#	"%(DU)s%(ZN)s\n%(DU)s%(IN)s" % { 'DU': DIST_URL, 'ZN': ZIP_NAME, 'IN': INSTALLER_NAME},
+			#	BL_VERSION,
+			#	rt_log
+			#)
 		else:
 			print("%s was not created, cannot upload!" % ZIP_NAME)
 	

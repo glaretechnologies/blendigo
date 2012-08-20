@@ -129,7 +129,8 @@ class ExportProgressThread(efutil.TimerThread):
 		if self.exported_objects != self.last_update:
 			self.last_update = self.exported_objects
 			pc = int(100 * self.exported_objects/self.total_objects)
-			indigo_log(self.message % pc)
+			# NOTE: Disabled line below as was causing crashes of Blender.
+			# indigo_log(self.message % pc)
 
 class ExportCache(object):
 	
