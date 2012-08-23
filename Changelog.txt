@@ -1,0 +1,6 @@
+
+3.2.14.2
+--------
+* Mesh export is a lot faster (~3x faster)
+* Changed the way UVs are exported.
+* Indigo 3.4.6 is now required.

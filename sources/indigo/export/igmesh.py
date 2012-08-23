@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond
+# Doug Hammond, Nicholas Chapman
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -28,83 +28,94 @@ import bpy			#@UnresolvedImport
 
 from indigo.export import UnexportableObjectException
 from indigo.export._igmesh import igmesh, igmesh_stream
+from indigo.export import ( indigo_log )
+import time
+import array
+
+
+### Some utility methods for writing binary data to a file. ###
+
+def write_uint32(file, x):
+	a = array.array('i', [x]) # NOTE: this is actually signed
+	a.tofile(file)
+	
+	
+def write_string(file, s):
+	string_bytes = bytearray(s.encode(encoding='UTF-8'))
+
+	# Write length of string
+	write_uint32(file, len(string_bytes))
+	
+	# Write string bytes.
+	a = array.array('b', string_bytes)
+	a.tofile(file)
+	
+	
+def write_list_of_vec2s(file, vec2_list):
+	# Write length of vector
+	write_uint32(file, len(vec2_list))
+	
+	# Convert the list of vec3s to a list of floats
+	component_list = []
+	for v in vec2_list:
+		component_list.extend([v[0], v[1]])
+
+	# Write the list of floats
+	a = array.array('f', component_list)
+	a.tofile(file)
+	
+	
+def write_list_of_vec3s(file, vec3_list):
+	# Write length of vector
+	write_uint32(file, len(vec3_list))
+	
+	# Convert the list of vec3s to a list of floats
+	component_list = []
+	for v in vec3_list:
+		component_list.extend([v[0], v[1], v[2]])
+		
+	# Write the list of floats
+	a = array.array('f', component_list)
+	a.tofile(file)
+	
+	
+	
 
 class igmesh_writer(object):
 	
 	@staticmethod
-	def factory(scene, obj, filename, debug=False, stream=True):
+	def factory(scene, obj, filename, debug=False):
 		
-		'''
-		We need to decide here which igmesh type to use.
-		
-		igmesh() = marginally quicker, but uses lots of RAM
-		igmesh_stream() = marginally slower but uses much less RAM
-		
-		For a mesh with 1007616 tris:
-		igmesh()
-			317mb peak usage, exported in 21.1 sec
-		
-		igmesh_stream()
-			67mb peak usage, exported in 25.5 sec
-			
-		As a contrast:
-		 - writing to <embedded> takes 341mb / 12.54 sec (though this does not yet write UVs)
-		 - Blendigo 2.0.10/Blender 2.48 wrote to <embedded_2> in 40mb / 16.9 sec 
-		
-		By default we should prefer speed over memory (igmesh). There
-		should be an option to prefer memory over speed (igmesh_stream)
-		in case users have difficulty exporting large objects.
-		
-		UPDATE: A large portion of the time used on large meshes is
-		in Blender's create_render_mesh() method - NOT in mesh export!!
-		This has more influence if the modifiers create tris (subdiv).
-		For faster export you should apply all modifiers beforehand.
-		'''
+		debug = True
 		
 		if debug:
-			import time
 			start_time = time.time()
 			print('igmesh_writer.factory was passed %s' % obj)
+			indigo_log('igmesh_writer.factory was passed %s' % obj)
 		
 		if obj.type not in ['MESH', 'SURFACE', 'FONT', 'CURVE']:
 			raise Exception("Can only export 'MESH', 'SURFACE', 'FONT', 'CURVE' objects")
 		
-		if stream:
-			igo = igmesh_stream(filename)
-		else:
-			igo = igmesh()
-		
-		if debug:
-			igo.debug = True
-		
-		if stream:
-			used_mat_indices = igmesh_writer.build_mesh_stream(scene, igo, obj)
-		else:
-			used_mat_indices = igmesh_writer.build_mesh(scene, igo, obj)
-		
-		if debug:
-			build_time = time.time()
-			print('Build took %0.2f sec' % (build_time-start_time))
-		
-		if not stream:
-			try:
-				igo.save(filename)
-				if debug:
-					save_time = time.time()
-					print('Save took %0.2f sec' % (save_time-build_time))
-			except:
-				print(igo)
-				print(igo.triangles)
-				raise
-		
+
+		(used_mat_indices, use_shading_normals) = igmesh_writer.write_mesh(filename, scene, obj)
+
 		if debug:
 			end_time = time.time()
 			print('Build + Save took %0.2f sec' % (end_time-start_time))
+			indigo_log('Build + Save took %0.5f sec' % (end_time-start_time))
 		
-		return used_mat_indices
+		return (used_mat_indices, use_shading_normals)
+		
 	
+				
+		
+	################################################################################
 	@staticmethod
-	def build_mesh_stream(scene, igo, obj):
+	def write_mesh(filename, scene, obj):
+	
+		profile = False
+		
+		start_time = time.time()
 		
 		# Create mesh with applied modifiers
 		if len(obj.modifiers) > 0 or obj.type in ['SURFACE', 'FONT', 'CURVE']:
@@ -113,6 +124,11 @@ class igmesh_writer(object):
 			mesh = obj.data
 
 		mesh.update(calc_tessface=True) # Update the mesh, this ensures that the triangle tesselations are available
+		
+		
+		get_mesh_from_blender_time = time.time() - start_time
+		if profile:
+			indigo_log('get_mesh_from_blender_time : %0.5f sec' % (get_mesh_from_blender_time))
 			
 		if len(mesh.tessfaces) < 1:
 			raise UnexportableObjectException('Object %s has no faces!' % obj.name)
@@ -122,14 +138,31 @@ class igmesh_writer(object):
 
 		render_uvs = [uvt for uvt in mesh.tessface_uv_textures]
 		num_uv_sets = len(render_uvs)
+		
 
-		igo.add_num_uv_mappings(num_uv_sets)
-
-		total_tris = 0
+		# Open file to write to
+		file = open(filename, 'wb')
+		
+		# Write magic number
+		write_uint32(file, 5456751)
+		
+		# Write format version
+		write_uint32(file, 3)
+				
+		# Write num UV mappings
+		write_uint32(file, num_uv_sets)
+		
+		#total_tris = 0
+		'''
 		used_mat_indices = set()
 		for face in mesh.tessfaces:
-			total_tris += len(face.vertices) - 2
+			#total_tris += len(face.vertices) - 2
 			used_mat_indices.add(face.material_index)
+			
+			
+		#indigo_log('B1') # TEMP
+		
+		# Get list of used materials
 
 		mats = []
 		if len(obj.material_slots) > 0:
@@ -138,91 +171,80 @@ class igmesh_writer(object):
 				mat = obj.material_slots[mi].material
 				if mat == None: continue
 				mats.append(mat)
+		'''
+		#used_mat_indices = rang(obj.material_slots)
 		
-		num_mats = len(mats)
-		if num_mats == 0:
-			igo.add_num_used_materials(1)
-			igo.add_used_material('blendigo_clay')
+		used_mat_indices = set()
+		mats = []
+		
+		num_mats = len(obj.material_slots)
+		for mi in range(num_mats):
+			mats.append(obj.material_slots[mi].material)
+			used_mat_indices.add(mi)
+		
+		
+		if profile:
+			indigo_log('used_mat_indices: %s' % str(used_mat_indices))
+	
+				
+		if len(mats) == 0:
+			# Write num used materials
+			write_uint32(file, 1)
+			
+			# Write material name
+			write_string(file, 'blendigo_clay')
 		else:
-			#um = []
-			#mn = 0
-			#for m in mesh.materials:
-			#	if m is not None:
-			#		um.append(m)
-			#		mn+=1
-			#if mn == 0:
-			#	igo.add_num_used_materials(1)
-			#	igo.add_used_material('blendigo_clay')
-			#else:
-			igo.add_num_used_materials(num_mats)
+			# Write num used materials
+			write_uint32(file, len(mats))
+			
 			for m in mats:
-				igo.add_used_material(m.indigo_material.get_name(m))
+				# Write material name
+				write_string(file, m.indigo_material.get_name(m))
 		
-		igo.add_num_uv_set_expositions(num_uv_sets)
-		for i,uvt in enumerate(render_uvs):
-			igo.add_uv_set_exposition(uvt.name, i)
+		# Write num uv set expositions.  Note that in v2, these aren't actually read, so can just write zero.
+		write_uint32(file, 0)
+		
+		start_time = time.time()
 
-		vert_cache = []
-		normal_cache = []
+		num_smooth = 0
+		for face in mesh.tessfaces: # for each face
+			if face.use_smooth:
+				num_smooth += 1
+			
+		#indigo_log('num smooth: %i, num flat: %i' % (num_smooth, num_flat))
+		
+		
+		vertices = []
+		normals = []
+		
+		for v in mesh.vertices:
+			vertices.append(v.co)
+			
+		# If we need shading normals, write them all out
+		if num_smooth != 0:
+			for v in mesh.vertices:
+				normals.append(v.normal)
+			
+		# write vertices
+		write_list_of_vec3s(file, vertices)
 
-		# Write vertices and normals, and collate face indices against
-		# verts using vert normal or face normal
+		# write vertex normals
+		write_list_of_vec3s(file, normals)
+		
+		
+		del vertices
+		del normals
+		
+		if profile:
+			indigo_log('Writing vertices and vertex normals: %0.5f sec' % (time.time() - start_time))
+		
+		'''
+		# Write UVs
+		uv_list = []
 
-		face_vert_indices = {}		# mapping of face index to list of exported vert indices for that face
-		vert_vno_indices = {}		# mapping of vert index to exported vert index for verts with vert normals
-		vert_use_vno = set()		# Set of vert indices that use vert normals
-
-		vert_index = 0				# exported vert index
-		for face in mesh.tessfaces:
-			face_vert_indices[face.index] = []
-
-			for vertex in face.vertices:
-				v = mesh.vertices[vertex]
-
-				if face.use_smooth:
-
-					if vertex not in vert_use_vno:
-						vert_use_vno.add(vertex)
-
-						vert_cache.append(v.co)
-						normal_cache.append(v.normal)
-						vert_vno_indices[vertex] = vert_index
-						face_vert_indices[face.index].append(vert_index)
-
-						vert_index += 1
-					else:
-						face_vert_indices[face.index].append(vert_vno_indices[vertex])
-
-				else:
-
-					# face-vert-co-no are all unique, no caching
-					# possible
-					vert_cache.append(v.co)
-					normal_cache.append(face.normal)
-					face_vert_indices[face.index].append(vert_index)
-					vert_index += 1
-
-		del vert_vno_indices
-		del vert_use_vno
-
-
-		igo.add_num_vert_positions(len(vert_cache))
-		for v in vert_cache:
-			igo.add_vert_position_fast(v)
-
-		igo.SEQ += 1
-
-		igo.add_num_vert_normals(len(normal_cache))
-		for n in normal_cache:
-			igo.add_vert_normal_fast(n)
-
-		igo.SEQ += 1
-
-
-		del vert_cache
-		del normal_cache
-
-		igo.add_num_uv_pairs(4*len(mesh.tessfaces)*num_uv_sets)
+		#igo.add_num_uv_pairs(4*len(mesh.tessfaces)*num_uv_sets)
+		
+		start_time = time.time()
 
 		if num_uv_sets > 0:
 			# UVs are interleaved thus -
@@ -237,186 +259,122 @@ class igmesh_writer(object):
 				for uv_coord_idx in range(4):
 					for uv_index in range(num_uv_sets):
 						if add_blank_uv4 and uv_coord_idx == 3:
-							igo.add_uv_pair_fast(tuple([0,0]))
+							uv_list.append(tuple([0,0]))
+							#igo.add_uv_pair_fast(tuple([0,0]))
 						else:
-							igo.add_uv_pair_fast(tuple(render_uvs[uv_index].data[face.index].uv[uv_coord_idx]))
+							uv_list.append(tuple(render_uvs[uv_index].data[face.index].uv[uv_coord_idx]))
+							#igo.add_uv_pair_fast(tuple(render_uvs[uv_index].data[face.index].uv[uv_coord_idx]))
+							
+				
+		indigo_log('Making UV list time : %0.5f sec' % (time.time() - start_time))
+		
+		write_list_of_vec2s(file, uv_list)
+		'''
+		
+		if profile:
+			indigo_log('num_uv_sets : %i' % num_uv_sets)
+			indigo_log('len(mesh.tessfaces) : %i' % len(mesh.tessfaces))
+			#indigo_log('4*len(mesh.tessfaces)*num_uv_sets : %i sec' % (4*len(mesh.tessfaces)*num_uv_sets))
+			#indigo_log('8*4*len(mesh.tessfaces)*num_uv_sets : %i sec' % (8*4*len(mesh.tessfaces)*num_uv_sets))
+		
+		start_time = time.time()
+		uv_start_time = time.time()
+		
+		uv_data = []
+		
+		if num_uv_sets > 0:
+			for uv_index in range(num_uv_sets): # For each UV set
+				layer_uvs = render_uvs[uv_index]
+				for face in mesh.tessfaces: # For each face
+					face_uvs = layer_uvs.data[face.index]
+					if len(face.vertices) == 3:
+						uv_data.extend([face_uvs.uv[0], face_uvs.uv[1], face_uvs.uv[2], (0,0)])
+					else:
+						uv_data.extend([face_uvs.uv[0], face_uvs.uv[1], face_uvs.uv[2], face_uvs.uv[3]])
 
-			igo.SEQ += 1
+		if profile:
+			indigo_log('    Making UV list time : %0.5f sec' % (time.time() - start_time))
+		start_time = time.time()
+		
+		
+		# Write UV layout
+		write_uint32(file, 1) # UV_LAYOUT_LAYER_VERTEX = 1;
 
+		# Write UV data
+		write_list_of_vec2s(file, uv_data)
+		
+		del uv_data # Free uv_data mem
+		
 
-		igo.add_num_triangles(total_tris)
+		if profile:
+			indigo_log('    Writing UVs: %0.5f sec' % (time.time() - start_time))
+			indigo_log('Total UV time: %0.5f sec' % (time.time() - uv_start_time))
 
 		
 		# Write triangles
+		start_time = time.time()
+		
+		tri_data = [] # A list of integers
+		quad_data = [] # A list of integers
+		
 
 		if num_uv_sets > 0:
 			for face in mesh.tessfaces:
 				uv_idx = face.index * 4
-				igo.add_triangle_fast(
-					face_vert_indices[face.index][0:3],
-					(uv_idx, uv_idx + 1, uv_idx + 2),
-					face.material_index
-				)
-				if len(face.vertices) > 3:
-					igo.add_triangle_fast(
-						(face_vert_indices[face.index][0], face_vert_indices[face.index][2], face_vert_indices[face.index][3]),
-						(uv_idx, uv_idx + 2, uv_idx + 3),
-						face.material_index
-					)
+				fv = face.vertices
+				
+				if len(face.vertices) == 3: # if this is a triangle
+					tri_data.extend([fv[0], fv[1], fv[2], uv_idx, uv_idx + 1, uv_idx + 2, face.material_index])
+				else: # Else if this is a quad
+					quad_data.extend([fv[0], fv[1], fv[2], fv[3], uv_idx, uv_idx + 1, uv_idx + 2, uv_idx + 3, face.material_index])
 		else:
 			for face in mesh.tessfaces:
-				igo.add_triangle_fast(
-					face_vert_indices[face.index][0:3],
-					(0, 0, 0),
-					face.material_index
-				)
-				if len(face.vertices) > 3:
-					igo.add_triangle_fast(
-						(face_vert_indices[face.index][0], face_vert_indices[face.index][2], face_vert_indices[face.index][3]),
-						(0, 0, 0),
-						face.material_index
-					)
-
-		igo.SEQ += 1
-
-		igo.finish()
-
-
-		if len(obj.modifiers) > 0 or obj.type in ['SURFACE', 'FONT', 'CURVE']:
-			# Remove mesh with applied modifiers
-			bpy.data.meshes.remove(mesh)
+				fv = face.vertices
+				if len(face.vertices) == 3: # if this is a triangle
+					tri_data.extend([fv[0], fv[1], fv[2], 0, 0, 0, face.material_index])
+				else: # Else if this is a quad
+					quad_data.extend([fv[0], fv[1], fv[2], fv[3], 0, 0, 0, 0, face.material_index])
 		
-		return used_mat_indices
 	
-	@staticmethod
-	def build_mesh(scene, igo, obj):
+		####### Write triangles #######		
+		# Write num triangles
 		
-		# Create mesh with applied modifiers
-		if len(obj.modifiers) > 0 or obj.type in ['SURFACE', 'FONT', 'CURVE']:
-			mesh = obj.to_mesh(scene, True, 'RENDER')
-		else:
-			mesh = obj.data
-			
-		if len(mesh.faces) < 1:
-			raise UnexportableObjectException('Object %s has no faces!' % obj.name)
-		
-		if len(mesh.vertices) < 1:
-			raise UnexportableObjectException('Object %s has no verts!' % obj.name)
-		
-		render_uvs = [uvt for uvt in mesh.uv_textures]
-		num_uv_sets = len(render_uvs)
-		
-		igo.num_uv_mappings = num_uv_sets
-		
-		used_mat_indices = set()
-		for face in mesh.faces:
-			used_mat_indices.add(face.material_index)
-		
-		mats = []
-		if len(obj.material_slots) > 0:
-			# need to attach all mats up to max used index
-			for mi in range(max(used_mat_indices)+1): #sorted([mi for mi in used_mat_indices]):
-				mat = obj.material_slots[mi].material
-				if mat == None: continue
-				mats.append( mat )
-		
-		num_mats = len(mats)
-		if num_mats == 0:
-			igo.used_materials = ['blendigo_clay']
-		else:
-			igo.used_materials = [ m.indigo_material.get_name(m) for m in mats ]
-		
-		igo.uv_set_expositions = { i: uvt.name for i,uvt in enumerate(render_uvs) }
-		
-		# Write vertices and normals, and collate face indices against
-		# verts using vert normal or face normal
-		
-		face_vert_indices = {}		# mapping of face index to list of exported vert indices for that face
-		vert_vno_indices = {}		# mapping of vert index to exported vert index for verts with vert normals
-		vert_use_vno = set()		# Set of vert indices that use vert normals
-		
-		vert_index = 0				# exported vert index
-		for face in mesh.faces:
-			fvi = []
-			for vertex in face.vertices:
-				v = mesh.vertices[vertex]
-				
-				if face.use_smooth:
+		num_tris = len(tri_data) // 7  # NOTE: // is integer division, which we want.  There are 7 uints per triangle.
+		write_uint32(file, num_tris)
 					
-					if vertex not in vert_use_vno:
-						vert_use_vno.add(vertex)
-						
-						igo.vert_positions.append(v.co)
-						igo.vert_normals.append(v.normal)
-						vert_vno_indices[vertex] = vert_index
-						fvi.append(vert_index)
-						
-						vert_index += 1
-					else:
-						fvi.append(vert_vno_indices[vertex])
-					
-				else:
-					
-					# face-vert-co-no are all unique, no caching
-					# possible
-					igo.vert_positions.append(v.co)
-					igo.vert_normals.append(face.normal)
-					fvi.append(vert_index)
-					vert_index += 1
-			
-			face_vert_indices[face.index] = fvi
+		tri_array = array.array('i', tri_data)
+		tri_array.tofile(file)
 		
-		del vert_vno_indices
-		del vert_use_vno
+		del tri_data # Free tri data
 		
-		if num_uv_sets > 0:
-			# UVs are interleaved thus -
-			# face[0].uv[0].co[0]
-			# face[0].uv[1].co[0]
-			# ..
-			# face[0].uv[*].co[1]
-			# ..
-			# face[1].uv[*].co[*]
-			for face in mesh.faces:
-				add_blank_uv4 = len(face.vertices)==3
-				for uv_coord_idx in range(4):
-					for uv_index in range(num_uv_sets):
-						if add_blank_uv4 and uv_coord_idx==3:
-							igo.uv_pairs.append( tuple([0,0]) )
-						else:
-							igo.uv_pairs.append( tuple(render_uvs[uv_index].data[face.index].uv[uv_coord_idx]) )
+		if profile:
+			indigo_log('Writing triangle time: %0.5f sec' % (time.time() - start_time))
 		
-		# Write triangles
+		####### Write quads #######		
+		# Write num quads
+		num_quads = len(quad_data) // 9  # NOTE: // is integer division, which we want.  There are 9 uints per quad.
+		write_uint32(file, num_quads)
+
+		quad_array = array.array('i', quad_data)
+		quad_array.tofile(file)
+
+
+
 		
-		if num_uv_sets > 0:
-			for face in mesh.faces:
-				igo.triangles.append({
-					'vertex_indices': face_vert_indices[face.index][0:3],
-					'uv_indices': face_vert_indices[face.index][0:3],
-					'tri_mat_index': face.material_index
-				})
-				if len(face.vertices) > 3:
-					igo.triangles.append({
-						'vertex_indices': (face_vert_indices[face.index][0], face_vert_indices[face.index][2], face_vert_indices[face.index][3]),
-						'uv_indices': (face_vert_indices[face.index][0], face_vert_indices[face.index][2], face_vert_indices[face.index][3]),
-						'tri_mat_index': face.material_index
-					})
-		else:
-			for face in mesh.faces:
-				igo.triangles.append({
-					'vertex_indices': face_vert_indices[face.index][0:3],
-					'uv_indices': (0,0,0),
-					'tri_mat_index': face.material_index
-				})
-				if len(face.vertices) > 3:
-					igo.triangles.append({
-						'vertex_indices': (face_vert_indices[face.index][0], face_vert_indices[face.index][2], face_vert_indices[face.index][3]),
-						'uv_indices': (0,0,0),
-						'tri_mat_index': face.material_index
-					})
+		start_time = time.time()
 		
 		if len(obj.modifiers) > 0 or obj.type in ['SURFACE', 'FONT', 'CURVE']:
 			# Remove mesh with applied modifiers
 			bpy.data.meshes.remove(mesh)
+			
+		if profile:
+			indigo_log('Removing mesh modifiers: %0.5f sec' % (time.time() - start_time))
 		
-		return used_mat_indices
+		# Close the file we have been writing to.
+		file.close()
+		
+		use_shading_normals = num_smooth > 0
+		
+		return (used_mat_indices, use_shading_normals)
+
+		

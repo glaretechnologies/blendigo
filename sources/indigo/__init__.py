@@ -28,7 +28,7 @@
 bl_info = {
 	"name": "Blendigo",
 	"author": "Glare Technologies Ltd.",
-	"version": (3, 2, 14, 1),
+	"version": (3, 2, 14, 2),
 	"blender": (2, 6, 3),
 	"api": 44136,
 	"category": "Render",
