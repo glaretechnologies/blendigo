@@ -30,6 +30,8 @@ import bpy
 
 import mathutils		#@UnresolvedImport
 
+import time
+
 from extensions_framework import util as efutil
 
 from indigo.core.util import get_worldscale
@@ -410,6 +412,7 @@ class GeometryExporter(SceneIterator):
 			# Use binary igmesh format instead of <embedded>
 			indigo_log('Mesh Export: %s' % exported_mesh_name )
 			indigo_log(' -> %s' % full_mesh_path)
+			start_time = time.time()
 			
 			# pass the full mesh path to write to filesystem if the object is not a proxy
 			if hasattr(obj.data, 'indigo_mesh') and not obj.data.indigo_mesh.valid_proxy():
@@ -432,7 +435,7 @@ class GeometryExporter(SceneIterator):
 						bpy.data.meshes.remove(mesh)
 				else:
 					# else let the ismesh_writer do it's thing
-					used_mat_indices = igmesh_writer.factory(self.scene, obj, full_mesh_path, debug=OBJECT_ANALYSIS, stream=True)
+					(used_mat_indices, use_shading_normals) = igmesh_writer.factory(self.scene, obj, full_mesh_path, debug=OBJECT_ANALYSIS)
 			else:
 				# Assume igmesh has same number of mats as the proxy object
 				used_mat_indices = range(len(obj.material_slots))
@@ -450,7 +453,7 @@ class GeometryExporter(SceneIterator):
 			
 			#print('MESH FILENAME %s' % filename)
 			
-			xml = obj.data.indigo_mesh.build_xml_element(obj, filename, exported_name=exported_mesh_name)
+			xml = obj.data.indigo_mesh.build_xml_element(obj, filename, use_shading_normals, exported_name=exported_mesh_name)
 			
 			mesh_definition = (exported_mesh_name, xml)
 			
