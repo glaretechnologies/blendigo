@@ -22,6 +22,12 @@ Restart Blender to be sure.
 
 
 
+Making the console window open by default:
+Modify a blender shortcut to have -con in the command.  
+See http://blenderartists.org/forum/showthread.php?215033-Blender-2.57-User-preferences-and-the-console-(windows-7) for more details.
+
+
+
 To make a new release
 ===========================================
 

@@ -31,6 +31,7 @@ import bpy
 import mathutils		#@UnresolvedImport
 
 import time
+import hashlib
 
 from extensions_framework import util as efutil
 
@@ -234,8 +235,7 @@ class GeometryExporter(SceneIterator):
 	
 	# serial counter for instances exported
 	object_id = 0
-	mesh_num = 0
-	
+
 	def __init__(self, scene, background_set=None):
 		self.scene = scene
 		self.background_set = background_set
@@ -380,14 +380,13 @@ class GeometryExporter(SceneIterator):
 		
 		if obj.type in self.valid_objects_callbacks:
 			
-			# This should auto-allow per-instance materials by renaming the underlying mesh
-			# with the material names used
-			exported_mesh_name = obj.data.name
-			#for ms in obj.material_slots:
-			#	if ms.material != None:
-			#		exported_mesh_name += '.' + ms.material.name
-			exported_mesh_name += '_' + str(self.mesh_num)
-			self.mesh_num += 1
+			# Compute a hash of the material names.  We will only use an existing mesh if it has the same materials assigned.
+			hash_m = hashlib.sha224()
+			for ms in obj.material_slots:
+				if ms.material != None:
+					hash_m.update(ms.material.name.encode(encoding='UTF-8'))
+	
+			exported_mesh_name = obj.data.name + '_' + hash_m.hexdigest()
 			
 			exported_mesh_name = bpy.path.clean_name(exported_mesh_name)
 			

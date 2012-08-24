@@ -86,7 +86,7 @@ class igmesh_writer(object):
 	@staticmethod
 	def factory(scene, obj, filename, debug=False):
 		
-		debug = True
+		debug = False
 		
 		if debug:
 			start_time = time.time()
