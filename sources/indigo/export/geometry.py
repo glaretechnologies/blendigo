@@ -228,6 +228,8 @@ class GeometryExporter(SceneIterator):
 	ExportedDuplis = None
 	ExportedLamps = None
 	
+	mesh_uses_shading_normals = {} # Map from exported_mesh_name to boolean
+	
 	callbacks = {}
 	valid_duplis_callbacks = []
 	valid_particles_callbacks = []
@@ -433,8 +435,9 @@ class GeometryExporter(SceneIterator):
 						# Remove mesh with applied modifiers
 						bpy.data.meshes.remove(mesh)
 				else:
-					# else let the ismesh_writer do it's thing
+					# else let the igmesh_writer do it's thing
 					(used_mat_indices, use_shading_normals) = igmesh_writer.factory(self.scene, obj, full_mesh_path, debug=OBJECT_ANALYSIS)
+					self.mesh_uses_shading_normals[full_mesh_path] = use_shading_normals
 			else:
 				# Assume igmesh has same number of mats as the proxy object
 				used_mat_indices = range(len(obj.material_slots))
@@ -452,7 +455,11 @@ class GeometryExporter(SceneIterator):
 			
 			#print('MESH FILENAME %s' % filename)
 			
-			xml = obj.data.indigo_mesh.build_xml_element(obj, filename, use_shading_normals, exported_name=exported_mesh_name)
+			shading_normals = True
+			if full_mesh_path in self.mesh_uses_shading_normals:
+				shading_normals = self.mesh_uses_shading_normals[full_mesh_path]
+			
+			xml = obj.data.indigo_mesh.build_xml_element(obj, filename, shading_normals, exported_name=exported_mesh_name)
 			
 			mesh_definition = (exported_mesh_name, xml)
 			
