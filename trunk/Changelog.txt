@@ -1,3 +1,6 @@
+3.4.7.1
+-------
+Fixed bug with shading normals and proxies that would cause export to fail.
 
 3.2.14.2
 --------
