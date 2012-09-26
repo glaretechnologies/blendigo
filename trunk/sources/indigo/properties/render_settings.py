@@ -45,17 +45,17 @@ def find_indigo():
 
 @persistent
 def indigo_scene_load_render_settings(context):
-	''' Prevent using the Indigo install dir from blend files if find_indigo is successful;
-	also reset the output path is it doesn't exist on the local machine
+	''' Prevent using the Indigo install dir from blend files if it doesn't exist on the local machine,
+	also reset the output path if it doesn't exist on the local machine
 	'''
 	
-	ip = find_indigo()
-	if ip == '':
-		return
-	
+	indigo_path = find_indigo()
+
 	for s in bpy.data.scenes:
-		indigo.export.indigo_log("Scene %s install path was adjusted for local machine" % s.name)
-		s.indigo_engine.install_path = ip
+		if not os.path.exists(s.render.filepath) and indigo_path != '':
+			indigo.export.indigo_log("Scene %s Indigo install path was adjusted for local machine" % s.name)
+			s.indigo_engine.install_path = indigo_path
+		
 		if not os.path.exists(s.render.filepath):
 			indigo.export.indigo_log("Scene %s output path was adjusted for local machine" % s.name)
 			s.render.filepath = bpy.app.tempdir

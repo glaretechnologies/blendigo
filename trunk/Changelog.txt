@@ -1,3 +1,7 @@
+3.4.8.2
+-------
+* Fixed overriding of path to Indigo executable every time on startup.
+
 3.4.8.1
 -------
 * If there is no light in the scene, a white environment light is exported.
