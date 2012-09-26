@@ -301,15 +301,47 @@ class _Impl_OT_indigo(_Impl_operator):
 				if ex_scene is None: continue
 				have_illumination |= self.check_lights(ex_scene)
 				
-			if not have_illumination:
-				indigo_log('No light sources available!')
-				raise Exception('No light sources available!')
 			
 			indigo_log('Export render settings')
 			
 			#------------------------------------------------------------------------------
 			# Start with render settings, this also creates the root <scene>
 			scene_xml = master_scene.indigo_engine.build_xml_element(master_scene)
+			
+			
+			#------------------------------------------------------------------------------
+			# If there is no illumination in the scene, just add in a uniform environment light
+			if not have_illumination:
+				background_settings = ET.fromstring("""
+					<background_settings>
+						<background_material>
+							<material>
+								<name>background_material</name>
+
+								<diffuse>
+									<base_emission>
+										<constant>
+											<rgb>
+												<rgb>1 1 1</rgb>
+												<gamma>1</gamma>
+											</rgb>
+										</constant>
+									</base_emission>
+								</diffuse>
+							</material>
+						</background_material>
+
+						<emission_scale>
+							<material_name>background_material</material_name>
+							<measure>luminance</measure>
+							<value>20000</value>
+						</emission_scale>
+					</background_settings>
+				""")
+				
+				scene_xml.append(
+					background_settings
+				)
 			
 			#------------------------------------------------------------------------------
 			# Camera
