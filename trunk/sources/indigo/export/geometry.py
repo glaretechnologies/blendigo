@@ -140,19 +140,16 @@ class model_object(model_base):
 		for ms in obj.material_slots:
 			mat = ms.material
 			if mat == None: continue
-			# just take the first material that has an IES profile assigned
 			ie = mat.indigo_material.indigo_material_emission
 			if ie.emission_enabled and ie.emit_ies:
 				d['ies_profile'] = {
 					'material_name': [mat.name],
-					'path': [efutil.path_relative_to_export(ie.emit_ies_path)]
+					'path': [efutil.filesystem_path(ie.emit_ies_path)]
 				}
-				break
 		
 		for ms in obj.material_slots:
 			mat = ms.material
 			if mat == None: continue
-			# just take the first material that has an emission_scale
 			ie = mat.indigo_material.indigo_material_emission
 			if ie.emission_enabled and ie.emission_scale:
 				d['emission_scale'] = {
@@ -160,7 +157,6 @@ class model_object(model_base):
 					'measure': [ie.emission_scale_measure],
 					'value': [ie.emission_scale_value * 10**ie.emission_scale_exp]
 				}
-				break
 		
 		return d
 	
@@ -187,19 +183,21 @@ class model_object(model_base):
 			keyframes = []
 			for i, matrix in enumerate(matrix_list):
 				
+				# Diff matrix is the transform from base_matrix to matrix.
+				diff_matrix = matrix * base_matrix.inverted()
+				
 				if matrix==None or matrix_list[0]==None:
 					matrix_kf = matrix
 				else:
 					# construct keyframes with rotation differences from base rotation
 					# and absolute positions
 					lm_k, rm_k, sm_k = matrix.decompose()
-					r_diff = rm_k - rm_0
-					s_diff = sm_k - sm_0
+								
+					# Get the rotation component of the difference matrix.
+					r_diff = diff_matrix.decompose()[1]
+
 					matrix_kf = mathutils.Matrix.Translation(lm_k) * \
-								mathutils.Matrix.Rotation(r_diff.angle, 4, r_diff.axis) * \
-								mathutils.Matrix.Scale(s_diff[0], 4, [1,0,0]) * \
-								mathutils.Matrix.Scale(s_diff[1], 4, [0,1,0]) * \
-								mathutils.Matrix.Scale(s_diff[2], 4, [0,0,1])
+								mathutils.Matrix.Rotation(r_diff.angle, 4, r_diff.axis)
 				
 				xform = self.get_transform(obj, matrix_kf, xml_format='quat')
 				
@@ -488,14 +486,17 @@ class GeometryExporter(SceneIterator):
 		self.ExportedObjects.add(self.object_id, model_definition)
 		self.object_id += 1
 		
+		
+	# frame_offset seems to be something like the shutter open period measured in fractions of a frame.
 	def get_motion_matrices(self, obj, base_matrix, frame_offset=1, ignore_scale=False):
 		if obj.animation_data != None and obj.animation_data.action != None and len(obj.animation_data.action.fcurves)>0:
+		
+			motion_matrices = []
 			
-			motion_matrices = [base_matrix]
-			
-			offsets = [i+1 for i in range(int(frame_offset))] + [frame_offset]
+			offsets = [0] + [i+1 for i in range(int(frame_offset))] + [frame_offset]
+						
 			for offset in offsets:
-				
+			
 				next_frame = self.scene.frame_current + offset
 				
 				anim_location = obj.location.copy()

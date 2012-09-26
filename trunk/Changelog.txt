@@ -1,3 +1,10 @@
+3.4.8.1
+-------
+* If there is no light in the scene, a white environment light is exported.
+* Fixed only first material assigned to object getting its IES profile and emission scale exported.
+* Fixed bug with IES paths being incorrect.
+* Hopefully fixed bug with motion blur keyframes having wrong rotation.
+
 3.4.7.1
 -------
 Fixed bug with shading normals and proxies that would cause export to fail.
