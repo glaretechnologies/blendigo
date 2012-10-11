@@ -1,3 +1,7 @@
+3.4.9.1
+-------
+* Added section plane support (use by create a plane with name ending with '.section')
+
 3.4.8.2
 -------
 * Fixed overriding of path to Indigo executable every time on startup.

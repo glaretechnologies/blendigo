@@ -214,6 +214,26 @@ class model_object(model_base):
 	
 class exit_portal(model_base):
 	element_type = 'exit_portal'
+	
+	
+class SectionPlane(xml_builder):	
+	def __init__(self, pos, normal):
+		self.pos = pos
+		self.normal = normal
+		super().__init__()
+		
+	def build_xml_element(self):
+		xml = self.Element('section_plane')
+		self.build_subelements(
+			self,
+			{
+				'point':  list(self.pos)[0:3],
+				'normal':  list(self.normal)[0:3]
+			},
+			xml
+		)
+		return xml
+		
 
 class GeometryExporter(SceneIterator):
 	scene = None
@@ -467,6 +487,16 @@ class GeometryExporter(SceneIterator):
 	
 	def exportModelElements(self, obj, mesh_definition, matrix=None):
 		if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition, matrix==None))
+		
+		if(obj.name.endswith('.section')):
+			xml = SectionPlane(obj.matrix_world.col[3], obj.matrix_world.col[2]).build_xml_element()
+			
+			model_definition = (xml,)
+			
+			self.ExportedObjects.add(self.object_id, model_definition)
+			self.object_id += 1
+			return
+			
 		
 		mesh_name = mesh_definition[0]
 		
