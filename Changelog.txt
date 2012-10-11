@@ -1,6 +1,7 @@
 3.4.9.1
 -------
-* Added section plane support (use by create a plane with name ending with '.section')
+* Added section plane support (use by creating a plane with name ending with '.section')
+* Added orthographic camera support.
 
 3.4.8.2
 -------
