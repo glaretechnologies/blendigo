@@ -39,6 +39,7 @@ from indigo.export.materials.Phong		import PhongMaterial
 from indigo.export.materials.Specular	import SpecularMaterial, SpecularMedium
 from indigo.export.materials.Blend		import BlendMaterial
 from indigo.export.materials.External	import ExternalMaterial
+from indigo.export import ( indigo_log )
 
 PROPERTY_GROUP_USAGE = {
 	'colour': {'diffuse', 'phong'},
@@ -1407,9 +1408,11 @@ def try_file_decode(raw_bytes):
 	
 	raise Exception('Cannot decode bytes from file')
 
+
 def check_pigm(self, context):
 	try:
-		self.material_name = 'Checking...'
+		#NOTE: We can't set material_name etc.. here, or we get an error message about updating attributes when we render animations.
+		# self.material_name = 'Checking...'
 		extmat_file = efutil.filesystem_path( self.filename )
 		if not os.path.exists(extmat_file):
 			ex_str = 'Invalid file path for External material'
@@ -1464,17 +1467,17 @@ def check_pigm(self, context):
 				ex_str += ' "%s"' % context.name
 			raise Exception(ex_str)
 		
-		self.material_name = igm_name
+		# self.material_name = igm_name
 		
 		if 'material_name' in self.alert:
 			del self.alert['material_name']
 		
-		self.is_valid = True
+		# self.is_valid = True
 	except Exception as err:
 		#print('%s' % err)
 		self.alert['material_name'] = True
-		self.material_name = '%s' % err
-		self.is_valid = False
+		# self.material_name = '%s' % err
+		# self.is_valid = False
 		raise err
 
 @IndigoAddon.addon_register_class
@@ -1516,9 +1519,16 @@ class indigo_material_external(indigo_material_feature):
 	]
 	
 	def get_output(self, obj, indigo_material, blender_material, scene):
-		check_pigm(self, blender_material)
+	
+		mat_valid = True
+		try:
+			check_pigm(self, blender_material)
+		except Exception as err:
+			mat_valid = False
+			
+		#NOTE: self.is_valid isn't getting set properly.  We can't set it here or we get an error message during animation export.
 		
-		if self.is_valid:
+		if mat_valid:  # self.is_valid:
 			
 			extmat_file = efutil.filesystem_path( self.filename )
 			if not os.path.exists(extmat_file):
