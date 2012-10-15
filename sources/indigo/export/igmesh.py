@@ -123,7 +123,9 @@ class igmesh_writer(object):
 		else:
 			mesh = obj.data
 
-		mesh.update(calc_tessface=True) # Update the mesh, this ensures that the triangle tesselations are available
+		# NOTE: update() seems to crash during animation export.  So use calc_tessface() instead, which seems to do the same thing.
+		#mesh.update(calc_tessface=True) # Update the mesh, this ensures that the triangle tesselations are available
+		mesh.calc_tessface()
 		
 		
 		get_mesh_from_blender_time = time.time() - start_time
