@@ -1,3 +1,8 @@
+3.4.9.2
+-------
+* Changed section plane support to use custom object properties instead of '.section' magic naming.
+* Added 'cull geometry' option as well.
+
 3.4.9.1
 -------
 * Added section plane support (use by creating a plane with name ending with '.section')

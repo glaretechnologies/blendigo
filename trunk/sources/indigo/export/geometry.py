@@ -217,9 +217,10 @@ class exit_portal(model_base):
 	
 	
 class SectionPlane(xml_builder):	
-	def __init__(self, pos, normal):
+	def __init__(self, pos, normal, cull_geometry):
 		self.pos = pos
 		self.normal = normal
+		self.cull_geometry = cull_geometry
 		super().__init__()
 		
 	def build_xml_element(self):
@@ -228,7 +229,8 @@ class SectionPlane(xml_builder):
 			self,
 			{
 				'point':  list(self.pos)[0:3],
-				'normal':  list(self.normal)[0:3]
+				'normal':  list(self.normal)[0:3],
+				'cull_geometry': [str(self.cull_geometry).lower()]
 			},
 			xml
 		)
@@ -488,8 +490,8 @@ class GeometryExporter(SceneIterator):
 	def exportModelElements(self, obj, mesh_definition, matrix=None):
 		if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition, matrix==None))
 		
-		if(obj.name.endswith('.section')):
-			xml = SectionPlane(obj.matrix_world.col[3], obj.matrix_world.col[2]).build_xml_element()
+		if(obj.data.indigo_mesh.section_plane):
+			xml = SectionPlane(obj.matrix_world.col[3], obj.matrix_world.col[2], obj.data.indigo_mesh.cull_geometry).build_xml_element()
 			
 			model_definition = (xml,)
 			
