@@ -40,6 +40,8 @@ class indigo_mesh(declarative_property_group, xml_builder):
 	# declarative_property_group members
 	
 	controls = [
+		'section_plane',
+		'cull_geometry',
 		'disable_smoothing',
 		'exit_portal',
 		'max_num_subdivisions',
@@ -65,6 +67,20 @@ class indigo_mesh(declarative_property_group, xml_builder):
 	}
 	
 	properties = [
+		{
+			'type': 'bool',
+			'attr': 'section_plane',
+			'name': 'Section Plane',
+			'description': 'Treat this object as a section plane',
+			'default': False
+		},
+		{
+			'type': 'bool',
+			'attr': 'cull_geometry',
+			'name': 'Cull Geometry',
+			'description': 'Remove geometry behind section plane (Applies to section planes only)',
+			'default': True
+		},
 		{
 			'type': 'bool',
 			'attr': 'disable_smoothing',
