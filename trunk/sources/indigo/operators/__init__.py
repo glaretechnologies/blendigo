@@ -92,7 +92,7 @@ class _Impl_OT_igmesh(_Impl_operator):
 			indigo_log('Cannot find mesh data in context', message_type='ERROR')
 			return {'CANCELLED'}
 		
-		igmesh_writer.factory(context.scene, obj, self.properties.filepath, debug=False, stream=True)
+		igmesh_writer.factory(context.scene, obj, self.properties.filepath, debug=False)
 		
 		return {'FINISHED'}
 	

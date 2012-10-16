@@ -2,6 +2,8 @@
 -------
 * Changed section plane support to use custom object properties instead of '.section' magic naming.
 * Added 'cull geometry' option as well.
+* Fixed crashes and errors during animation export.
+* Fixed export IGMesh command.
 
 3.4.9.1
 -------
