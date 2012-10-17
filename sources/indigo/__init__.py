@@ -28,8 +28,8 @@
 bl_info = {
 	"name": "Blendigo",
 	"author": "Glare Technologies Ltd.",
-	"version": (3, 4, 9, 2),
-	"blender": (2, 6, 3),
+	"version": (3, 4, 9, 3),
+	"blender": (2, 6, 4),
 	"api": 44136,
 	"category": "Render",
 	"location": "Render > Engine > Indigo",
