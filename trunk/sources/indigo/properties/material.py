@@ -694,7 +694,7 @@ class indigo_material(declarative_property_group):
 	]
 	
 	def get_name(self, blender_mat):
-		if self.type == 'external' and self.indigo_material_external.is_valid:
+		if self.type == 'external':
 			# print('IS EXTERNAL MAT: %s/%s' % (blender_mat.name, self.indigo_material_external.material_name))
 			return self.indigo_material_external.material_name
 		
@@ -1012,7 +1012,7 @@ class indigo_material_specular(indigo_material_feature):
 			'attr': 'transparent',
 			'name': 'Transparent',
 			'description': 'Transparent',
-			'default': False,
+			'default': True,
 		},
 		{
 			'type': 'float',
@@ -1068,7 +1068,7 @@ class indigo_material_specular(indigo_material_feature):
 			'attr': 'medium_ior',
 			'name': 'IOR',
 			'description': 'IOR',
-			'default': 1.0,
+			'default': 1.5,
 			'min': 0.0,
 			'max': 20.0,
 			'precision': 6
@@ -1407,27 +1407,36 @@ def try_file_decode(raw_bytes):
 			continue
 	
 	raise Exception('Cannot decode bytes from file')
+	
+	
+def updated_event(self, context):
+	try:
+		self.material_name = get_material_filename_from_external_mat(self, context)
+	except:
+		pass
 
-
-def check_pigm(self, context):
+def get_material_filename_from_external_mat(self, blender_material):
 	try:
 		#NOTE: We can't set material_name etc.. here, or we get an error message about updating attributes when we render animations.
 		# self.material_name = 'Checking...'
 		extmat_file = efutil.filesystem_path( self.filename )
 		if not os.path.exists(extmat_file):
 			ex_str = 'Invalid file path for External material'
-			if (hasattr(context, "name")):
-				ex_str += ' "%s"' % context.name
+			if (hasattr(blender_material, "name")):
+				ex_str += ' "%s"' % blender_material.name
 			raise Exception(ex_str)
 			
+		# If the user specified a PIGM file:
 		if self.filename[-5:].lower() == '.pigm':
-			
+
+			# Check it is a valid zip file
 			if not zipfile.is_zipfile( extmat_file ):
 				ex_str = 'Invalid PIGM file for External material'
-				if (hasattr(context, "name")):
-					ex_str += ' "%s"' % context.name
+				if (hasattr(blender_material, "name")):
+					ex_str += ' "%s"' % blender_material.name
 				raise Exception(ex_str)
-			
+
+			# Find the name of the IGM file inside the PIGM
 			with zipfile.ZipFile(extmat_file, 'r') as zf:
 				igm_filename = ''
 				for zf_internal in zf.namelist():
@@ -1435,42 +1444,48 @@ def check_pigm(self, context):
 						igm_filename = zf_internal
 						break
 				
+				# If no IGM file found, raise exception
 				if igm_filename == '':
 					ex_str = 'No IGM found in PIGM for External material'
-					if (hasattr(context, "name")):
-						ex_str += ' "%s"' % context.name
+					if (hasattr(blender_material, "name")):
+						ex_str += ' "%s"' % blender_material.name
 					raise Exception(ex_str)
-				
+
+				# Get the file contents, store in 'igm_data'
 				with zf.open(igm_filename, 'r') as igm_file:
 					igm_data = try_file_decode(igm_file.read())
-		
+
+		# Else if the user specified an IGM file:
 		elif self.filename[-4:].lower() == '.igm':
 			with open(extmat_file, 'r') as igm_file:
-				igm_data = try_file_decode(igm_file.read())
+				igm_data = try_file_decode(igm_file.read()) # Get the file contents
 		else:
-			ex_str = 'Not an IGM or PIGM file for External material'
-			if (hasattr(context, "name")):
-				ex_str += ' "%s"' % context.name
+			ex_str = "'" + str(self.filename) + "' is not an IGM or PIGM file.  (For External material"
+			if (hasattr(blender_material, "name")):
+				ex_str += ' "%s"' % blender_material.name + ")"
 			raise Exception(ex_str)
-		
+
+		# Find all <name> elements
 		igm_name_matches = re.findall('<name>(.*)</name>', igm_data, re.IGNORECASE)
 		if igm_name_matches == None:
 			ex_str = 'Cannot find IGM name for External material'
-			if (hasattr(context, "name")):
-				ex_str += ' "%s"' % context.name
+			if (hasattr(blender_material, "name")):
+				ex_str += ' "%s"' % blender_material.name
 			raise Exception(ex_str)
 		
 		igm_name = igm_name_matches[-1]	# take the last material definition in the file
 		if igm_name == '':
 			ex_str = 'Cannot find IGM name for External material'
-			if (hasattr(context, "name")):
-				ex_str += ' "%s"' % context.name
+			if (hasattr(blender_material, "name")):
+				ex_str += ' "%s"' % blender_material.name
 			raise Exception(ex_str)
 		
-		# self.material_name = igm_name
+		#self.material_name = igm_name
 		
 		if 'material_name' in self.alert:
 			del self.alert['material_name']
+			
+		return igm_name
 		
 		# self.is_valid = True
 	except Exception as err:
@@ -1504,13 +1519,14 @@ class indigo_material_external(indigo_material_feature):
 			'name': 'IGM or PIGM file',
 			'description': 'IGM or PIGM file',
 			'default': '',
-			'update': check_pigm
+			'update': updated_event
 		},
 		{
 			'type': 'string',
 			'attr': 'material_name',
 			'name': 'Name'
 		},
+		# NOTE: is_valid is not used any more.
 		{
 			'type': 'bool',
 			'attr': 'is_valid',
@@ -1518,17 +1534,11 @@ class indigo_material_external(indigo_material_feature):
 		},
 	]
 	
+	# Returns list of XML elements or something like that.
 	def get_output(self, obj, indigo_material, blender_material, scene):
-	
-		mat_valid = True
+
 		try:
-			check_pigm(self, blender_material)
-		except Exception as err:
-			mat_valid = False
-			
-		#NOTE: self.is_valid isn't getting set properly.  We can't set it here or we get an error message during animation export.
-		
-		if mat_valid:  # self.is_valid:
+			material_name = get_material_filename_from_external_mat(self, blender_material)
 			
 			extmat_file = efutil.filesystem_path( self.filename )
 			if not os.path.exists(extmat_file):
@@ -1549,6 +1559,7 @@ class indigo_material_external(indigo_material_feature):
 					if igm_filename == '':
 						return []
 					
+					# Extract the material to the export directory
 					zf.extractall(efutil.export_path)
 			
 			elif self.filename[-4:].lower() == '.igm':
@@ -1561,5 +1572,6 @@ class indigo_material_external(indigo_material_feature):
 				blender_material
 			)
 			return [im]
-		else:
-			return []
+
+		except Exception as err:
+			raise Exception(str(err))

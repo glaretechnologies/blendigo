@@ -490,6 +490,7 @@ class GeometryExporter(SceneIterator):
 	def exportModelElements(self, obj, mesh_definition, matrix=None):
 		if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition, matrix==None))
 		
+		# Special handling for section planes:  If object has the section_plane attribute set, then export it as a section plane.
 		if(obj.data.indigo_mesh.section_plane):
 			xml = SectionPlane(obj.matrix_world.col[3], obj.matrix_world.col[2], obj.data.indigo_mesh.cull_geometry).build_xml_element()
 			
