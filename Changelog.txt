@@ -1,3 +1,13 @@
+3.4.9.4
+-------
+* Specular material 'transparent' defaults to true.
+* Specular material default IOR is now 1.5.
+* Fixed external materials that were broken in 3.4.9.3
+
+3.4.9.3
+-------
+* Installer now installs into Blender 2.6.4 directory scripts directory instead of 2.6.3.
+
 3.4.9.2
 -------
 * Changed section plane support to use custom object properties instead of '.section' magic naming.

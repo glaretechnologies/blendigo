@@ -1,0 +1,7 @@
+
+* C:\programming\materials\milled_aluminium.igm doesn't work as an external material due to picking up wrong <name> tag
+solution is to parse IGM file properly instead of using regex. (or get indigo to do it)
+
+* Seems like PIGMs get unzipped to disk every time scene export is done.
+
+* Turn off motion blur by default?
