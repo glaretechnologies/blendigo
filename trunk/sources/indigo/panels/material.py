@@ -93,6 +93,26 @@ class indigo_ui_material_phong(indigo_ui_material_subpanel):
 	display_property_groups = [
 		( ('material', 'indigo_material'), 'indigo_material_phong' )
 	]
+	
+@IndigoAddon.addon_register_class
+class indigo_ui_material_coating(indigo_ui_material_subpanel):
+	bl_label = 'Material Coating Settings'
+	
+	INDIGO_COMPAT = PROPERTY_GROUP_USAGE['coating']
+	
+	display_property_groups = [
+		( ('material', 'indigo_material'), 'indigo_material_coating' )
+	]
+	
+@IndigoAddon.addon_register_class
+class indigo_ui_material_doublesidedthin(indigo_ui_material_subpanel):
+	bl_label = 'Material Double-Sided Thin Settings'
+	
+	INDIGO_COMPAT = PROPERTY_GROUP_USAGE['doublesidedthin']
+	
+	display_property_groups = [
+		( ('material', 'indigo_material'), 'indigo_material_doublesidedthin' )
+	]
 
 @IndigoAddon.addon_register_class
 class indigo_ui_material_diffuse(indigo_ui_material_subpanel):

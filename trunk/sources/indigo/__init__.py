@@ -28,8 +28,8 @@
 bl_info = {
 	"name": "Blendigo",
 	"author": "Glare Technologies Ltd.",
-	"version": (3, 4, 9, 4),
-	"blender": (2, 6, 4),
+	"version": (3, 6, 5, 1), # Script version
+	"blender": (2, 6, 4), # The minimum Blender version required to run the script
 	"api": 44136,
 	"category": "Render",
 	"location": "Render > Engine > Indigo",
