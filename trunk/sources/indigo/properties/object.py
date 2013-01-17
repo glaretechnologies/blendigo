@@ -42,6 +42,7 @@ class indigo_mesh(declarative_property_group, xml_builder):
 	controls = [
 		'section_plane',
 		'cull_geometry',
+		'sphere_primitive',
 		'disable_smoothing',
 		'exit_portal',
 		'max_num_subdivisions',
@@ -80,6 +81,13 @@ class indigo_mesh(declarative_property_group, xml_builder):
 			'name': 'Cull Geometry',
 			'description': 'Remove geometry behind section plane (Applies to section planes only)',
 			'default': True
+		},
+		{
+			'type': 'bool',
+			'attr': 'sphere_primitive',
+			'name': 'Sphere Primitive',
+			'description': 'Make this object into a sphere primitive',
+			'default': False
 		},
 		{
 			'type': 'bool',
