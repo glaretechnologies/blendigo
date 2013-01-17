@@ -36,6 +36,8 @@ from indigo import IndigoAddon
 from indigo.core.util import getResourcesPath 
 from indigo.export.materials.Diffuse	import DiffuseMaterial
 from indigo.export.materials.Phong		import PhongMaterial
+from indigo.export.materials.Coating	import CoatingMaterial
+from indigo.export.materials.DoubleSidedThin	import DoubleSidedThinMaterial
 from indigo.export.materials.Specular	import SpecularMaterial, SpecularMedium
 from indigo.export.materials.Blend		import BlendMaterial
 from indigo.export.materials.External	import ExternalMaterial
@@ -45,14 +47,16 @@ PROPERTY_GROUP_USAGE = {
 	'colour': {'diffuse', 'phong'},
 	'specular': {'specular'},
 	'phong': {'phong'},
+	'coating': {'coating'},
+	'doublesidedthin': {'doublesidedthin'},
 	'diffuse': {'diffuse'},
 	'blended': {'blended'},
 	'external': {'external'},
-	'bumpmap': {'diffuse', 'phong', 'specular'},
-	'displacement': {'diffuse', 'phong', 'specular'},
+	'bumpmap': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
+	'displacement': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
 	'exponent': {'phong', 'specular'},
 	'blendmap': {'blended'},
-	'emission': {'diffuse', 'phong', 'specular'}
+	'emission': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'}
 }
 
 def build_material_features(PGU):
@@ -686,6 +690,8 @@ class indigo_material(declarative_property_group):
 			'items': [
 				('diffuse', 'Diffuse', 'diffuse'),
 				('phong', 'Phong', 'phong'),
+				('coating', 'Coating', 'coating'),
+				('doublesidedthin', 'DoubleSidedThin', 'doublesidedthin'),
 				('specular', 'Specular', 'specular'),
 				('blended', 'Blended', 'blended'),
 				('external', 'External', 'external')
@@ -1285,6 +1291,255 @@ class indigo_material_phong(indigo_material_feature):
 			scene=scene
 		)
 		return [im]
+		
+		
+@IndigoAddon.addon_register_class
+class indigo_material_coating(indigo_material_feature):
+	
+	controls = [
+		'interference',
+		'thickness',
+		'roughness',
+		#'absorption',
+		'fresnel_scale',
+		'ior',
+		'substrate_material'
+	]
+	
+	visibility = {
+	}
+	
+	properties = [
+		{
+			'type': 'float',
+			'attr': 'thickness',
+			'name': 'Thickness',
+			'description': 'thickness',
+			'default': 1.0, # micrometres
+			'min': 0.0,
+			'max': 1000000.0
+		},
+		{
+			'type': 'float',
+			'attr': 'roughness',
+			'name': 'Roughness',
+			'description': 'roughness',
+			'default': 0.3,
+			'min': 0.0,
+			'max': 1.0
+		},
+		#{
+		#	'type': 'float',
+		#	'attr': 'absorption',
+		#	'name': 'Absorption',
+		#	'description': 'Absorption',
+		#	'default': 0,
+		#	'min': 0.0,
+		#	'max': 10000000.0
+		#},
+		{
+			'type': 'float',
+			'attr': 'fresnel_scale',
+			'name': 'Fresnel Scale',
+			'description': 'Fresnel Scale',
+			'default': 1.0,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'float',
+			'attr': 'ior',
+			'name': 'IOR',
+			'description': 'IOR',
+			'default': 1.3,
+			'min': 0.0,
+			'max': 20.0,
+			'precision': 6
+		},
+		{
+			'type': 'bool',
+			'attr': 'interference',
+			'name': 'interference',
+			'description': 'interference',
+			'default': False,
+		},
+		{
+			'type': 'string',
+			'attr': 'substrate_material_index',
+			'name': 'substrate_material_index',
+			'description': 'substrate_material_index',
+		},
+		{
+			'attr': 'substrate_material',
+			'type': 'prop_search',
+			'name': 'Substrate Material',
+			# source data list
+			'src': lambda s,c: bpy.data,
+			'src_attr': 'materials',
+			# target property
+			'trg': lambda s,c: c.indigo_material_coating,
+			'trg_attr': 'substrate_material_index',
+			'text': 'Substrate Material',
+		},
+	]
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		
+		materials = []
+		
+		# Try and get the XML for the substrate material
+		if self.substrate_material_index in bpy.data.materials:
+			mata = bpy.data.materials[self.substrate_material_index]
+			materials.extend(
+				mata.indigo_material.factory(obj, mata, scene)
+			)
+			
+		im = CoatingMaterial(obj, blender_material.name, indigo_material, self).build_xml_element(
+			blender_material,
+			scene=scene
+		)
+		materials.append(im)
+		
+		return materials
+		
+		
+@IndigoAddon.addon_register_class
+class indigo_material_doublesidedthin(indigo_material_feature):
+	
+	controls = [
+		'front_roughness',
+		'back_roughness',
+		'r_f',
+		'front_fresnel_scale',
+		'back_fresnel_scale',
+		'ior',
+		'front_material',
+		'back_material'
+	]
+	
+	visibility = {
+	}
+	
+	properties = [
+		{
+			'type': 'float',
+			'attr': 'front_roughness',
+			'name': 'Front Roughness',
+			'description': 'front_roughness',
+			'default': 0.3,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'float',
+			'attr': 'back_roughness',
+			'name': 'Front Roughness',
+			'description': 'back_roughness',
+			'default': 0.3,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'float',
+			'attr': 'r_f',
+			'name': 'Reflectance fraction (r_f)',
+			'description': 'Reflectance fraction',
+			'default': 0.5,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'float',
+			'attr': 'front_fresnel_scale',
+			'name': 'Front Fresnel Scale',
+			'description': 'Front Fresnel Scale',
+			'default': 1.0,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'float',
+			'attr': 'back_fresnel_scale',
+			'name': 'Back Fresnel Scale',
+			'description': 'Back Fresnel Scale',
+			'default': 1.0,
+			'min': 0.0,
+			'max': 1.0
+		},
+		{
+			'type': 'float',
+			'attr': 'ior',
+			'name': 'IOR',
+			'description': 'IOR',
+			'default': 1.3,
+			'min': 0.0,
+			'max': 20.0,
+			'precision': 6
+		},
+		{
+			'type': 'string',
+			'attr': 'front_material_index',
+			'name': 'front_material_index',
+			'description': 'front_material_index',
+		},
+		{
+			'type': 'string',
+			'attr': 'back_material_index',
+			'name': 'back_material_index',
+			'description': 'back_material_index',
+		},
+		{
+			'attr': 'front_material',
+			'type': 'prop_search',
+			'name': 'Front Material',
+			# source data list
+			'src': lambda s,c: bpy.data,
+			'src_attr': 'materials',
+			# target property
+			'trg': lambda s,c: c.indigo_material_doublesidedthin,
+			'trg_attr': 'front_material_index',
+			'text': 'Substrate Material',
+		},
+		{
+			'attr': 'back_material',
+			'type': 'prop_search',
+			'name': 'Back Material',
+			# source data list
+			'src': lambda s,c: bpy.data,
+			'src_attr': 'materials',
+			# target property
+			'trg': lambda s,c: c.indigo_material_doublesidedthin,
+			'trg_attr': 'back_material_index',
+			'text': 'Back Material',
+		},
+	]
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		
+		materials = []
+		
+		# Try and get the XML for the front, back material
+		if self.front_material_index in bpy.data.materials:
+			mata = bpy.data.materials[self.front_material_index]
+			materials.extend(
+				mata.indigo_material.factory(obj, mata, scene)
+			)
+		if self.back_material_index in bpy.data.materials:
+			mata = bpy.data.materials[self.back_material_index]
+			materials.extend(
+				mata.indigo_material.factory(obj, mata, scene)
+			)
+			
+		print("Constructing DoubleSidedThinMaterial...")
+			
+		im = DoubleSidedThinMaterial(obj, blender_material.name, indigo_material, self).build_xml_element(
+			blender_material,
+			scene=scene
+		)
+		materials.append(im)
+		
+		return materials
+		
 
 @IndigoAddon.addon_register_class
 class indigo_material_blended(indigo_material_feature):
@@ -1538,7 +1793,9 @@ class indigo_material_external(indigo_material_feature):
 	def get_output(self, obj, indigo_material, blender_material, scene):
 
 		try:
-			material_name = get_material_filename_from_external_mat(self, blender_material)
+			# Check that we can extract the material name from the external material file.
+			# Note that we don't actually do anything with the result, but it may throw an exception if it fails.
+			get_material_filename_from_external_mat(self, blender_material)
 			
 			extmat_file = efutil.filesystem_path( self.filename )
 			if not os.path.exists(extmat_file):

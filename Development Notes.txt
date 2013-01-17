@@ -1,4 +1,12 @@
 
+Subversion Repository
+==========================================
+https://blendigo.googlecode.com/svn/trunk
+
+Google Code Page
+==========================================
+https://code.google.com/p/blendigo/
+
 Testing Changes
 ==========================================
 
@@ -10,6 +18,7 @@ Step 2
 ------------
 Run a command prompt as administrator, then run
 
+cd scripts
 ruby .\copy_to_addons_dir.rb ; & "C:\Program Files\Blender Foundation\Blender\blender.exe" "C:\programming\blendigo_trunk\regression_test_suite\scenes\MotionBlur.blend"
 
 
@@ -23,6 +32,11 @@ See http://blenderartists.org/forum/showthread.php?215033-Blender-2.57-User-pref
 To make a new release
 ===========================================
 
-
 cd scripts
 python make_release.py USERNAME
+
+
+Allowing exceptions to fall through and show a stack trace
+===========================================
+Change here:
+C:\programming\blendigo_trunk\sources\indigo\operators\__init__.py line 484
