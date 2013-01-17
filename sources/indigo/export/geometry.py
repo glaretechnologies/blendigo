@@ -31,6 +31,7 @@ import bpy
 import mathutils		#@UnresolvedImport
 
 import time
+import math
 import hashlib
 
 from extensions_framework import util as efutil
@@ -231,6 +232,56 @@ class SectionPlane(xml_builder):
 				'point':  list(self.pos)[0:3],
 				'normal':  list(self.normal)[0:3],
 				'cull_geometry': [str(self.cull_geometry).lower()]
+			},
+			xml
+		)
+		return xml
+		
+class SpherePrimitive(xml_builder):	
+	def __init__(self, matrix_world, obj):
+		self.matrix_world = matrix_world
+		self.obj = obj
+		super().__init__()
+		
+	def build_xml_element(self):
+	
+		mat = ""
+		for ms in self.obj.material_slots:
+			mat = ms.material.name
+			
+			
+		# Compute radius in object space from bounding box
+		bb = self.obj.bound_box # Get object-space bounding box
+		bb_min = bb[0]
+		bb_max = bb[6]
+		
+		#print("min")
+		#for i in range(0, 8):
+		#	print("bb[" + str(i) + "]:")
+		#	for c in range(0, 3):
+		#		print(str(bb[i][c]))
+				
+		bb_radius = max(bb_max[0] - bb_min[0], bb_max[1] - bb_min[1], bb_max[2] - bb_min[2]) * 0.5
+		
+		pos = self.matrix_world.col[3]
+		
+		# Compute object->world space scale, use the max of the scalings to scale the sphere radius.
+		scale_vec = self.matrix_world.to_scale()
+		scale = max(math.fabs(scale_vec[0]), math.fabs(scale_vec[1]), math.fabs(scale_vec[2]))
+		
+		radius_ws = bb_radius * scale
+		
+		#print("pos: " + str(pos))
+		#print("bb_radius: " + str(bb_radius))
+		#print("scale: " + str(scale))
+					
+		xml = self.Element('sphere')
+		self.build_subelements(
+			self,
+			{
+				'center':  list(pos)[0:3],
+				'radius':  [radius_ws],
+				'material_name': [mat]
 			},
 			xml
 		)
@@ -493,6 +544,16 @@ class GeometryExporter(SceneIterator):
 		# Special handling for section planes:  If object has the section_plane attribute set, then export it as a section plane.
 		if(obj.data.indigo_mesh.section_plane):
 			xml = SectionPlane(obj.matrix_world.col[3], obj.matrix_world.col[2], obj.data.indigo_mesh.cull_geometry).build_xml_element()
+			
+			model_definition = (xml,)
+			
+			self.ExportedObjects.add(self.object_id, model_definition)
+			self.object_id += 1
+			return
+			
+		# Special handling for sphere primitives
+		if(obj.data.indigo_mesh.sphere_primitive):
+			xml = SpherePrimitive(obj.matrix_world, obj).build_xml_element()
 			
 			model_definition = (xml,)
 			

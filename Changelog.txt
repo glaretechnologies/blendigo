@@ -2,6 +2,7 @@
 -------
 * Added basic support for coating material.
 * Added basic support for double-sided thin material.
+* Added sphere primitive (Checkbox in Indigo Object Settings in Object Data)
 
 3.4.9.4
 -------
