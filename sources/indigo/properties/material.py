@@ -49,6 +49,7 @@ PROPERTY_GROUP_USAGE = {
 	'phong': {'phong'},
 	'coating': {'coating'},
 	'doublesidedthin': {'doublesidedthin'},
+	'transmittance': {'doublesidedthin'},
 	'diffuse': {'diffuse'},
 	'blended': {'blended'},
 	'external': {'external'},
@@ -90,6 +91,7 @@ class Spectrum(object):
 			'blackbody':		False,
 			'tabulated':		False,
 			'master_colour':	False,
+			'rgb_default':		(0.8,0.8,0.8),
 		}
 		defaults.update(opts)
 		self.opts = defaults
@@ -138,7 +140,7 @@ class Spectrum(object):
 			'attr': self.name + '_rgb',
 			'name': 'RGB Colour',
 			'description': 'RGB Colour',
-			'default': (0.8,0.8,0.8),
+			'default': self.opts['rgb_default'],
 			'min': 0.0,
 			'soft_min': 0.0,
 			'max': 1.0,
@@ -925,6 +927,19 @@ class indigo_material_blendmap(indigo_material_feature):
 	visibility	= Cha_BlendMap.visibility
 	enabled		= Cha_BlendMap.enabled
 	properties	= Cha_BlendMap.properties
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		return []
+		
+Cha_Transmittance  = MaterialChannel('transmittance', spectrum=True, texture=True,  shader=True,  switch=False, spectrum_types={'rgb':True, 'uniform':True, 'rgb_default':(0.5,0.5,0.5)}, label='Transmittance')
+
+@IndigoAddon.addon_register_class
+class indigo_material_transmittance(indigo_material_feature):
+	
+	controls	= Cha_Transmittance.controls
+	visibility	= Cha_Transmittance.visibility
+	enabled		= Cha_Transmittance.enabled
+	properties	= Cha_Transmittance.properties
 	
 	def get_output(self, obj, indigo_material, blender_material, scene):
 		return []
