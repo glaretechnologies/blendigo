@@ -28,7 +28,7 @@
 bl_info = {
 	"name": "Blendigo",
 	"author": "Glare Technologies Ltd.",
-	"version": (3, 6, 5, 1), # Script version
+	"version": (3, 6, 10, 0), # Script version
 	"blender": (2, 6, 4), # The minimum Blender version required to run the script
 	"api": 44136,
 	"category": "Render",

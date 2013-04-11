@@ -1,3 +1,8 @@
+3.6.10.0
+-------
+* Added Transmittance channel to double-sided thin material.
+* Hemi lamp now supports both Spherical and Spherical Environment types.
+
 3.6.5.1
 -------
 * Added basic support for coating material.
