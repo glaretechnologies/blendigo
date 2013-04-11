@@ -26,12 +26,13 @@
 #
 from extensions_framework import util as efutil
 
-from indigo.export.materials.Base import EmissionChannelMaterial, BumpChannelMaterial, DisplacementChannelMaterial, MaterialBase
+from indigo.export.materials.Base import EmissionChannelMaterial, BumpChannelMaterial, DisplacementChannelMaterial, TransmittanceChannelMaterial, MaterialBase
 
 class DoubleSidedThinMaterial(
 	EmissionChannelMaterial,
 	BumpChannelMaterial,
 	DisplacementChannelMaterial,
+	TransmittanceChannelMaterial,
 	
 	# MaterialBase needs to be last in this list
 	MaterialBase
@@ -52,9 +53,6 @@ class DoubleSidedThinMaterial(
 				},
 				'r_f': {
 					'constant': [self.property_group.r_f]
-				},
-				'transmittance': {
-					'constant': {'uniform': {'value': [0.5]}}
 				},
 				'front_fresnel_scale': {
 					'constant': [self.property_group.front_fresnel_scale]

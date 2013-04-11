@@ -21,7 +21,8 @@ Run a command prompt as administrator, then run
 cd scripts
 ruby .\copy_to_addons_dir.rb ; & "C:\Program Files\Blender Foundation\Blender\blender.exe" "C:\programming\blendigo_trunk\regression_test_suite\scenes\MotionBlur.blend"
 
-
+If it's the first time you are running blendigo, you might want to enable it in "Addons":
+http://www.indigorenderer.com/documentation/manual/indigo-blender/blendigo-windows-tutorial
 
 Making the console window open by default:
 Modify a blender shortcut to have -con in the command.  

@@ -115,6 +115,19 @@ class indigo_ui_material_doublesidedthin(indigo_ui_material_subpanel):
 	]
 
 @IndigoAddon.addon_register_class
+class indigo_ui_material_transmittance(indigo_ui_material_subpanel):
+	bl_label = 'Material Transmittance'
+	
+	INDIGO_COMPAT = PROPERTY_GROUP_USAGE['transmittance']
+	
+	display_property_groups = [
+		( ('material', 'indigo_material'), 'indigo_material_transmittance' )
+	]
+	
+	def draw_header(self, context):
+		self.layout.prop(context.material.indigo_material.indigo_material_transmittance, "transmittance_enabled", text="")
+
+@IndigoAddon.addon_register_class
 class indigo_ui_material_diffuse(indigo_ui_material_subpanel):
 	bl_label = 'Material Diffuse Settings'
 	

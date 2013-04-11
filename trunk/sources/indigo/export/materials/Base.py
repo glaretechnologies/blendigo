@@ -68,6 +68,7 @@ class MaterialBase(xml_builder):
 		op.update(self.DisplacementChannel())
 		op.update(self.ExponentChannel())
 		op.update(self.BlendChannel())
+		op.update(self.TransmittanceChannel())
 		
 		if len(self.found_textures) > 0:
 			op.update({
@@ -201,6 +202,8 @@ class MaterialBase(xml_builder):
 		return {}
 	def BlendChannel(self):
 		return {}
+	def TransmittanceChannel(self):
+		return {}
 
 # ... by also inheriting from the following as needed (multiple inheritance FTW)
 class AlbedoChannelMaterial(object):
@@ -261,3 +264,8 @@ class BlendChannelMaterial(object):
 			return self.get_channel(self.material_group.indigo_material_blendmap, 'blend', 'blendmap')
 		else:
 			return {}
+
+class TransmittanceChannelMaterial(object):
+	#['doublesidedthin']
+	def TransmittanceChannel(self):
+		return self.get_channel(self.material_group.indigo_material_transmittance, 'transmittance', 'transmittance')
