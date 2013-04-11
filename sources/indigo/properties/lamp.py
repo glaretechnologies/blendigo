@@ -169,7 +169,7 @@ class indigo_lamp_hemi(declarative_property_group, xml_builder):
 	] + Spe_BG.controls + [
 		# env map
 		'env_map_path',
-		# 'env_map_type',
+		'env_map_type',
 		['env_map_gain_val','env_map_gain_exp'],
 		# 'env_map_width',
 		
@@ -217,8 +217,8 @@ class indigo_lamp_hemi(declarative_property_group, xml_builder):
 			'name': 'Env map type',
 			'description': 'The type of the environment map',
 			'items': [
-				('latlong', 'Lat-Long', 'latlong'),
-				('spherical', 'Spherical', 'spherical')
+				('spherical', 'Spherical', 'spherical'),
+				('spherical_environment', 'Spherical Environment', 'spherical_environment')
 			]
 		},
 		{
@@ -327,7 +327,7 @@ class indigo_lamp_hemi(declarative_property_group, xml_builder):
 				'path': [efutil.path_relative_to_export(self.env_map_path)],
 				'exponent': [1.0],	# TODO; make configurable?
 				'tex_coord_generation': {
-					'spherical': {
+					self.env_map_type: {
 						'rotation': {
 							'axis_rotation': {
 								'axis': [' '.join(['%s'%v for v in rq.axis])],
