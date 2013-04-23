@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond, Thomas Ludwig, Nicholas Chapman
+# Doug Hammond, Thomas Ludwig, Nicholas Chapman, Yves Collé
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 bl_info = {
 	"name": "Blendigo",
 	"author": "Glare Technologies Ltd.",
-	"version": (3, 6, 10, 0), # Script version
+	"version": (3, 6, 11, 0), # Script version
 	"blender": (2, 6, 4), # The minimum Blender version required to run the script
 	"api": 44136,
 	"category": "Render",

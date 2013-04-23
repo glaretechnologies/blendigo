@@ -6,7 +6,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond
+# Doug Hammond, Yves Collé
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -126,6 +126,19 @@ class indigo_ui_material_transmittance(indigo_ui_material_subpanel):
 	
 	def draw_header(self, context):
 		self.layout.prop(context.material.indigo_material.indigo_material_transmittance, "transmittance_enabled", text="")
+		
+@IndigoAddon.addon_register_class
+class indigo_ui_material_absorption(indigo_ui_material_subpanel):
+	bl_label = 'Material Absorption'
+	
+	INDIGO_COMPAT = PROPERTY_GROUP_USAGE['absorption']
+	
+	display_property_groups = [
+		( ('material', 'indigo_material'), 'indigo_material_absorption' )
+	]
+	
+	def draw_header(self, context):
+		self.layout.prop(context.material.indigo_material.indigo_material_absorption, "absorption_enabled", text="")
 
 @IndigoAddon.addon_register_class
 class indigo_ui_material_diffuse(indigo_ui_material_subpanel):
