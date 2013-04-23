@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond, Nicholas Chapman
+# Doug Hammond, Nicholas Chapman, Yves Collé
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -115,18 +115,12 @@ class igmesh_writer(object):
 	
 		profile = False
 		
+		exportDummyUVs = True
+		
 		start_time = time.time()
 		
-		# Create mesh with applied modifiers
-		if len(obj.modifiers) > 0 or obj.type in ['SURFACE', 'FONT', 'CURVE']:
-			mesh = obj.to_mesh(scene, True, 'RENDER')
-		else:
-			mesh = obj.data
-
-		# NOTE: update() seems to crash during animation export.  So use calc_tessface() instead, which seems to do the same thing.
-		#mesh.update(calc_tessface=True) # Update the mesh, this ensures that the triangle tesselations are available
-		mesh.calc_tessface()
-		
+		# Create mesh from object.
+		mesh = obj.to_mesh(scene, True, 'RENDER')
 		
 		get_mesh_from_blender_time = time.time() - start_time
 		if profile:
@@ -150,9 +144,12 @@ class igmesh_writer(object):
 		
 		# Write format version
 		write_uint32(file, 3)
-				
+		
 		# Write num UV mappings
-		write_uint32(file, num_uv_sets)
+		if num_uv_sets == 0 and exportDummyUVs:
+			write_uint32(file, 1)
+		else:
+			write_uint32(file, num_uv_sets)
 		
 		#total_tris = 0
 		'''
@@ -293,6 +290,8 @@ class igmesh_writer(object):
 						uv_data.extend([face_uvs.uv[0], face_uvs.uv[1], face_uvs.uv[2], (0,0)])
 					else:
 						uv_data.extend([face_uvs.uv[0], face_uvs.uv[1], face_uvs.uv[2], face_uvs.uv[3]])
+		elif exportDummyUVs:
+			uv_data.extend([(0,0)])
 
 		if profile:
 			indigo_log('    Making UV list time : %0.5f sec' % (time.time() - start_time))
@@ -360,14 +359,11 @@ class igmesh_writer(object):
 		quad_array = array.array('i', quad_data)
 		quad_array.tofile(file)
 
-
-
 		
 		start_time = time.time()
 		
-		if len(obj.modifiers) > 0 or obj.type in ['SURFACE', 'FONT', 'CURVE']:
-			# Remove mesh with applied modifiers
-			bpy.data.meshes.remove(mesh)
+		# Remove mesh created by to_mesh().
+		bpy.data.meshes.remove(mesh)
 			
 		if profile:
 			indigo_log('Removing mesh modifiers: %0.5f sec' % (time.time() - start_time))

@@ -144,15 +144,15 @@ class indigo_camera(declarative_property_group, xml_builder):
 			'soft_max': 10000,
 		},
 		{
-			'type': 'int',
+			'type': 'float',
 			'attr': 'exposure',
 			'name': 'Exposure 1/',
 			'description': 'Exposure 1/',
 			'default': 125,
-			'min': 1,
-			'soft_min': 1,
-			'max': 2000,
-			'soft_max': 2000,
+			'min': 0.001,
+			'soft_min': 0.001,
+			'max': 8000,
+			'soft_max': 8000,
 			'compute': lambda c, self: 1 / self.exposure
 		},
 		{

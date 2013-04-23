@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond
+# Doug Hammond, Yves Collé
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -69,6 +69,7 @@ class MaterialBase(xml_builder):
 		op.update(self.ExponentChannel())
 		op.update(self.BlendChannel())
 		op.update(self.TransmittanceChannel())
+		op.update(self.AbsorptionChannel())
 		
 		if len(self.found_textures) > 0:
 			op.update({
@@ -86,7 +87,7 @@ class MaterialBase(xml_builder):
 			spectrum_type = getattr(property_group, channel_prop_name + '_SP_type')
 			if spectrum_type == 'rgb':
 				d[channel_name] = {
-					'constant': rgb([i for i in getattr(property_group, channel_prop_name + '_SP_rgb')])
+					'constant': rgb([i for i in getattr(property_group, channel_prop_name + '_SP_rgb') * getattr(property_group, channel_prop_name + '_SP_rgb_gain', 1.0)])
 				}
 			elif spectrum_type == 'uniform':
 				d[channel_name] = {
@@ -204,6 +205,8 @@ class MaterialBase(xml_builder):
 		return {}
 	def TransmittanceChannel(self):
 		return {}
+	def AbsorptionChannel(self):
+		return {}
 
 # ... by also inheriting from the following as needed (multiple inheritance FTW)
 class AlbedoChannelMaterial(object):
@@ -269,3 +272,8 @@ class TransmittanceChannelMaterial(object):
 	#['doublesidedthin']
 	def TransmittanceChannel(self):
 		return self.get_channel(self.material_group.indigo_material_transmittance, 'transmittance', 'transmittance')
+
+class AbsorptionChannelMaterial(object):
+	#['caoting']
+	def AbsorptionChannel(self):
+		return self.get_channel(self.material_group.indigo_material_absorption, 'absorption', 'absorption')

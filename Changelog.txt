@@ -1,5 +1,12 @@
+3.6.11.0
+--------
+* Fixed issue with object in edit mode not being exported.
+* write_igmesh() now always writes at least one UV (to stop Indigo from complaining about meshes without UVs using textures).
+* Added Absorption channel to coating material.
+* Exposure is now a float value to allow exposure > 1s (unfortunately resets exposure back to 125 in exising scenes).
+
 3.6.10.0
--------
+--------
 * Added Transmittance channel to double-sided thin material.
 * Hemi lamp now supports both Spherical and Spherical Environment types.
 

@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Nicholas Chapman
+# Nicholas Chapman, Yves Collé
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -26,13 +26,14 @@
 #
 from extensions_framework import util as efutil
 
-from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, DisplacementChannelMaterial, MaterialBase
+from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, DisplacementChannelMaterial, AbsorptionChannelMaterial, MaterialBase
 
 class CoatingMaterial(
 	#AlbedoChannelMaterial,
 	EmissionChannelMaterial,
 	BumpChannelMaterial,
 	DisplacementChannelMaterial,
+	AbsorptionChannelMaterial,
 	
 	# MaterialBase needs to be last in this list
 	MaterialBase

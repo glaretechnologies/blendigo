@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond
+# Doug Hammond, Yves Collé
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -48,6 +48,7 @@ PROPERTY_GROUP_USAGE = {
 	'specular': {'specular'},
 	'phong': {'phong'},
 	'coating': {'coating'},
+	'absorption': {'coating'},
 	'doublesidedthin': {'doublesidedthin'},
 	'transmittance': {'doublesidedthin'},
 	'diffuse': {'diffuse'},
@@ -943,6 +944,19 @@ class indigo_material_transmittance(indigo_material_feature):
 	
 	def get_output(self, obj, indigo_material, blender_material, scene):
 		return []
+		
+Cha_Absorption  = MaterialChannel('absorption', spectrum=True, texture=True,  shader=True,  switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True, 'rgb_default':(0.0,0.0,0.0)}, label='Absorption')
+
+@IndigoAddon.addon_register_class
+class indigo_material_absorption(indigo_material_feature):
+	
+	controls	= Cha_Absorption.controls
+	visibility	= Cha_Absorption.visibility
+	enabled		= Cha_Absorption.enabled
+	properties	= Cha_Absorption.properties
+	
+	def get_output(self, obj, indigo_material, blender_material, scene):
+		return []
 
 Spe_SSS_Scatter = MaterialChannel('sss_scatter', spectrum=True, texture=False, shader=False, switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True})
 Spe_SSS_Phase = MaterialChannel('sss_phase_hg', spectrum=True, texture=False, shader=False, switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True})
@@ -1315,7 +1329,6 @@ class indigo_material_coating(indigo_material_feature):
 		'interference',
 		'thickness',
 		'roughness',
-		#'absorption',
 		'fresnel_scale',
 		'ior',
 		'substrate_material'
@@ -1343,15 +1356,6 @@ class indigo_material_coating(indigo_material_feature):
 			'min': 0.0,
 			'max': 1.0
 		},
-		#{
-		#	'type': 'float',
-		#	'attr': 'absorption',
-		#	'name': 'Absorption',
-		#	'description': 'Absorption',
-		#	'default': 0,
-		#	'min': 0.0,
-		#	'max': 10000000.0
-		#},
 		{
 			'type': 'float',
 			'attr': 'fresnel_scale',
