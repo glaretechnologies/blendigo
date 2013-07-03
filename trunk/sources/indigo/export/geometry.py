@@ -492,21 +492,18 @@ class GeometryExporter(SceneIterator):
 					# if skipping mesh write, parse faces to gather used mats
 					
 					# Create mesh with applied modifiers
-					create_mesh = len(obj.modifiers) > 0 or obj.type in ['SURFACE', 'FONT', 'CURVE']
-					if create_mesh:
-						mesh = obj.to_mesh(self.scene, True, 'RENDER')
-					else:
-						mesh = obj.data
+					mesh = obj.to_mesh(self.scene, True, 'RENDER')
 					
 					used_mat_indices = set()
-					for face in mesh.faces:
+					num_smooth = 0
+					for face in mesh.tessfaces:
 						used_mat_indices.add(face.material_index)
+						if face.use_smooth:
+							num_smooth += 1
 					
-					if create_mesh:
-						# Remove mesh with applied modifiers
-						bpy.data.meshes.remove(mesh)
+					use_shading_normals = num_smooth > 0
 				else:
-					# else let the igmesh_writer do it's thing
+					# else let the igmesh_writer do its thing
 					(used_mat_indices, use_shading_normals) = igmesh_writer.factory(self.scene, obj, full_mesh_path, debug=OBJECT_ANALYSIS)
 					self.mesh_uses_shading_normals[full_mesh_path] = use_shading_normals
 			else:
