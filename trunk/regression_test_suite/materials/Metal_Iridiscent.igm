@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenedata>
+	<material>
+		<name>Metal Iridiscent</name>
+		<phong>
+			<specular_reflectivity>
+				<shader>
+						<param>
+							<real>
+								<name>ThickScale</name>
+								<description></description>
+								<min>0</min>
+								<max>1000</max>
+								<value>600</value>
+							</real>
+						</param>
+						<param>
+							<real>
+								<name>ThickOffset</name>
+								<description></description>
+								<min>0</min>
+								<max>4</max>
+								<value>1</value>
+							</real>
+						</param>
+						<param>
+							<real>
+								<name>ScaleCosN</name>
+								<description></description>
+								<min>0</min>
+								<max>3.5</max>
+								<value>0</value>
+							</real>
+						</param>
+						<param>
+							<real>
+								<name>ScaleEvCosN</name>
+								<description></description>
+								<min>0</min>
+								<max>3</max>
+								<value>1</value>
+							</real>
+						</param>
+						<param>
+							<real>
+								<name>rhsCosN</name>
+								<description></description>
+								<min>0</min>
+								<max>3</max>
+								<value>1.5</value>
+							</real>
+						</param>
+						<param>
+							<real>
+								<name>LightDarkScale</name>
+								<description></description>
+								<min>0</min>
+								<max>10</max>
+								<value>1</value>
+							</real>
+						</param>
+						<shader><![CDATA[def thickness() real:
+	paramThickScale() * (paramThickOffset() + noise(getTexCoords(0)))
+
+def cos_n(real cosi, real n) real:
+	sqrt ( paramScaleCosN() - (paramScaleCosN() - cosi*cosi ) / (n*n) )
+	
+
+def eval(real wavelen, vec3 pos) real :
+	let
+	LDScale = floor(paramLightDarkScale())*2.0
+
+	in
+
+	pow ( sin ( 
+		(
+		   paramScaleEvCosN() / cos_n(minCosTheta(),paramrhsCosN())
+		+ paramScaleEvCosN() / cos_n(maxCosTheta(),paramrhsCosN()) ) 
+		* ( thickness() / wavelen)
+		) , LDScale )]]></shader>
+				</shader>
+			</specular_reflectivity>
+			<exponent>
+					<constant>1000</constant>
+			</exponent>
+			<fresnel_scale>
+					<constant>1</constant>
+			</fresnel_scale>
+			<layer>0</layer>
+			<ior>1.5</ior>
+			<nk_data></nk_data>
+		</phong>
+	</material>
+</scenedata>

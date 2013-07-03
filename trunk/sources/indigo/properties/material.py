@@ -28,6 +28,7 @@ import re, os, zipfile
 from copy import deepcopy
 
 import bpy		#@UnresolvedImport
+import xml.etree.cElementTree as ET
 
 from extensions_framework import declarative_property_group
 from extensions_framework import util as efutil
@@ -1688,7 +1689,26 @@ def updated_event(self, context):
 		self.material_name = get_material_filename_from_external_mat(self, context)
 	except:
 		pass
+		
+		
+def get_material_name_from_IGM(igm_contents):
+	try:
+		root = ET.fromstring(igm_contents)
 
+		# For each material definition:
+		name = ""
+		for material in root.findall('material'):
+			name_elem = material.find('name')
+			if(name_elem == None):
+				raise Exception('Failed to find material name in IGM file.')
+			name = name_elem.text
+
+		# Return last name found
+		return name
+	except Exception as e:
+		raise Exception('While parsing IGM file: ' + str(e))
+
+	
 def get_material_filename_from_external_mat(self, blender_material):
 	try:
 		#NOTE: We can't set material_name etc.. here, or we get an error message about updating attributes when we render animations.
@@ -1739,15 +1759,9 @@ def get_material_filename_from_external_mat(self, blender_material):
 				ex_str += ' "%s"' % blender_material.name + ")"
 			raise Exception(ex_str)
 
-		# Find all <name> elements
-		igm_name_matches = re.findall('<name>(.*)</name>', igm_data, re.IGNORECASE)
-		if igm_name_matches == None:
-			ex_str = 'Cannot find IGM name for External material'
-			if (hasattr(blender_material, "name")):
-				ex_str += ' "%s"' % blender_material.name
-			raise Exception(ex_str)
+		igm_name = get_material_name_from_IGM(igm_data)
+		# print("igm_name: '" + str(igm_name) + "'")
 		
-		igm_name = igm_name_matches[-1]	# take the last material definition in the file
 		if igm_name == '':
 			ex_str = 'Cannot find IGM name for External material'
 			if (hasattr(blender_material, "name")):
