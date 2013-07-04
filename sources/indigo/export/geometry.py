@@ -33,6 +33,7 @@ import mathutils		#@UnresolvedImport
 import time
 import math
 import hashlib
+import array
 
 from extensions_framework import util as efutil
 
@@ -447,42 +448,95 @@ class GeometryExporter(SceneIterator):
 		"""
 		
 		return self.exportMeshElement(obj)
+
+
+	def add_vec2_list_hash(self, hash, vec2_list):
+		# Convert the list of vec2s to a list of floats
+		component_list = []
+		for v in vec2_list:
+			component_list.extend([v[0], v[1]])
+
+		a = array.array('f', component_list)
+		hash.update(a)
+		return hash
+
+	def add_vec3_list_hash(self, hash, vec3_list):
+		# Convert the list of vec3s to a list of floats
+		component_list = []
+		for v in vec3_list:
+			component_list.extend([v[0], v[1], v[2]])
+
+		a = array.array('f', component_list)
+		hash.update(a)
+		return hash
+
+
+	# Compute a hash of the mesh data.
+	# Returns a string of hex characters
+	def meshHash(self, obj):
+
+		hash = hashlib.sha224()
+
+		mesh = obj.to_mesh(self.scene, True, 'RENDER')
+
+		### Hash material names ###
+		for ms in obj.material_slots:
+			if ms.material != None:
+				hash.update(ms.material.name.encode(encoding='UTF-8'))
+
+		### Hash Vertex coords ###
+		vertices = []
+		for v in mesh.vertices:
+			vertices.append(v.co)
+
+		self.add_vec3_list_hash(hash, vertices)
+
+		return hash.hexdigest()
+
+
+		
 	
 	def exportMeshElement(self, obj):
 		if OBJECT_ANALYSIS: indigo_log('exportMeshElement: %s' % obj)
 		
 		if obj.type in self.valid_objects_callbacks:
+
+			# Compute a hash over the mesh data (vertex positions, material names etc..)
+			mesh_hash = self.meshHash(obj)
+
+			# Form a mesh name like "Cube_4618cbf0bc13316135d676fffe0a74fc9b0577909246477354da9254"
+			exported_mesh_name = bpy.path.clean_name(obj.data.name + '_' + mesh_hash)
+
+			# print('exported_mesh_name: %s' % exported_mesh_name)
 			
-			# Compute a hash of the material names.  We will only use an existing mesh if it has the same materials assigned.
-			hash_m = hashlib.sha224()
-			for ms in obj.material_slots:
-				if ms.material != None:
-					hash_m.update(ms.material.name.encode(encoding='UTF-8'))
-	
-			exported_mesh_name = obj.data.name + '_' + hash_m.hexdigest()
+			# If this mesh has already been exported, then don't export it again
+			if self.ExportedMeshes.have(exported_mesh_name): 
+				return self.ExportedMeshes.get(exported_mesh_name)
+
+			# Make a relative mesh dir path like "TheAnimation/Scene/00002"
+			rel_frame_dir = '%s/%s/%05i' % (efutil.scene_filename(), bpy.path.clean_name(self.scene.name), self.scene.frame_current)
+
+			# Make a relative mesh dir path for the meshes like "TheAnimation/Scene"
+			rel_mesh_dir = '%s/%s' % (efutil.scene_filename(), bpy.path.clean_name(self.scene.name)) # Don't include the frame number
 			
-			exported_mesh_name = bpy.path.clean_name(exported_mesh_name)
+			mesh_dir  = '/'.join([efutil.export_path, rel_mesh_dir])
+			frame_dir = '/'.join([efutil.export_path, rel_frame_dir])
 			
-			if self.ExportedMeshes.have(exported_mesh_name): return self.ExportedMeshes.get(exported_mesh_name)
+			#print('MESH DIR: %s' % mesh_dir)
+			#print('frame_dir: %s' % frame_dir)
 			
-			rel_mesh_path = '%s/%s/%05i' % (efutil.scene_filename(), bpy.path.clean_name(self.scene.name), self.scene.frame_current)
-			
-			mesh_path = '/'.join([efutil.export_path, rel_mesh_path])
-			
-			#print('MESH PATH %s' % mesh_path)
-			
-			if not os.path.exists(mesh_path):
-				os.makedirs(mesh_path)
-			
-			#print('REL MESH PATH %s' % rel_mesh_path)
+			# Make frame_dir directory if it does not exist yet.
+			if not os.path.exists(frame_dir):
+				os.makedirs(frame_dir)
 			
 			mesh_filename = exported_mesh_name + '.igmesh'
-			full_mesh_path = efutil.filesystem_path( '/'.join([mesh_path, mesh_filename]) )
+			full_mesh_path = efutil.filesystem_path( '/'.join([mesh_dir, mesh_filename]) )
 			
+			#print('REL MESH DIR %s' % rel_mesh_dir)
 			#print('FULL MESH PATH %s' % full_mesh_path)
 			
 			# Use binary igmesh format instead of <embedded>
-			indigo_log('Mesh Export: %s' % exported_mesh_name )
+			indigo_log('Mesh Export: %s' % exported_mesh_name)
 			indigo_log(' -> %s' % full_mesh_path)
 			start_time = time.time()
 			
@@ -519,7 +573,7 @@ class GeometryExporter(SceneIterator):
 					self.ExportedMaterials.add(mat.name, mat_xmls)
 			
 			# .. put the relative path in the mesh element
-			filename = '/'.join([rel_mesh_path, mesh_filename])
+			filename = '/'.join([rel_mesh_dir, mesh_filename])
 			
 			#print('MESH FILENAME %s' % filename)
 			
