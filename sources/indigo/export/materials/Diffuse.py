@@ -53,5 +53,8 @@ class DiffuseMaterial(
 			fmt[element_name].update({
 				'sigma': [self.property_group.sigma]
 			})
+
+		if self.property_group.shadow_catcher:
+			fmt['shadow_catcher'] = ['true']
 		
 		return fmt

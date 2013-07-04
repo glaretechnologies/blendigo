@@ -1188,7 +1188,8 @@ class indigo_material_diffuse(indigo_material_feature):
 	
 	controls = [
 		'transmitter',
-		'sigma'
+		'sigma',
+		'shadow_catcher'
 	]
 	
 	visibility = {
@@ -1211,6 +1212,13 @@ class indigo_material_diffuse(indigo_material_feature):
 			'default': 0.0,
 			'min': 0.0,
 			'max': 20.0
+		},
+		{
+			'type': 'bool',
+			'attr': 'shadow_catcher',
+			'name': 'Shadow Catcher',
+			'description': 'Make this material a shadow catching material.  For use with the shadow pass.',
+			'default': False,
 		},
 	]
 	
