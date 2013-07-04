@@ -45,6 +45,7 @@ class indigo_mesh(declarative_property_group, xml_builder):
 		'sphere_primitive',
 		'disable_smoothing',
 		'exit_portal',
+		'invisible_to_camera',
 		'max_num_subdivisions',
 		['subdivision_smoothing','merge_verts'],
 		'view_dependent_subdivision',
@@ -101,6 +102,13 @@ class indigo_mesh(declarative_property_group, xml_builder):
 			'attr': 'exit_portal',
 			'name': 'Exit Portal',
 			'description': 'Use this mesh as an exit portal',
+			'default': False
+		},
+		{
+			'type': 'bool',
+			'attr': 'invisible_to_camera',
+			'name': 'Invisible to camera',
+			'description': 'Make this object invisible to camera when viewed directly',
 			'default': False
 		},
 		{
