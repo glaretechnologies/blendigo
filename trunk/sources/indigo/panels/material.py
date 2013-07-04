@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 #
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
@@ -6,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond, Yves Collé
+# Doug Hammond, Yves Colle
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
