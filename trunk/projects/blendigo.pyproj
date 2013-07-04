@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{2b125c8d-0b1d-4b03-99c9-d20a5742f0b9}</ProjectGuid>
+    <ProjectHome>..\sources\indigo\</ProjectHome>
+    <StartupFile>C:\Program Files\Blender Foundation\Blender\blender.exe</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>C:\Program Files\Blender Foundation\Blender</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    <IsWindowsApplication>True</IsWindowsApplication>
+    <InterpreterId>{2af0f10d-7135-4994-9156-5d01c9c11b7e}</InterpreterId>
+    <InterpreterVersion>2.7</InterpreterVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <ItemGroup>
+    <Compile Include="__init__.py" />
+    <Compile Include="core\util.py" />
+    <Compile Include="core\__init__.py" />
+    <Compile Include="export\geometry - Copy.py" />
+    <Compile Include="export\geometry.py" />
+    <Compile Include="export\igmesh.py" />
+    <Compile Include="export\include.py" />
+    <Compile Include="export\light_layer.py" />
+    <Compile Include="export\_igmesh.py" />
+    <Compile Include="export\__init__.py" />
+    <Compile Include="export\materials\Base.py" />
+    <Compile Include="export\materials\Blend.py" />
+    <Compile Include="export\materials\Clay.py" />
+    <Compile Include="export\materials\Coating.py" />
+    <Compile Include="export\materials\Diffuse.py" />
+    <Compile Include="export\materials\DoubleSidedThin.py" />
+    <Compile Include="export\materials\External.py" />
+    <Compile Include="export\materials\Phong.py" />
+    <Compile Include="export\materials\spectra.py" />
+    <Compile Include="export\materials\Specular.py" />
+    <Compile Include="export\materials\__init__.py" />
+    <Compile Include="operators\__init__.py" />
+    <Compile Include="panels\camera.py" />
+    <Compile Include="panels\image.py" />
+    <Compile Include="panels\lamp.py" />
+    <Compile Include="panels\material.py" />
+    <Compile Include="panels\object.py" />
+    <Compile Include="panels\render.py" />
+    <Compile Include="panels\world.py" />
+    <Compile Include="panels\__init__.py" />
+    <Compile Include="properties\camera.py" />
+    <Compile Include="properties\environment.py" />
+    <Compile Include="properties\lamp.py" />
+    <Compile Include="properties\material.py" />
+    <Compile Include="properties\object.py" />
+    <Compile Include="properties\render_settings.py" />
+    <Compile Include="properties\tonemapping.py" />
+    <Compile Include="properties\__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="core" />
+    <Folder Include="export" />
+    <Folder Include="export\materials" />
+    <Folder Include="notes\" />
+    <Folder Include="operators" />
+    <Folder Include="panels" />
+    <Folder Include="properties" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="{2af0f10d-7135-4994-9156-5d01c9c11b7e}\2.7" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="notes\Changelog.txt" />
+    <Content Include="notes\Development Notes.txt" />
+    <Content Include="notes\todo.txt" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+</Project>
