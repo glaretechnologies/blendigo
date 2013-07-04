@@ -223,7 +223,15 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
 				for i in range(3):
 					version_ok &= iv[i]>=bl_info['version'][i]
 			
-			if context.indigo_engine.auto_start and os.path.exists(exe_path):
+			if context.indigo_engine.auto_start:
+
+				if not os.path.exists(exe_path):
+					print("Failed to find indigo at '" + str(exe_path) + "'")
+					msg = "Failed to find indigo at '" + str(exe_path) + "'."
+					msg + "\n  "
+					msg += "Please make sure you have Indigo installed, and that the path to indigo in the 'Indigo Render Engine Settings' is set correctly."
+					self.report({'ERROR'}, msg)
+
 				#if not version_ok:
 					#indigo_log("Unsupported version v%s; Cannot start Indigo with this scene" % ('.'.join(['%s'%i for i in iv])), message_type='ERROR')
 					#return
