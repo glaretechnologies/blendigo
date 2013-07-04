@@ -159,6 +159,9 @@ class model_object(model_base):
 					'measure': [ie.emission_scale_measure],
 					'value': [ie.emission_scale_value * 10**ie.emission_scale_exp]
 				}
+
+		if(obj.data.indigo_mesh.invisible_to_camera):
+			d['invisible_to_camera'] = ["true"]
 		
 		return d
 	

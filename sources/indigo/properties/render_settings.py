@@ -53,11 +53,11 @@ def indigo_scene_load_render_settings(context):
 
 	for s in bpy.data.scenes:
 		if not os.path.exists(s.render.filepath) and indigo_path != '':
-			indigo.export.indigo_log("Scene %s Indigo install path was adjusted for local machine" % s.name)
+			indigo.export.indigo_log("Scene '%s' Indigo install path was adjusted for local machine" % s.name)
 			s.indigo_engine.install_path = indigo_path
 		
 		if not os.path.exists(s.render.filepath):
-			indigo.export.indigo_log("Scene %s output path was adjusted for local machine" % s.name)
+			indigo.export.indigo_log("Scene '%s' output path was adjusted for local machine" % s.name)
 			s.render.filepath = bpy.app.tempdir
 	
 if hasattr(bpy.app, 'handlers') and hasattr(bpy.app.handlers, 'load_post'):
