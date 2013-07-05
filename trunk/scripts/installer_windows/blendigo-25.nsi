@@ -89,7 +89,6 @@ RequestExecutionLevel admin
 ;--------------------------------
 
 Function DetectInstallPath
-	TryProgFiles32:
 	IfFileExists "$PROGRAMFILES32\Blender Foundation\Blender\${BLENDER_VERSION}" 0 TryProgFiles64
 		CreateDirectory "$PROGRAMFILES32\Blender Foundation\Blender\${BLENDER_VERSION}\scripts\addons"
 		StrCpy $INSTDIR "$PROGRAMFILES32\Blender Foundation\Blender"
