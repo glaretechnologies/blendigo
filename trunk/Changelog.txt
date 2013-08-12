@@ -1,3 +1,17 @@
+3.6.19.0
+--------
+* Fixed installer so it installs to 2.68 dir in blender dir.
+* Disabled some indigo_log() calls that were causing export to fail when using a unicode scene path.
+
+3.6.17.0
+--------
+* Showing an error message if Indigo executable is not found when exporting and rendering.
+* Added shadow catcher option for diffuse material.
+* Added support for invisible_to_camera object attribute.
+* Added sharing of meshes for animation export.
+* Fixed skip_existing_meshes
+* Fixed bug: Material name is not detected correctly for external material sometimes.
+
 3.6.11.0
 --------
 * Fixed issue with object in edit mode not being exported.
