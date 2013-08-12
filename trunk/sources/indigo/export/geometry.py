@@ -540,7 +540,7 @@ class GeometryExporter(SceneIterator):
 			
 			# Use binary igmesh format instead of <embedded>
 			indigo_log('Mesh Export: %s' % exported_mesh_name)
-			indigo_log(' -> %s' % full_mesh_path)
+			# indigo_log(' -> %s' % full_mesh_path)
 			start_time = time.time()
 			
 			# pass the full mesh path to write to filesystem if the object is not a proxy
