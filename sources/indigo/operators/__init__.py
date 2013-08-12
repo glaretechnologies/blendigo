@@ -267,7 +267,7 @@ class _Impl_OT_indigo(_Impl_operator):
 		
 		igs_filename = '/'.join( (efutil.export_path, self.properties.filename) )
 		
-		indigo_log('Writing to %s'%igs_filename)
+		# indigo_log('Writing to %s'%igs_filename)
 		
 		if efutil.export_path[-1] not in ('/', '\\'):
 			efutil.export_path += '/'
@@ -457,7 +457,7 @@ class _Impl_OT_indigo(_Impl_operator):
 			objects_file = open(objects_file_name, 'wb')
 			ET.ElementTree(element=scene_data_xml).write(objects_file, encoding='utf-8')
 			objects_file.close()
-			indigo_log('Exported %i object instances to %s' % (oc,objects_file_name))
+			# indigo_log('Exported %i object instances to %s' % (oc,objects_file_name))
 			scene_data_include = include.xml_include( efutil.path_relative_to_export(objects_file_name) )
 			scene_xml.append( scene_data_include.build_xml_element(master_scene) )
 			

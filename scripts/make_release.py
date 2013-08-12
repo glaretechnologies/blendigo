@@ -28,8 +28,9 @@ if __name__ == '__main__':
 		# Make windows installer
 		os.environ['BLENDIGO_VERSION'] = TAG
 
-		# Make a Blender version string string like "2.6x"
-		os.environ['BLENDER_VERSION'] = str(bl_info['blender'][0]) + "." + str(bl_info['blender'][1]) + "x"
+		# Make a Blender version string string like "2.68"
+		# This controls where the installed indigo files go in the blender program files dir.
+		os.environ['BLENDER_VERSION'] = str(bl_info['blender'][0]) + "." + str(bl_info['blender'][1]) + str(bl_info['blender'][2])
 		INSTALLER_NAME = "blendigo-2.6-%s-installer.exe" % TAG
 		os.chdir('./installer_windows')
 		subprocess.call("makensis /V2 blendigo-25.nsi")

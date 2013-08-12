@@ -273,7 +273,7 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
 						'%s:%i' % (context.indigo_engine.network_host, context.indigo_engine.network_port)
 				])
 				
-				indigo_log("Starting indigo: %s" % indigo_args)
+				# indigo_log("Starting indigo: %s" % indigo_args)
 				
 				if context.indigo_engine.use_console or context.indigo_engine.wait_for_process:
 					f_stdout = subprocess.PIPE
