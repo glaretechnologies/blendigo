@@ -1558,8 +1558,6 @@ class indigo_material_doublesidedthin(indigo_material_feature):
 				mata.indigo_material.factory(obj, mata, scene)
 			)
 			
-		print("Constructing DoubleSidedThinMaterial...")
-			
 		im = DoubleSidedThinMaterial(obj, blender_material.name, indigo_material, self).build_xml_element(
 			blender_material,
 			scene=scene

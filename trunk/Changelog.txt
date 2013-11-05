@@ -1,3 +1,7 @@
+3.6.25.0
+--------
+* Updated installer to install to 2.69 dir in blender dir.
+
 3.6.19.0
 --------
 * Fixed installer so it installs to 2.68 dir in blender dir.
