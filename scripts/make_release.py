@@ -17,6 +17,8 @@ if __name__ == '__main__':
 		TAG			= '.'.join(['%i'%i for i in bl_info['version']])
 		BL_VERSION	= '.'.join(['%i'%i for i in bl_info['blender']])
 		
+		print("BL_VERSION: " + BL_VERSION);
+		
 		ZIP_NAME = "blendigo-2.6-%s.zip" % TAG
 		
 		cwd = os.getcwd()
