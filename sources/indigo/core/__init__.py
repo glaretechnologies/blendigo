@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond
+# Doug Hammond, Nicholas Chapman, Thomas Ludwig, Yves Coll�
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -28,7 +28,7 @@
 import os, subprocess, threading, time, sys
 
 # Blender Libs
-import bpy, bl_ui			#@UnresolvedImport
+import bpy, bl_ui            #@UnresolvedImport
 
 # EF Libs
 from extensions_framework import util as efutil
@@ -77,10 +77,10 @@ bl_ui.properties_material.MATERIAL_PT_context_material.COMPAT_ENGINES.add(Indigo
 bl_ui.properties_texture.TEXTURE_PT_context_texture.COMPAT_ENGINES.add(IndigoAddon.BL_IDNAME)
 
 def compatible(module):
-	module = getattr(bl_ui, module)
-	for subclass in module.__dict__.values():
-		try:	subclass.COMPAT_ENGINES.add(IndigoAddon.BL_IDNAME)
-		except:	pass
+    module = getattr(bl_ui, module)
+    for subclass in module.__dict__.values():
+        try:    subclass.COMPAT_ENGINES.add(IndigoAddon.BL_IDNAME)
+        except: pass
 
 compatible("properties_data_mesh")
 compatible("properties_data_camera")
@@ -88,237 +88,232 @@ compatible("properties_particle")
 
 @IndigoAddon.addon_register_class
 class RENDERENGINE_indigo(bpy.types.RenderEngine):
-	bl_idname = IndigoAddon.BL_IDNAME
-	bl_label = 'Indigo'
-	bl_use_preview = False
-	
-	render_lock = threading.Lock()
-	
-	def render(self, context):
-		
-		with RENDERENGINE_indigo.render_lock:	# just render one thing at a time
-			
-			self.renderer				= None
-			self.message_thread			= None
-			self.stats_thread			= None
-			self.framebuffer_thread		= None
-			self.render_update_timer	= None
-			self.rendering				= False
-			
-			# force scene update to current rendering frame
-			context.frame_set(context.frame_current)
-			
-			#------------------------------------------------------------------------------
-			# Export the Scene
-			
-			# Don't make stupid /tmp/ folders on windows; replace the /tmp
-			# segment with the real %tmp% folder
-			# OSX also has a special temp location that we should use
-			output_path_split = list(os.path.split(context.render.filepath))
-			if sys.platform in ('win32', 'darwin') and output_path_split[0] == '/tmp':
-				output_path_split[0] = efutil.temp_directory()
-				fp = '/'.join(output_path_split)
-			else:
-				fp = context.render.filepath
-			output_path = efutil.filesystem_path( fp )
-			
-			# Allow specifying custom output filename
-			output_path_nameext = os.path.splitext(output_path)
-			if output_path_nameext[1] == '.igs':
-				output_filepath = output_path_nameext[0]
-				
-				# Fill out frame number template
-				output_path_parts = os.path.split(output_filepath)
-				
-				output_path = '/'.join(output_path_parts[:-1])
-				output_file_prefix = output_path_parts[-1]
-				
-				hash_count = output_file_prefix.count('#')
-				if hash_count > 0:
-					output_file_prefix = output_path_parts[-1].replace('#'*hash_count, ('%%0%0ii'%hash_count)%context.frame_current)
-				
-			else:
-				output_file_prefix = '%s.%s.%05i' % (efutil.scene_filename(), bpy.path.clean_name(context.name), context.frame_current)
-			
-			output_filename = '%s.igs' % output_file_prefix
-			
-			exported_file = '/'.join([
-				output_path,
-				output_filename
-			])
-			
-			if output_path[-1] not in ('/', '\\'):
-				output_path = '%s/'%output_path
-			
-			png_filename = '%s%s.png' % (output_path, output_file_prefix)
-			
-			if self.is_animation:
-				igq_filename = '%s/%s.%s.igq'%(output_path, efutil.scene_filename(), bpy.path.clean_name(context.name))
-				if context.frame_current == context.frame_start:
-					# start a new igq file
-					igq_file = open(igq_filename, 'w')
-					igq_file.write('<?xml version="1.0" encoding="utf-8" standalone="no" ?>\n')
-					igq_file.write('<render_queue>\n')
-				else:
-					# append to existing
-					igq_file = open(igq_filename, 'a')
-				
-				igq_file.write('\t<item>\n')
-				igq_file.write('\t\t<scene_path>%s</scene_path>\n' % exported_file)
-				igq_file.write('\t\t<halt_time>%d</halt_time>\n' % context.indigo_engine.halttime)
-				igq_file.write('\t\t<halt_spp>%d</halt_spp>\n' % context.indigo_engine.haltspp)
-				igq_file.write('\t\t<output_path>%s</output_path>\n' % png_filename[:-4])
-				igq_file.write('\t</item>\n')
-				
-				if context.frame_current == context.frame_end:
-					igq_file.write('</render_queue>\n')
-				
-				igq_file.close()
-				
-				fr = context.frame_end - context.frame_start
-				fo = context.frame_current - context.frame_start
-				self.update_progress(fo/fr)
-			
-			scene_writer = indigo.operators._Impl_OT_indigo(
-				directory = output_path,
-				filename = output_filename
-			).set_report(self.report)
-			
-			export_result = scene_writer.execute(context)
-			
-			if not 'FINISHED' in export_result:
-				return
-			
-			#------------------------------------------------------------------------------
-			# Update indigo defaults config file 
-			config_updates = {
-				'auto_start': context.indigo_engine.auto_start,
-				'console_output': context.indigo_engine.console_output
-			}
-			
-			if context.indigo_engine.use_console:
-				indigo_path = getConsolePath(context)
-			else:
-				indigo_path = getGuiPath(context)
-			
-			if os.path.exists(indigo_path):
-				config_updates['install_path'] = getInstallPath(context)
-			
-			try:
-				for k,v in config_updates.items():
-					efutil.write_config_value('indigo', 'defaults', k, v)
-			except Exception as err:
-				indigo_log('Saving indigo config failed: %s' % err, message_type='ERROR')
-			
-			#------------------------------------------------------------------------------
-			# Conditionally Spawn Indigo
-			
-			exe_path = efutil.filesystem_path( indigo_path )
-			
-			# Make sure that the Indigo we are going to launch is at least as
-			# new as the exporter version
-			version_ok = True
-			if not context.indigo_engine.skip_version_check:
-				iv = getVersion(context)
-				for i in range(3):
-					version_ok &= iv[i]>=bl_info['version'][i]
-			
-			if context.indigo_engine.auto_start:
+    bl_idname = IndigoAddon.BL_IDNAME
+    bl_label = 'Indigo'
+    bl_use_preview = False
 
-				if not os.path.exists(exe_path):
-					print("Failed to find indigo at '" + str(exe_path) + "'")
-					msg = "Failed to find indigo at '" + str(exe_path) + "'."
-					msg + "\n  "
-					msg += "Please make sure you have Indigo installed, and that the path to indigo in the 'Indigo Render Engine Settings' is set correctly."
-					self.report({'ERROR'}, msg)
+    render_lock = threading.Lock()
 
-				#if not version_ok:
-					#indigo_log("Unsupported version v%s; Cannot start Indigo with this scene" % ('.'.join(['%s'%i for i in iv])), message_type='ERROR')
-					#return
-				
-				if self.is_animation and context.frame_current != context.frame_end:
-					# if it's an animation, don't execute until final frame
-					return
-				
-				if self.is_animation and context.frame_current == context.frame_end:
-					# if animation and final frame, launch queue instead of single frame
-					exported_file = igq_filename
-					indigo_args = [
-						exe_path,
-						exported_file
-					]
-				else:
-					indigo_args = [
-						exe_path,
-						exported_file,
-						'-o',
-						png_filename
-					]
-				
-				if context.indigo_engine.network_mode == 'master':
-					indigo_args.extend(['-n', 'm'])
-				
-				if context.indigo_engine.network_mode == 'working_master':
-					indigo_args.extend(['-n', 'wm'])
-				
-				if context.indigo_engine.network_mode in ['master', 'working_master']:
-					indigo_args.extend([
-						'-p',
-						'%i' % context.indigo_engine.network_port
-					])
-				
-				if context.indigo_engine.network_mode == 'manual':
-					indigo_args.extend([
-						'-h',
-						'%s:%i' % (context.indigo_engine.network_host, context.indigo_engine.network_port)
-				])
-				
-				# indigo_log("Starting indigo: %s" % indigo_args)
-				
-				if context.indigo_engine.use_console or context.indigo_engine.wait_for_process:
-					f_stdout = subprocess.PIPE
-				else:
-					f_stdout = None
-				
-				indigo_proc = subprocess.Popen(indigo_args, stdout=f_stdout)
-				indigo_pid = indigo_proc.pid
-				indigo_log('Started Indigo process, PID: %i' % indigo_pid)
-				
-				if context.indigo_engine.use_console or context.indigo_engine.wait_for_process:
-					while indigo_proc.poll() == None:
-						indigo_proc.communicate()
-						time.sleep(2)
-					
-					indigo_proc.wait()
-					if not indigo_proc.stdout.closed:
-						indigo_proc.communicate()
-					if indigo_proc.returncode == -1:
-						sys.exit(-1)
-			
-			else:
-				indigo_log("Scene was exported to %s" % exported_file)
-			
-			#------------------------------------------------------------------------------
-			# Finished
-			return
-	
-	def stats_timer(self):
-		'''
-		Update the displayed rendering statistics and detect end of rendering
-		
-		Returns None
-		'''
-		
-		self.update_stats('', 'Indigo Renderer: Rendering %s' % self.stats_thread.stats_string)
-		if self.test_break() or not self.message_thread.isAlive():
-			self.renderer.terminate_rendering()
-			self.stats_thread.stop()
-			self.stats_thread.join()
-			self.message_thread.stop()
-			self.message_thread.join()
-			self.framebuffer_thread.stop()
-			self.framebuffer_thread.join()
-			# self.framebuffer_thread.kick() # Force get final image
-			self.update_stats('', '')
-			self.rendering = False
-			self.renderer = None # destroy/unload the renderer instance
+    def render(self, context):
+        '''
+        Render the scene file, or in our case, export the frame(s)
+        and launch an Indigo process.
+        '''
+
+        with RENDERENGINE_indigo.render_lock:    # Just render one thing at a time.
+            self.renderer            = None
+            self.message_thread      = None
+            self.stats_thread        = None
+            self.framebuffer_thread  = None
+            self.render_update_timer = None
+            self.rendering           = False
+
+            # force scene update to current rendering frame
+            context.frame_set(context.frame_current)
+
+            #------------------------------------------------------------------------------
+            # Export the Scene
+
+            # Get the frame path.
+            frame_path = efutil.filesystem_path(context.render.frame_path())
+
+            # Get the filename for the frame sans extension.
+            image_out_path = os.path.splitext(frame_path)[0]
+
+            # Get the output path from the frame path.
+            output_path = '/'.join(os.path.split(frame_path)[:-1])
+
+            # Generate the name for the scene file(s).
+            output_filename = '%s.%s.%05i.igs' % (efutil.scene_filename(), bpy.path.clean_name(context.name), context.frame_current)
+
+            # The full path of the exported scene file.
+            exported_file = '/'.join([
+                output_path,
+                output_filename
+            ])
+
+            # Create output_path if it does not exist.
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+
+            # If an animation is rendered, write an indigo queue file (.igq).
+            if self.is_animation:
+                igq_filename = '%s/%s.%s.igq'%(output_path, efutil.scene_filename(), bpy.path.clean_name(context.name))
+
+                if context.frame_current == context.frame_start:
+                    # Start a new igq file.
+                    igq_file = open(igq_filename, 'w')
+                    igq_file.write('<?xml version="1.0" encoding="utf-8" standalone="no" ?>\n')
+                    igq_file.write('<render_queue>\n')
+                else:
+                    # Append to existing igq.
+                    igq_file = open(igq_filename, 'a')
+
+                # Write igq item.
+                igq_file.write('\t<item>\n')
+                igq_file.write('\t\t<scene_path>%s</scene_path>\n' % exported_file)
+                igq_file.write('\t\t<halt_time>%d</halt_time>\n' % context.indigo_engine.halttime)
+                igq_file.write('\t\t<halt_spp>%d</halt_spp>\n' % context.indigo_engine.haltspp)
+                igq_file.write('\t\t<output_path>%s</output_path>\n' % image_out_path)
+                igq_file.write('\t</item>\n')
+
+                # If this is the last frame, write the closing tag.
+                if context.frame_current == context.frame_end:
+                    igq_file.write('</render_queue>\n')
+
+                igq_file.close()
+
+                # Calculate the progress by frame with frame range (fr) and frame offset (fo).
+                fr = context.frame_end - context.frame_start
+                fo = context.frame_current - context.frame_start
+                self.update_progress(fo/fr)
+
+            scene_writer = indigo.operators._Impl_OT_indigo(
+                directory = output_path,
+                filename = output_filename
+            ).set_report(self.report)
+
+            # Write the scene file.
+            export_result = scene_writer.execute(context)
+
+            # Return if the export didn't finish.
+            if not 'FINISHED' in export_result:
+                return
+
+            #------------------------------------------------------------------------------
+            # Update indigo defaults config file .
+            config_updates = {
+                'auto_start': context.indigo_engine.auto_start,
+                'console_output': context.indigo_engine.console_output
+            }
+
+            if context.indigo_engine.use_console:
+                indigo_path = getConsolePath(context)
+            else:
+                indigo_path = getGuiPath(context)
+
+            if os.path.exists(indigo_path):
+                config_updates['install_path'] = getInstallPath(context)
+
+            try:
+                for k,v in config_updates.items():
+                    efutil.write_config_value('indigo', 'defaults', k, v)
+            except Exception as err:
+                indigo_log('Saving indigo config failed: %s' % err, message_type='ERROR')
+
+            # Make sure that the Indigo we are going to launch is at least as
+            # new as the exporter version.
+            version_ok = True
+            if not context.indigo_engine.skip_version_check:
+                iv = getVersion(context)
+                for i in range(3):
+                    version_ok &= iv[i]>=bl_info['version'][i]
+
+            #------------------------------------------------------------------------------
+            # Conditionally Spawn Indigo.
+            if context.indigo_engine.auto_start:
+
+                exe_path = efutil.filesystem_path( indigo_path )
+
+                if not os.path.exists(exe_path):
+                    print("Failed to find indigo at '" + str(exe_path) + "'")
+                    msg = "Failed to find indigo at '" + str(exe_path) + "'."
+                    msg + "\n  "
+                    msg += "Please make sure you have Indigo installed, and that the path to indigo in the 'Indigo Render Engine Settings' is set correctly."
+                    self.report({'ERROR'}, msg)
+
+                #if not version_ok:
+                    #indigo_log("Unsupported version v%s; Cannot start Indigo with this scene" % ('.'.join(['%s'%i for i in iv])), message_type='ERROR')
+                    #return
+
+                # if it's an animation, don't execute until final frame
+                if self.is_animation and context.frame_current != context.frame_end:
+                    return
+
+                # if animation and final frame, launch queue instead of single frame
+                if self.is_animation and context.frame_current == context.frame_end:
+                    exported_file = igq_filename
+                    indigo_args = [
+                        exe_path,
+                        exported_file
+                    ]
+                else:
+                    indigo_args = [
+                        exe_path,
+                        exported_file,
+                        '-o',
+                        image_out_path + '.png'
+                    ]
+
+                # Set master or working master command line args.
+                if context.indigo_engine.network_mode == 'master':
+                    indigo_args.extend(['-n', 'm'])
+                elif context.indigo_engine.network_mode == 'working_master':
+                    indigo_args.extend(['-n', 'wm'])
+
+                # Set port arg if network rendering is enabled.
+                if context.indigo_engine.network_mode in ['master', 'working_master']:
+                    indigo_args.extend([
+                        '-p',
+                        '%i' % context.indigo_engine.network_port
+                    ])
+
+                # Set hostname and port arg.
+                if context.indigo_engine.network_mode == 'manual':
+                    indigo_args.extend([
+                        '-h',
+                        '%s:%i' % (context.indigo_engine.network_host, context.indigo_engine.network_port)
+                ])
+
+                # indigo_log("Starting indigo: %s" % indigo_args)
+
+                # If we're starting a console or should wait for the process, listen to the output.
+                if context.indigo_engine.use_console or context.indigo_engine.wait_for_process:
+                    f_stdout = subprocess.PIPE
+                else:
+                    f_stdout = None
+
+                # Launch the Indigo process.
+                indigo_proc = subprocess.Popen(indigo_args, stdout=f_stdout)
+                indigo_pid = indigo_proc.pid
+                indigo_log('Started Indigo process, PID: %i' % indigo_pid)
+
+                # Wait for the render to finish if we use the console or should wait for the process.
+                if context.indigo_engine.use_console or context.indigo_engine.wait_for_process:
+                    while indigo_proc.poll() == None:
+                        indigo_proc.communicate()
+                        time.sleep(2)
+
+                    indigo_proc.wait()
+                    if not indigo_proc.stdout.closed:
+                        indigo_proc.communicate()
+                    if indigo_proc.returncode == -1:
+                        sys.exit(-1)
+
+            else:
+                indigo_log("Scene was exported to %s" % exported_file)
+
+            #------------------------------------------------------------------------------
+            # Finished
+            return
+
+    def stats_timer(self):
+        '''
+        Update the displayed rendering statistics and detect end of rendering
+
+        Returns None
+        '''
+
+        self.update_stats('', 'Indigo Renderer: Rendering %s' % self.stats_thread.stats_string)
+        if self.test_break() or not self.message_thread.isAlive():
+            self.renderer.terminate_rendering()
+            self.stats_thread.stop()
+            self.stats_thread.join()
+            self.message_thread.stop()
+            self.message_thread.join()
+            self.framebuffer_thread.stop()
+            self.framebuffer_thread.join()
+            # self.framebuffer_thread.kick() # Force get final image
+            self.update_stats('', '')
+            self.rendering = False
+            self.renderer = None # destroy/unload the renderer instance
