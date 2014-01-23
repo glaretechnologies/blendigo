@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond
+# Doug Hammond, Tom Svilans, Yves Collé
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -82,36 +82,49 @@ def set_render_mode(self, context):
         self.alpha_mask = False
         self.material_id = False
         self.gpu = False
+        self.shadow = False
     if self.render_mode == 'bidir_mlt':
         self.bidir = True
         self.metro = True
         self.alpha_mask = False
         self.material_id = False
         self.gpu = False
+        self.shadow = False
     if self.render_mode == 'path_cpu':
         self.bidir = False
         self.metro = False
         self.alpha_mask = False
         self.material_id = False
         self.gpu = False
+        self.shadow = False
     if self.render_mode == 'path_gpu':
         self.bidir = False
         self.metro = False
         self.alpha_mask = False
         self.material_id = False
         self.gpu = True
+        self.shadow = False
     if self.render_mode == 'alpha':
         self.bidir = False
         self.metro = False
         self.alpha_mask = True
         self.material_id = False
         self.gpu = False
+        self.shadow = False
     if self.render_mode == 'material_id':
         self.bidir = False
         self.metro = False
         self.alpha_mask = False
         self.material_id = True
         self.gpu = False
+        self.shadow = False
+    if self.render_mode == 'shadow':
+        self.bidir = False
+        self.metro = False
+        self.alpha_mask = False
+        self.material_id = False
+        self.gpu = False
+        self.shadow = True
 
 def set_filter_preset(self, context):
     if self.filter_preset == 'default':
@@ -166,6 +179,7 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
         'bidir',
         #'hybrid'
         'gpu',
+        'shadow',
 
         # Filtering
 
@@ -186,28 +200,29 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
     ]
 
     visibility = {
-        'alpha_mask':            { 'render_mode': 'custom' },
-        'material_id':            { 'render_mode': 'custom' },
-        'metro':                { 'render_mode': 'custom' },
-        'bidir':                { 'render_mode': 'custom' },
-        'gpu':                    { 'render_mode': 'custom' },
+        'alpha_mask':          { 'render_mode': 'custom' },
+        'material_id':         { 'render_mode': 'custom' },
+        'metro':               { 'render_mode': 'custom' },
+        'bidir':               { 'render_mode': 'custom' },
+        'gpu':                 { 'render_mode': 'custom' },
+        'shadow':              { 'render_mode': 'custom' },
 
-        'splat_filter':            { 'filter_preset': 'custom' },
-        'ds_filter':            { 'filter_preset': 'custom' },
-        'splat_filter_blur':    { 'filter_preset': 'custom', 'splat_filter': 'mitchell' },
-        'splat_filter_ring':    { 'filter_preset': 'custom', 'splat_filter': 'mitchell' },
-        'ds_filter_blur':        { 'filter_preset': 'custom', 'ds_filter': 'mitchell' },
-        'ds_filter_ring':        { 'filter_preset': 'custom', 'ds_filter': 'mitchell' },
-        'ds_filter_radius':        { 'filter_preset': 'custom', 'ds_filter': 'mitchell' },
-        'supersample':            { 'filter_preset': 'custom' },
-        'bih_tri_threshold':    { 'filter_preset': 'custom' },
+        'splat_filter':        { 'filter_preset': 'custom' },
+        'ds_filter':           { 'filter_preset': 'custom' },
+        'splat_filter_blur':   { 'filter_preset': 'custom', 'splat_filter': 'mitchell' },
+        'splat_filter_ring':   { 'filter_preset': 'custom', 'splat_filter': 'mitchell' },
+        'ds_filter_blur':      { 'filter_preset': 'custom', 'ds_filter': 'mitchell' },
+        'ds_filter_ring':      { 'filter_preset': 'custom', 'ds_filter': 'mitchell' },
+        'ds_filter_radius':    { 'filter_preset': 'custom', 'ds_filter': 'mitchell' },
+        'supersample':         { 'filter_preset': 'custom' },
+        'bih_tri_threshold':   { 'filter_preset': 'custom' },
 
-        'network_host':            { 'network_mode': 'manual' },
-        'network_port':            { 'network_mode': O(['master', 'working_master', 'manual']) },
+        'network_host':        { 'network_mode': 'manual' },
+        'network_port':        { 'network_mode': O(['master', 'working_master', 'manual']) },
     }
 
     enabled = {
-        'threads':                { 'threads_auto': False },
+        'threads':             { 'threads_auto': False },
     }
 
     def set_export_console_output(self, context):
@@ -261,6 +276,7 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
                 ('path_gpu', 'Path (GPU)', 'GPU accelerated Path Tracing'),
                 ('alpha', 'Alpha Mask', 'Render an alpha mask for compositing'),
                 ('material_id', 'Material ID', 'Render materials as unique flat colours for compositing'),
+                ('shadow', 'Shadow Pass', 'Render shadow pass for compositing'),
                 ('custom', 'Custom', 'Choose your own settings')
             ],
             'default': 'bidir',
@@ -293,6 +309,13 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
             'attr': 'metro',
             'name': 'Metropolis',
             'description': 'Enable Metropolis Light Transport',
+            'default': False
+        },
+        {
+            'type': 'bool',
+            'attr': 'shadow',
+            'name': 'Shadow Pass',
+            'description': 'Enable Shadow Pass Rendering',
             'default': False
         },
         {
@@ -617,6 +640,7 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
                 'post_process_diffraction': [str(scene.camera.data.indigo_camera.ad_post).lower()],
                 'render_foreground_alpha': 'alpha_mask',
                 'material_id_tracer': 'material_id',
+                'shadow_pass': 'shadow',
 
                 'gpu': 'gpu'
             },
