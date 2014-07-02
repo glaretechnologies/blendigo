@@ -152,7 +152,8 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
     controls = [
 
         # Process options
-
+        'use_output_path',
+        'export_path',
         'install_path',
         'auto_start',
         ['threads_auto', 'threads'],
@@ -223,6 +224,7 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
 
     enabled = {
         'threads':             { 'threads_auto': False },
+        'export_path':         { 'use_output_path': False },
     }
 
     def set_export_console_output(self, context):
@@ -230,6 +232,21 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
         efutil.write_config_value('indigo', 'defaults', 'console_output', self.console_output)
 
     properties = [
+        {
+            'type': 'bool',
+            'attr': 'use_output_path',
+            'name': 'Use output directory for .igs files',
+            'description': 'Use the directory specified under Output to write the scene files to. When disabled the .igs export path can be customised below',
+            'default': True
+        },
+        {
+            'type': 'string',
+            'subtype': 'FILE_PATH',
+            'attr': 'export_path',
+            'name': 'Scene (.igs) export path',
+            'description': 'Directory/name to save Indigo scene files. # characters define location and length of frame numbers',
+            'default': bpy.app.tempdir
+        },
         {
             'type': 'string',
             'subtype': 'DIR_PATH',

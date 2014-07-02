@@ -51,16 +51,16 @@ PlatformInformation = PlatformInformation()
 
 def isLinux():
 	return sys.platform[:5].lower() == 'linux'
-	
+
 def isMac():
 	return sys.platform[:6].lower() == 'darwin'
-	
+
 def isWindows():
 	return sys.platform[:3].lower() == 'win'
 
 def getInstallPath(scene=None):
 	# Can use scene.indigo_engine.exe_path as a hint, if available
-	
+
 	if scene != None:
 		sip = efutil.filesystem_path(scene.indigo_engine.install_path)
 		if sip != "" and os.path.exists(sip):
@@ -68,13 +68,13 @@ def getInstallPath(scene=None):
 				return sip
 			else:
 				return os.path.dirname(sip)
-	
+
 	if isLinux():
 		return "" # TODO
-	
+
 	if isMac():
 		return "/Applications/Indigo Renderer/Indigo.app" # Assumption
-	
+
 	if isWindows():
 		import winreg
 		try:
@@ -83,7 +83,7 @@ def getInstallPath(scene=None):
 		except:
 			value = ""
 		return value
-	
+
 	return ""
 
 def getResourcesPath(scene=None):
@@ -124,12 +124,26 @@ def getVersion(scene=None):
 
 def get_worldscale(scene):
 	ws = 1.0
-	
+
 	scn_us = scene.unit_settings
-	
+
 	if scn_us.system in ['METRIC', 'IMPERIAL']:
 		# The units used in modelling are for display only. behind
 		# the scenes everything is in meters
 		ws = scn_us.scale_length
-	
+
 	return ws
+
+def count_contiguous(find, s):
+	idx = s.find(find)
+
+	if idx == -1:
+		return 0
+	else:
+		count = 0
+		while idx < len(s) and s[idx] == find:
+			count += 1
+			idx += 1
+
+		return count
+
