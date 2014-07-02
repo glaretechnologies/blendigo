@@ -1,3 +1,14 @@
+3.6.28.0
+--------
+* Fixed memory leaked during export to Indigo.
+* Applying world scale to orthographic camera sensor.
+* Added "Use output directory for .igs files" switch in render settings.
+* Motion blur improvements.
+
+3.6.26.0
+--------
+* Added 'Shadow pass' render mode.
+
 3.6.25.0
 --------
 * Updated installer to install to 2.69 dir in blender dir.
