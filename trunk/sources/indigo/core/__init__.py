@@ -58,7 +58,7 @@ import indigo.panels.world
 # Exporter Operators need to be imported to ensure initialisation
 import indigo.operators
 
-from indigo.core.util import getVersion, getGuiPath, getConsolePath, getInstallPath
+from indigo.core.util import getVersion, getGuiPath, getConsolePath, getInstallPath, count_contiguous
 
 # Add standard Blender Interface elements
 bl_ui.properties_render.RENDER_PT_render.COMPAT_ENGINES.add(IndigoAddon.BL_IDNAME)
@@ -120,11 +120,34 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
             # Get the filename for the frame sans extension.
             image_out_path = os.path.splitext(frame_path)[0]
 
-            # Get the output path from the frame path.
-            output_path = '/'.join(os.path.split(frame_path)[:-1])
-
             # Generate the name for the scene file(s).
-            output_filename = '%s.%s.%05i.igs' % (efutil.scene_filename(), bpy.path.clean_name(context.name), context.frame_current)
+            if context.indigo_engine.use_output_path == True:
+                # Get the output path from the frame path.
+                output_path = os.path.dirname(frame_path)
+
+                # Generate the output filename
+                output_filename = '%s.%s.%05i.igs' % (efutil.scene_filename(), bpy.path.clean_name(context.name), context.frame_current)
+            else:
+                # Get export path from the indigo_engine.
+                export_path = efutil.filesystem_path(context.indigo_engine.export_path)
+
+                # Get the directory name from the output path.
+                output_path = os.path.dirname(export_path)
+
+                # Get the filename from the output path and remove the extension.
+                output_filename = os.path.splitext(os.path.basename(export_path))[0]
+
+                # Count contiguous # chars and replace them with the frame number.
+                # If the hash count is 0 and we are exporting an animation, append the frame numbers.
+                hash_count = util.count_contiguous('#', output_filename)
+                if hash_count != 0:
+                    output_filename = output_filename.replace('#'*hash_count, ('%%0%0ii'%hash_count)%context.frame_current)
+                elif self.is_animation:
+                    output_filename = output_filename + ('%%0%0ii'%4)%context.frame_current
+
+                # Add .igs extension.
+                output_filename += '.igs'
+
 
             # The full path of the exported scene file.
             exported_file = '/'.join([
