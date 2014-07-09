@@ -24,40 +24,40 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-import bl_ui			#@UnresolvedImport
+import bl_ui            #@UnresolvedImport
 
 from extensions_framework.ui import property_group_renderer
 
 from indigo import IndigoAddon
 
 class world_panel(bl_ui.properties_world.WorldButtonsPanel, property_group_renderer):
-	COMPAT_ENGINES = {IndigoAddon.BL_IDNAME}
+    COMPAT_ENGINES = {IndigoAddon.BL_IDNAME}
 
 @IndigoAddon.addon_register_class
 class indigo_ui_lightlayers(world_panel):
-	bl_label = 'Indigo Light Layers'
-	
-	display_property_groups = [
-		( ('scene',), 'indigo_lightlayers' )
-	]
-	
-	# overridden in order to draw a 'non-standard' panel
-	def draw(self, context):
-		super().draw(context)
-		
-		row = self.layout.row()
-		row.label("Default layer gain")
-		row.prop(context.scene.indigo_lightlayers, 'default_gain', text="")
-		
-		for lg_index in range(len(context.scene.indigo_lightlayers.lightlayers)):
-			lg = context.scene.indigo_lightlayers.lightlayers[lg_index]
-			row = self.layout.row()
-			for control in lg.controls:
-				self.draw_column(
-					control,
-					row.column(),
-					lg,
-					context,
-					property_group = lg
-				)
-			row.operator('indigo.lightlayer_remove', text="", icon="ZOOMOUT").lg_index=lg_index
+    bl_label = 'Indigo Light Layers'
+    
+    display_property_groups = [
+        ( ('scene',), 'indigo_lightlayers' )
+    ]
+    
+    # overridden in order to draw a 'non-standard' panel
+    def draw(self, context):
+        super().draw(context)
+        
+        row = self.layout.row()
+        row.label("Default layer gain")
+        row.prop(context.scene.indigo_lightlayers, 'default_gain', text="")
+        
+        for lg_index in range(len(context.scene.indigo_lightlayers.lightlayers)):
+            lg = context.scene.indigo_lightlayers.lightlayers[lg_index]
+            row = self.layout.row()
+            for control in lg.controls:
+                self.draw_column(
+                    control,
+                    row.column(),
+                    lg,
+                    context,
+                    property_group = lg
+                )
+            row.operator('indigo.lightlayer_remove', text="", icon="ZOOMOUT").lg_index=lg_index

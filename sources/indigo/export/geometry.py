@@ -359,6 +359,7 @@ class GeometryExporter(SceneIterator):
             #    det.start(len(duplis))
 
             self.exporting_duplis = True
+            exported_objects = 0
 
             # dupli object, dupli matrix
             for do, dm in duplis:
@@ -370,7 +371,7 @@ class GeometryExporter(SceneIterator):
                 if not gviz:
                     continue
 
-                #det.exported_objects += 1
+                exported_objects += 1
 
                 self.exportModelElements(
                     obj,
@@ -386,7 +387,7 @@ class GeometryExporter(SceneIterator):
             #    det.stop()
             #    det.join()
 
-            #indigo_log('... done, exported %s duplis' % det.exported_objects)
+            indigo_log('... done, exported %s duplis' % exported_objects)
 
         except SystemError as err:
             indigo_log('Error with handler_Duplis_GENERIC and object %s: %s' % (obj, err))

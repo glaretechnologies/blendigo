@@ -27,34 +27,34 @@
 from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, DisplacementChannelMaterial, MaterialBase
 
 class DiffuseMaterial(
-	AlbedoChannelMaterial,
-	EmissionChannelMaterial,
-	BumpChannelMaterial,
-	DisplacementChannelMaterial,
-	
-	# MaterialBase needs to be last in this list
-	MaterialBase
-	):
-	def get_format(self):
-		if self.property_group.transmitter:
-			element_name = 'diffuse_transmitter'
-		else:
-			if self.property_group.sigma > 0:
-				element_name = 'oren_nayar'
-			else:
-				element_name = 'diffuse'
-		
-		fmt = {
-			'name': [self.material_name],
-			element_name: self.get_channels()
-		}
-		
-		if element_name == 'oren_nayar':
-			fmt[element_name].update({
-				'sigma': [self.property_group.sigma]
-			})
+    AlbedoChannelMaterial,
+    EmissionChannelMaterial,
+    BumpChannelMaterial,
+    DisplacementChannelMaterial,
+    
+    # MaterialBase needs to be last in this list
+    MaterialBase
+    ):
+    def get_format(self):
+        if self.property_group.transmitter:
+            element_name = 'diffuse_transmitter'
+        else:
+            if self.property_group.sigma > 0:
+                element_name = 'oren_nayar'
+            else:
+                element_name = 'diffuse'
+        
+        fmt = {
+            'name': [self.material_name],
+            element_name: self.get_channels()
+        }
+        
+        if element_name == 'oren_nayar':
+            fmt[element_name].update({
+                'sigma': [self.property_group.sigma]
+            })
 
-		if self.property_group.shadow_catcher:
-			fmt['shadow_catcher'] = ['true']
-		
-		return fmt
+        if self.property_group.shadow_catcher:
+            fmt['shadow_catcher'] = ['true']
+        
+        return fmt

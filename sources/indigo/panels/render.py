@@ -24,19 +24,19 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-import bl_ui			#@UnresolvedImport
+import bl_ui            #@UnresolvedImport
 
 from extensions_framework.ui import property_group_renderer
 
 from indigo import IndigoAddon
 
 class render_described_context(bl_ui.properties_render.RenderButtonsPanel, property_group_renderer):
-	COMPAT_ENGINES = {IndigoAddon.BL_IDNAME}
+    COMPAT_ENGINES = {IndigoAddon.BL_IDNAME}
 
 @IndigoAddon.addon_register_class
 class indigo_ui_engine(render_described_context):
-	bl_label = 'Indigo Render Engine Settings'
-	
-	display_property_groups = [
-		( ('scene',), 'indigo_engine' )
-	]
+    bl_label = 'Indigo Render Engine Settings'
+    
+    display_property_groups = [
+        ( ('scene',), 'indigo_engine' )
+    ]
