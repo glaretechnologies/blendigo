@@ -122,30 +122,6 @@ class LightingChecker(SceneIterator):
 		
 		self.exporting_duplis = False
 		
-		self.callbacks = {
-			'duplis': {
-				'FACES': self.handler_Duplis_GENERIC,
-				'GROUP': self.handler_Duplis_GENERIC,
-				'VERTS': self.handler_Duplis_GENERIC,
-			},
-			'particles': {
-				'OBJECT': self.handler_Duplis_GENERIC,
-				'GROUP': self.handler_Duplis_GENERIC,
-				#'PATH': handler_Duplis_PATH,
-			},
-			'objects': {
-				'MESH': self.handler_MESH,
-				'CURVE': self.handler_MESH,
-				'SURFACE': self.handler_MESH,
-				'FONT': self.handler_MESH,
-				'LAMP': self.handler_LAMP
-			}
-		}
-		
-		self.valid_duplis_callbacks = self.callbacks['duplis'].keys()
-		self.valid_particles_callbacks = self.callbacks['particles'].keys()
-		self.valid_objects_callbacks = self.callbacks['objects'].keys()
-		
 		self.valid_lighting = False
 		
 		self.ObjectsChecked = ExportCache("Objects")
@@ -169,7 +145,7 @@ class LightingChecker(SceneIterator):
 			return
 		
 		for dupli_ob in obj.dupli_list:
-			if dupli_ob.object.type not in self.valid_objects_callbacks:
+			if dupli_ob.object.type not in self.supported_mesh_types:
 				continue
 			if not indigo_visible(self.scene, dupli_ob.object, is_dupli=True):
 				continue
@@ -432,7 +408,7 @@ class _Impl_OT_indigo(_Impl_operator):
 					scene_xml.append(xml)
 			indigo_log('Exported used materials')
 			mc = 0
-			for ck, ci in geometry_exporter.ExportedMeshes.get_all():		#@UnusedVariable
+			for ck, ci in geometry_exporter.ExportedMeshes.items():		#@UnusedVariable
 				mesh_name, xml = ci											#@UnusedVariable
 				scene_xml.append(xml)
 				mc += 1
