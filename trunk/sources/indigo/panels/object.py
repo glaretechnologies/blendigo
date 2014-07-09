@@ -24,27 +24,27 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-import bl_ui			#@UnresolvedImport
+import bl_ui            #@UnresolvedImport
 
 from extensions_framework.ui  import property_group_renderer
 
 from indigo import IndigoAddon
 
 class object_panel_base(property_group_renderer):
-	COMPAT_ENGINES = {IndigoAddon.BL_IDNAME}
+    COMPAT_ENGINES = {IndigoAddon.BL_IDNAME}
 
 @IndigoAddon.addon_register_class
 class indigo_ui_object_mesh(bl_ui.properties_data_mesh.MeshButtonsPanel, object_panel_base):
-	bl_label = 'Indigo Object Settings'
-	
-	display_property_groups = [
-		( ('mesh',), 'indigo_mesh' )
-	]
+    bl_label = 'Indigo Object Settings'
+    
+    display_property_groups = [
+        ( ('mesh',), 'indigo_mesh' )
+    ]
 
 @IndigoAddon.addon_register_class
 class indigo_ui_object_curve(bl_ui.properties_data_curve.CurveButtonsPanel, object_panel_base):
-	bl_label = 'Indigo Object Settings'
-	
-	display_property_groups = [
-		( ('curve',), 'indigo_mesh' )
-	]
+    bl_label = 'Indigo Object Settings'
+    
+    display_property_groups = [
+        ( ('curve',), 'indigo_mesh' )
+    ]

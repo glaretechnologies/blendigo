@@ -29,51 +29,51 @@ from extensions_framework import util as efutil
 from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, MaterialBase
 
 class PhongMaterial(
-	AlbedoChannelMaterial,
-	EmissionChannelMaterial,
-	BumpChannelMaterial,
-	DisplacementChannelMaterial,
-	ExponentChannelMaterial,
-	
-	# MaterialBase needs to be last in this list
-	MaterialBase
-	):
-	def get_format(self):
-		element_name = 'phong'
-		
-		fmt = {
-			'name': [self.material_name],
-			element_name: {
-				'ior': [self.property_group.ior],
-				'exponent': {
-					'constant': [self.property_group.exponent]
-				},
-			}
-		}
-		
-		fmt[element_name].update(self.get_channels())
-		
-		if self.property_group.specular_reflectivity:
-			fmt[element_name]['specular_reflectivity'] = fmt[element_name]['diffuse_albedo']
-			del fmt[element_name]['diffuse_albedo']
-			del fmt[element_name]['ior']
-		
-		if self.property_group.nk_data_type == 'file' and self.property_group.nk_data_file != '':
-			fmt[element_name]['nk_data'] = [efutil.path_relative_to_export(self.property_group.nk_data_file)]
-			try:
-				# doesn't matter if these keys don't exist, but remove them if they do
-				del fmt[element_name]['ior']
-				del fmt[element_name]['diffuse_albedo']
-				del fmt[element_name]['specular_reflectivity']
-			except: pass
-			
-		if self.property_group.nk_data_type == 'preset':
-			fmt[element_name]['nk_data'] = [self.property_group.nk_data_preset]
-			try:
-				# doesn't matter if these keys don't exist, but remove them if they do
-				del fmt[element_name]['ior']
-				del fmt[element_name]['diffuse_albedo']
-				del fmt[element_name]['specular_reflectivity']
-			except: pass
-		
-		return fmt
+    AlbedoChannelMaterial,
+    EmissionChannelMaterial,
+    BumpChannelMaterial,
+    DisplacementChannelMaterial,
+    ExponentChannelMaterial,
+    
+    # MaterialBase needs to be last in this list
+    MaterialBase
+    ):
+    def get_format(self):
+        element_name = 'phong'
+        
+        fmt = {
+            'name': [self.material_name],
+            element_name: {
+                'ior': [self.property_group.ior],
+                'exponent': {
+                    'constant': [self.property_group.exponent]
+                },
+            }
+        }
+        
+        fmt[element_name].update(self.get_channels())
+        
+        if self.property_group.specular_reflectivity:
+            fmt[element_name]['specular_reflectivity'] = fmt[element_name]['diffuse_albedo']
+            del fmt[element_name]['diffuse_albedo']
+            del fmt[element_name]['ior']
+        
+        if self.property_group.nk_data_type == 'file' and self.property_group.nk_data_file != '':
+            fmt[element_name]['nk_data'] = [efutil.path_relative_to_export(self.property_group.nk_data_file)]
+            try:
+                # doesn't matter if these keys don't exist, but remove them if they do
+                del fmt[element_name]['ior']
+                del fmt[element_name]['diffuse_albedo']
+                del fmt[element_name]['specular_reflectivity']
+            except: pass
+            
+        if self.property_group.nk_data_type == 'preset':
+            fmt[element_name]['nk_data'] = [self.property_group.nk_data_preset]
+            try:
+                # doesn't matter if these keys don't exist, but remove them if they do
+                del fmt[element_name]['ior']
+                del fmt[element_name]['diffuse_albedo']
+                del fmt[element_name]['specular_reflectivity']
+            except: pass
+        
+        return fmt

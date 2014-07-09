@@ -60,7 +60,7 @@ def indigo_scene_load_render_settings(context):
                 indigo.export.indigo_log("Scene '%s' Indigo install path was adjusted for local machine" % s.name)
                 s.indigo_engine.install_path = indigo_path
             else:
-            	indigo.export.indigo_log("Failed %s to find Indigo installation" % s.name)
+                indigo.export.indigo_log("Failed %s to find Indigo installation" % s.name)
 
         # Get the output path for frame 1. s.render.filepath will return the raw
         # output path, potentially including # characters. s.render.frame_path(1)

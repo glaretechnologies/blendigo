@@ -24,17 +24,17 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-import bpy			#@UnresolvedImport
+import bpy            #@UnresolvedImport
 
 #from indigo import IndigoAddon
 
 #@IndigoAddon.addon_register_class
 class indigo_ui_rendering_controls(bpy.types.Panel):
-	bl_space_type = 'IMAGE_EDITOR'
-	bl_region_type = 'UI'
-	bl_label = "Indigo Rendering Controls"
-	COMPAT_ENGINES = {IndigoAddon.BL_IDNAME}
-	
-	@classmethod
-	def poll(cls, context):
-		return (context.scene.render.engine in cls.COMPAT_ENGINES) and context.space_data
+    bl_space_type = 'IMAGE_EDITOR'
+    bl_region_type = 'UI'
+    bl_label = "Indigo Rendering Controls"
+    COMPAT_ENGINES = {IndigoAddon.BL_IDNAME}
+    
+    @classmethod
+    def poll(cls, context):
+        return (context.scene.render.engine in cls.COMPAT_ENGINES) and context.space_data
