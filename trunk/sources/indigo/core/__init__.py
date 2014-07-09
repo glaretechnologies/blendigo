@@ -25,7 +25,7 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 # System Libs
-import os, subprocess, threading, time, sys
+import os, subprocess, threading, time, sys, random
 
 # Blender Libs
 import bpy, bl_ui            #@UnresolvedImport
@@ -171,6 +171,9 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
                 else:
                     # Append to existing igq.
                     igq_file = open(igq_filename, 'a')
+                    
+                rnd = random.Random()
+                rnd.seed(context.frame_current)
 
                 # Write igq item.
                 igq_file.write('\t<item>\n')
@@ -178,6 +181,7 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
                 igq_file.write('\t\t<halt_time>%d</halt_time>\n' % context.indigo_engine.halttime)
                 igq_file.write('\t\t<halt_spp>%d</halt_spp>\n' % context.indigo_engine.haltspp)
                 igq_file.write('\t\t<output_path>%s</output_path>\n' % image_out_path)
+                igq_file.write('\t\t<seed>%s</seed>\n' % rnd.randint(1, 1000000))
                 igq_file.write('\t</item>\n')
 
                 # If this is the last frame, write the closing tag.
