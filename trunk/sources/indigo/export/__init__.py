@@ -166,7 +166,17 @@ def indigo_visible(scene, obj, is_dupli=False):
     ov = False
     for lv in [ol and sl for ol,sl in zip(obj.layers, scene.layers)]:
         ov |= lv
-    return (ov or is_dupli) and not obj.hide_render
+    
+    pv = True # parent visible
+    if not is_dupli:
+        p = obj.parent
+        while p != None:
+            if p.hide_render:
+                pv = False
+                break
+            p = p.parent
+    
+    return (ov or is_dupli) and not obj.hide_render and pv
 
 '''class MeshProgressThread(ExportProgressThread):
     def __init__(self, action):
