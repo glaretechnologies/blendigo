@@ -6,3 +6,7 @@ solution is to parse IGM file properly instead of using regex. (or get indigo to
 * Seems like PIGMs get unzipped to disk every time scene export is done.
 
 * Turn off motion blur by default?
+
+TODO: make ExportCache just use a normal hash
+TODO: rename handler_Duplis_GENERIC to something reasonable, like exportParticleSystem, etc..
+TODO: remove use of xml_builder etc.., just use sprintf or similar to export XML directly to the output file.
