@@ -1,3 +1,11 @@
+3.8.5.0
+--------
+* Added arch glass option to specular material.
+* Fixed particle export being slow.
+* Fixed background rotation.
+* Fixed parent visibility being ignored.
+* When exporting animations, frames have a random seed, seeded by frame number.
+
 3.6.28.0
 --------
 * Fixed memory leaked during export to Indigo.
