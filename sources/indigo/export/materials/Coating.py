@@ -26,12 +26,13 @@
 #
 from extensions_framework import util as efutil
 
-from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, DisplacementChannelMaterial, AbsorptionChannelMaterial, MaterialBase
+from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, AbsorptionChannelMaterial, MaterialBase
 
 class CoatingMaterial(
     #AlbedoChannelMaterial,
     EmissionChannelMaterial,
     BumpChannelMaterial,
+    NormalChannelMaterial,
     DisplacementChannelMaterial,
     AbsorptionChannelMaterial,
     

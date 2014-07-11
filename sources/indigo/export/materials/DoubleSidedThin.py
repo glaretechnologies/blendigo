@@ -26,11 +26,12 @@
 #
 from extensions_framework import util as efutil
 
-from indigo.export.materials.Base import EmissionChannelMaterial, BumpChannelMaterial, DisplacementChannelMaterial, TransmittanceChannelMaterial, MaterialBase
+from indigo.export.materials.Base import EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, TransmittanceChannelMaterial, MaterialBase
 
 class DoubleSidedThinMaterial(
     EmissionChannelMaterial,
     BumpChannelMaterial,
+    NormalChannelMaterial,
     DisplacementChannelMaterial,
     TransmittanceChannelMaterial,
     

@@ -188,6 +188,19 @@ class indigo_ui_material_bumpmap(indigo_ui_material_subpanel):
     
     def draw_header(self, context):
         self.layout.prop(context.material.indigo_material.indigo_material_bumpmap, "bumpmap_enabled", text="")
+        
+@IndigoAddon.addon_register_class
+class indigo_ui_material_normalmap(indigo_ui_material_subpanel):
+    bl_label = 'Material Normal Map'
+    
+    INDIGO_COMPAT = PROPERTY_GROUP_USAGE['normalmap']
+    
+    display_property_groups = [
+        ( ('material', 'indigo_material'), 'indigo_material_normalmap' )
+    ]
+    
+    def draw_header(self, context):
+        self.layout.prop(context.material.indigo_material.indigo_material_normalmap, "normalmap_enabled", text="")
 
 @IndigoAddon.addon_register_class
 class indigo_ui_material_displacement(indigo_ui_material_subpanel):

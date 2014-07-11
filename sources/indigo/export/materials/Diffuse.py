@@ -24,12 +24,13 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
-from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, DisplacementChannelMaterial, MaterialBase
+from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, MaterialBase
 
 class DiffuseMaterial(
     AlbedoChannelMaterial,
     EmissionChannelMaterial,
     BumpChannelMaterial,
+    NormalChannelMaterial,
     DisplacementChannelMaterial,
     
     # MaterialBase needs to be last in this list
