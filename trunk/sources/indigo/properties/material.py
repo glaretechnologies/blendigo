@@ -56,6 +56,7 @@ PROPERTY_GROUP_USAGE = {
     'blended': {'blended'},
     'external': {'external'},
     'bumpmap': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
+    'normalmap': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
     'displacement': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
     'exponent': {'phong', 'specular'},
     'blendmap': {'blended'},
@@ -890,6 +891,19 @@ class indigo_material_bumpmap(indigo_material_feature):
     visibility    = Cha_Bump.visibility
     enabled        = Cha_Bump.enabled
     properties    = Cha_Bump.properties
+    
+    def get_output(self, obj, indigo_material, blender_material, scene):
+        return []
+        
+Cha_Normal = MaterialChannel('normalmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Normal Map')
+
+@IndigoAddon.addon_register_class
+class indigo_material_normalmap(indigo_material_feature):
+    
+    controls    = Cha_Normal.controls
+    visibility    = Cha_Normal.visibility
+    enabled        = Cha_Normal.enabled
+    properties    = Cha_Normal.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
         return []

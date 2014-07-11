@@ -65,6 +65,7 @@ class MaterialBase(xml_builder):
         op.update(self.AlbedoChannel())
         op.update(self.EmissionChannel())
         op.update(self.BumpChannel())
+        op.update(self.NormalChannel())
         op.update(self.DisplacementChannel())
         op.update(self.ExponentChannel())
         op.update(self.BlendChannel())
@@ -197,6 +198,8 @@ class MaterialBase(xml_builder):
         return {}
     def BumpChannel(self):
         return {}
+    def NormalChannel(self):
+        return {}
     def DisplacementChannel(self):
         return {}
     def ExponentChannel(self):
@@ -240,6 +243,14 @@ class BumpChannelMaterial(object):
     def BumpChannel(self):
         if self.material_group.indigo_material_bumpmap.bumpmap_enabled:
             return self.get_channel(self.material_group.indigo_material_bumpmap, 'bump', 'bumpmap')
+        else:
+            return {}
+            
+class NormalChannelMaterial(object):
+    #['diffuse', 'phong', 'specular']
+    def NormalChannel(self):
+        if self.material_group.indigo_material_normalmap.normalmap_enabled:
+            return self.get_channel(self.material_group.indigo_material_normalmap, 'normal_map', 'normalmap')
         else:
             return {}
 
