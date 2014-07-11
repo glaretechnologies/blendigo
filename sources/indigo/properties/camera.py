@@ -75,6 +75,7 @@ class indigo_camera(declarative_property_group, xml_builder):
         ['whitebalance',
         #'motionblur'
         ],
+        ['whitebalanceX', 'whitebalanceY'],
         ['ad', 'ad_post'],
         'ad_obstacle',
         'ad_type',
@@ -85,6 +86,9 @@ class indigo_camera(declarative_property_group, xml_builder):
     
     visibility = {
         'exposure':        { 'autoexposure': False },
+        
+        'whitebalanceX':    { 'whitebalance': 'Custom' },
+        'whitebalanceY':    { 'whitebalance': 'Custom' },
         
         'ad_post':        { 'ad': True },
         'ad_type':        { 'ad': True },
@@ -184,7 +188,34 @@ class indigo_camera(declarative_property_group, xml_builder):
                 ('F2','F2','F2'),
                 ('F7','F7','F7'),
                 ('F11','F11','F11'),
+                ('Custom','Custom','Custom'),
             ],
+        },
+        {
+            'type': 'float',
+            'attr': 'whitebalanceX',
+            'name': 'X',
+            'description': 'Whitebalance X',
+            'slider': True,
+            'precision': 5,
+            'default': 0.33333,
+            'min': 0.1,
+            'soft_min': 0.1,
+            'max': 0.5,
+            'soft_max': 0.5,
+        },
+        {
+            'type': 'float',
+            'attr': 'whitebalanceY',
+            'name': 'Y',
+            'description': 'Whitebalance Y',
+            'slider': True,
+            'precision': 5,
+            'default': 0.33333,
+            'min': 0.1,
+            'soft_min': 0.1,
+            'max': 0.5,
+            'soft_max': 0.5,
         },
         {
             'type': 'bool',
@@ -274,9 +305,18 @@ class indigo_camera(declarative_property_group, xml_builder):
             'sensor_width': [scene.camera.data.sensor_width / 1000.0],
             'lens_sensor_dist': [lens_sensor_dist(scene, self)],
             'aspect_ratio': [aspect_ratio(scene, self)],
-            'white_balance': 'whitebalance',
             'exposure_duration': 'exposure',
         }
+        
+        if self.whitebalance == 'Custom':
+            xml_format['white_point'] = {
+                'chromaticity_coordinates': {
+                    'x': [self.whitebalanceX],
+                    'y': [self.whitebalanceY],
+                }
+            }
+        else:
+            xml_format['white_balance'] = 'whitebalance',
         
         if(scene.camera.data.type == 'ORTHO'):
             xml_format['camera_type'] = ['orthographic']
