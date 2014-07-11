@@ -193,7 +193,7 @@ class SceneIterator(object):
                 if obj.is_duplicator and number_psystems < 1:
                     if OBJECT_ANALYSIS: indigo_log(' -> is duplicator without particle systems')
                     if obj.dupli_type in ('FACES', 'GROUP', 'VERTS'):
-                        self.handler_Duplis_GENERIC(obj)
+                        self.handleDuplis(obj)
                     elif OBJECT_ANALYSIS: indigo_log(' -> Unsupported Dupli type: %s' % obj.dupli_type)
                 
                 # Some dupli types should hide the original
@@ -208,7 +208,7 @@ class SceneIterator(object):
                     for psys in obj.particle_systems:
                         export_original_object = export_original_object or psys.settings.use_render_emitter
                         if psys.settings.render_type in ('GROUP', 'OBJECT'):
-                            self.handler_Duplis_GENERIC(obj, particle_system=psys)
+                            self.handleDuplis(obj, particle_system=psys)
                          # PATH not supported?
                         elif OBJECT_ANALYSIS: indigo_log(' -> Unsupported Particle system type: %s' % psys.settings.render_type)
                 
@@ -219,9 +219,9 @@ class SceneIterator(object):
                     raise UnexportableObjectException('Unsupported object type')
                 
                 if obj.type == 'LAMP':
-                    self.handler_LAMP(obj)
+                    self.handleLamp(obj)
                 elif obj.type in ('MESH', 'CURVE', 'SURFACE', 'FONT'):
-                    self.handler_MESH(obj)
+                    self.handleMesh(obj)
             
             except UnexportableObjectException as err:
                 if OBJECT_ANALYSIS: indigo_log(' -> Unexportable object: %s : %s : %s' % (obj, obj.type, err))

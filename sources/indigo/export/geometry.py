@@ -310,20 +310,20 @@ class GeometryExporter(SceneIterator):
 
         self.exporting_duplis = False
 
-        self.ExportedMaterials = ExportCache('ExportedMaterials')
-        self.ExportedObjects = ExportCache('ExportedObjects')
-        self.ExportedDuplis = ExportCache('ExportedObjectDuplis')
-        self.ExportedLamps = ExportCache('ExportedObjectLamps')
+        self.ExportedMaterials = {}
+        self.ExportedObjects = {}
+        self.ExportedDuplis = {}
+        self.ExportedLamps = {}
         self.ExportedMeshes = {}
         self.MeshesOnDisk = {}
 
-    def handler_Duplis_GENERIC(self, obj, *args, **kwargs):
+    def handleDuplis(self, obj, *args, **kwargs):
         try:
-            if self.ExportedDuplis.have(obj):
+            if obj in self.ExportedDuplis:
                 indigo_log('Duplis for object %s already exported'%obj)
                 return
 
-            self.ExportedDuplis.add(obj, True)
+            self.ExportedDuplis[obj] = True
 
             try:
                 obj.dupli_list_create(self.scene)
@@ -379,20 +379,20 @@ class GeometryExporter(SceneIterator):
             indigo_log('... done, exported %s duplis' % exported_objects)
 
         except SystemError as err:
-            indigo_log('Error with handler_Duplis_GENERIC and object %s: %s' % (obj, err))
+            indigo_log('Error with handleDuplis and object %s: %s' % (obj, err))
 
-    def handler_LAMP(self, obj, *args, **kwargs):
-        if OBJECT_ANALYSIS: indigo_log(' -> handler_LAMP: %s' % obj)
+    def handleLamp(self, obj, *args, **kwargs):
+        if OBJECT_ANALYSIS: indigo_log(' -> handleLamp: %s' % obj)
 
         if obj.data.type == 'AREA':
             pass
         if obj.data.type == 'HEMI':
-            self.ExportedLamps.add(obj.name, [obj.data.indigo_lamp_hemi.build_xml_element(obj, self.scene)])
+            self.ExportedLamps[obj.name] = [obj.data.indigo_lamp_hemi.build_xml_element(obj, self.scene)]
         if obj.data.type == 'SUN':
-            self.ExportedLamps.add(obj.name, [obj.data.indigo_lamp_sun.build_xml_element(obj, self.scene)])
+            self.ExportedLamps[obj.name] = [obj.data.indigo_lamp_sun.build_xml_element(obj, self.scene)]
 
-    def handler_MESH(self, obj, *args, **kwargs):
-        if OBJECT_ANALYSIS: indigo_log(' -> handler_MESH: %s' % obj)
+    def handleMesh(self, obj, *args, **kwargs):
+        if OBJECT_ANALYSIS: indigo_log(' -> handleMesh: %s' % obj)
 
         if 'matrix' in kwargs.keys():
             self.exportModelElements(
@@ -538,9 +538,9 @@ class GeometryExporter(SceneIterator):
             if len(obj.material_slots) > 0:
                 for mi in used_mat_indices:
                     mat = obj.material_slots[mi].material
-                    if mat == None or self.ExportedMaterials.have(mat.name): continue
+                    if mat == None or mat.name in self.ExportedMaterials: continue
                     mat_xmls = mat.indigo_material.factory(obj, mat, self.scene)
-                    self.ExportedMaterials.add(mat.name, mat_xmls)
+                    self.ExportedMaterials[mat.name] = mat_xmls
 
             # .. put the relative path in the mesh element
             filename = '/'.join([rel_mesh_dir, mesh_filename])
@@ -569,7 +569,7 @@ class GeometryExporter(SceneIterator):
 
             model_definition = (xml,)
 
-            self.ExportedObjects.add(self.object_id, model_definition)
+            self.ExportedObjects[self.object_id] = model_definition
             self.object_id += 1
             return
 
@@ -579,7 +579,7 @@ class GeometryExporter(SceneIterator):
 
             model_definition = (xml,)
 
-            self.ExportedObjects.add(self.object_id, model_definition)
+            self.ExportedObjects[self.object_id] = model_definition
             self.object_id += 1
             return
 
@@ -599,7 +599,7 @@ class GeometryExporter(SceneIterator):
 
         model_definition = (xml,)
 
-        self.ExportedObjects.add(self.object_id, model_definition)
+        self.ExportedObjects[self.object_id] = model_definition
         self.object_id += 1
 
 
