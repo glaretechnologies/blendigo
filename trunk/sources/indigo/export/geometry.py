@@ -39,7 +39,6 @@ from extensions_framework import util as efutil
 
 from indigo.core.util import get_worldscale
 from indigo.export import ( indigo_log,
-                            #ExportProgressThread,
                             ExportCache,
                             xml_builder,
                             SceneIterator, OBJECT_ANALYSIS,
@@ -47,8 +46,6 @@ from indigo.export import ( indigo_log,
                             )
 from indigo.export.igmesh import igmesh_writer
 
-'''class DupliExportProgressThread(ExportProgressThread):
-    message = '...  %i%% ...'''
 
 class model_base(xml_builder):
     element_type = 'model'
@@ -354,10 +351,6 @@ class GeometryExporter(SceneIterator):
 
             obj.dupli_list_clear()
 
-            #det = DupliExportProgressThread()
-            #if self.scene.indigo_engine.console_output:
-            #    det.start(len(duplis))
-
             self.exporting_duplis = True
             exported_objects = 0
 
@@ -382,10 +375,6 @@ class GeometryExporter(SceneIterator):
             del duplis
 
             self.exporting_duplis = False
-
-            #if self.scene.indigo_engine.console_output:
-            #    det.stop()
-            #    det.join()
 
             indigo_log('... done, exported %s duplis' % exported_objects)
 

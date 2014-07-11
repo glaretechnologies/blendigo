@@ -26,6 +26,8 @@
 #
 import bpy
 
+import mathutils
+
 from extensions_framework import declarative_property_group
 from extensions_framework import util as efutil
 
@@ -320,7 +322,20 @@ class indigo_lamp_hemi(declarative_property_group, xml_builder):
         
         # TODO; re-implement spherical/angular and spherical width ?
         
-        rq = obj.matrix_world.to_quaternion()
+        trans = mathutils.Matrix.Identity(3)
+        
+        trans[0][0:3] = 0.0, 1.0, 0.0
+        trans[1][0:3] = -1.0, 0.0, 0.0
+        trans[2][0:3] = 0.0, 0.0, 1.0
+        
+        mat = obj.matrix_world.to_3x3()
+        mat = mat * trans
+        
+        rq = mat.to_quaternion().to_axis_angle()
+        
+        #rmr = []
+        #for row in tbt.col:
+        #    rmr.extend(row)
         
         fmt = {
             'texture': {
@@ -329,9 +344,10 @@ class indigo_lamp_hemi(declarative_property_group, xml_builder):
                 'tex_coord_generation': {
                     self.env_map_type: {
                         'rotation': {
+                            #'matrix': rmr
                             'axis_rotation': {
-                                'axis': [' '.join(['%s'%v for v in rq.axis])],
-                                'angle': ['%s'%-rq.angle]
+                                'axis': list(rq[0]),
+                                'angle': [-rq[1]]
                             }
                         }
                     }

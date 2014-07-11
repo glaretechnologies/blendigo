@@ -114,24 +114,6 @@ class InvalidGeometryException(Exception):
 class UnexportableObjectException(Exception):
     pass
 
-'''class ExportProgressThread(efutil.TimerThread):
-    message = '%i%%'
-    KICK_PERIOD = 0.2
-    total_objects = 0
-    exported_objects = 0
-    last_update = 0
-    def start(self, number_of_meshes):
-        self.total_objects = number_of_meshes
-        self.exported_objects = 0
-        self.last_update = 0
-        super().start()
-    def kick(self):
-        if self.exported_objects != self.last_update:
-            self.last_update = self.exported_objects
-            pc = int(100 * self.exported_objects/self.total_objects)
-            # NOTE: Disabled line below as was causing crashes of Blender.
-            # indigo_log(self.message % pc)'''
-
 class ExportCache(object):
     
     name = 'Cache'
@@ -178,11 +160,6 @@ def indigo_visible(scene, obj, is_dupli=False):
     
     return (ov or is_dupli) and not obj.hide_render and pv
 
-'''class MeshProgressThread(ExportProgressThread):
-    def __init__(self, action):
-        super().__init__()
-        self.message = action + ' meshes: %i%%'''
-
 class SceneIterator(object):
     progress_thread_action = "Exporting"
     
@@ -199,10 +176,6 @@ class SceneIterator(object):
         return self.abort
     
     def iterateScene(self, scene):
-        
-        #progress_thread = MeshProgressThread(self.progress_thread_action)
-        #progress_thread.start(len(scene.objects))
-        
         for obj in scene.objects:
             if self.canAbort(): break
             if OBJECT_ANALYSIS: indigo_log('Analysing object %s : %s' % (obj, obj.type))
@@ -252,8 +225,3 @@ class SceneIterator(object):
             
             except UnexportableObjectException as err:
                 if OBJECT_ANALYSIS: indigo_log(' -> Unexportable object: %s : %s : %s' % (obj, obj.type, err))
-            
-            #progress_thread.exported_objects += 1
-        
-        #progress_thread.stop()
-        #progress_thread.join()

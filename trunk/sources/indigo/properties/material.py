@@ -969,6 +969,7 @@ class indigo_material_specular(indigo_material_feature):
     controls = [
         'type',
         'transparent', 'exponent',
+        'arch_glass',
         'precedence',
         
         'medium_type',
@@ -995,6 +996,7 @@ class indigo_material_specular(indigo_material_feature):
     visibility = {
         'transparent':            { 'type':'specular'},
         'exponent':                { 'type': 'glossy_transparent' },
+        'arch_glass':            { 'type':'specular'},
         
         'medium_ior':            { 'medium_type': 'basic' },
         'medium_cauchy_b':        { 'medium_type': 'basic' },
@@ -1058,6 +1060,13 @@ class indigo_material_specular(indigo_material_feature):
             'default': 1000.0,
             'min': 0.0,
             'max': 1000000.0
+        },
+        {
+            'type': 'bool',
+            'attr': 'arch_glass',
+            'name': 'Arch Glass',
+            'description': 'Arch Glass',
+            'default': False,
         },
         {
             'type': 'int',
