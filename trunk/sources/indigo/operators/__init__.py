@@ -132,7 +132,7 @@ class LightingChecker(SceneIterator):
     def isValid(self):
         return self.valid_lighting
     
-    def handler_Duplis_GENERIC(self, obj, *args, **kwargs):
+    def handleDuplis(self, obj, *args, **kwargs):
         if self.CheckedDuplis.have(obj): return
         self.CheckedDuplis.add(obj, obj)
         
@@ -150,11 +150,11 @@ class LightingChecker(SceneIterator):
             if not indigo_visible(self.scene, dupli_ob.object, is_dupli=True):
                 continue
             
-            self.handler_MESH(dupli_ob.object)
+            self.handleMesh(dupli_ob.object)
         
         obj.dupli_list_clear()
     
-    def handler_MESH(self, obj, *args, **kwargs):
+    def handleMesh(self, obj, *args, **kwargs):
         if self.ObjectsChecked.have(obj): return
         
         emitting_object = False
@@ -178,7 +178,7 @@ class LightingChecker(SceneIterator):
         self.ObjectsChecked.add(obj, obj)
         self.valid_lighting |= emitting_object
     
-    def handler_LAMP(self, obj, *args, **kwargs):
+    def handleLamp(self, obj, *args, **kwargs):
         if self.LampsChecked.have(obj): return
         
         self.valid_lighting |= obj.data.type in ('SUN', 'HEMI')
@@ -368,18 +368,20 @@ class _Impl_OT_indigo(_Impl_operator):
             indigo_log('Export lamps')
             
             # use special n==1 case due to bug in indigo <sum> material
-            if geometry_exporter.ExportedLamps.count() == 1:
+            num_lamps = len(geometry_exporter.ExportedLamps)
+            
+            if num_lamps == 1:
                 scene_background_settings = ET.Element('background_settings')
                 scene_background_settings_mat = ET.Element('background_material')
                 scene_background_settings.append(scene_background_settings_mat)
                 
-                for ck, ci in geometry_exporter.ExportedLamps.get_all():        #@UnusedVariable
+                for ck, ci in geometry_exporter.ExportedLamps.items():        #@UnusedVariable
                     for xml in ci:
                         scene_background_settings_mat.append(xml)
                 
                 scene_xml.append(scene_background_settings)
             
-            if geometry_exporter.ExportedLamps.count() > 1:
+            if num_lamps > 1:
                 
                 scene_background_settings = ET.Element('background_settings')
                 scene_background_settings_fmt = {
@@ -391,7 +393,7 @@ class _Impl_OT_indigo(_Impl_operator):
                     }
                 }
                 
-                for ck, ci in geometry_exporter.ExportedLamps.get_all():        #@UnusedVariable
+                for ck, ci in geometry_exporter.ExportedLamps.items():        #@UnusedVariable
                     for xml in ci:
                         scene_xml.append(xml)
                     
@@ -403,7 +405,7 @@ class _Impl_OT_indigo(_Impl_operator):
                 scene_background_settings_obj.build_subelements(None, scene_background_settings_fmt, scene_background_settings)
                 scene_xml.append(scene_background_settings)
             
-            for ck, ci in geometry_exporter.ExportedMaterials.get_all():    #@UnusedVariable
+            for ck, ci in geometry_exporter.ExportedMaterials.items():    #@UnusedVariable
                 for xml in ci:
                     scene_xml.append(xml)
             indigo_log('Exported used materials')
@@ -418,7 +420,7 @@ class _Impl_OT_indigo(_Impl_operator):
             # We write object instances to a separate file
             oc = 0
             scene_data_xml = ET.Element('scenedata')
-            for ck, ci in geometry_exporter.ExportedObjects.get_all():        #@UnusedVariable
+            for ck, ci in geometry_exporter.ExportedObjects.items():        #@UnusedVariable
                 xml = ci[0]
                 scene_data_xml.append(xml)
                 oc += 1
