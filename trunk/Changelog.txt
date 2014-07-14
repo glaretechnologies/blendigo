@@ -1,3 +1,10 @@
+3.8.5.1
+--------
+* Added whitepoint sliders to camera (visible when White Balance is set to "Custom").
+* Added normal map support.
+* Fixed ws being used before assignment in camera.py.
+* Exporting duplis with RENDER settings instead if PREVIEW (allowing the display percentage to work as intended).
+
 3.8.5.0
 --------
 * Added arch glass option to specular material.
