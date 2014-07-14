@@ -137,7 +137,7 @@ class LightingChecker(SceneIterator):
         self.CheckedDuplis.add(obj, obj)
         
         try:
-            obj.dupli_list_create(self.scene)
+            obj.dupli_list_create(self.scene, 'RENDER')
             if not obj.dupli_list:
                 raise Exception('cannot create dupli list for object %s' % obj.name)
         except Exception as err:
