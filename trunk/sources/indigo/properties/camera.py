@@ -318,11 +318,11 @@ class indigo_camera(declarative_property_group, xml_builder):
         else:
             xml_format['white_balance'] = 'whitebalance',
         
+        ws = get_worldscale(scene)
+        
         if(scene.camera.data.type == 'ORTHO'):
             xml_format['camera_type'] = ['orthographic']
             xml_format['sensor_width'] = [scene.camera.data.ortho_scale * ws] # Blender seems to use 'ortho_scale' for the sensor width.
-        
-        ws = get_worldscale(scene)
         
         cam_mat = scene.camera.matrix_world
         #if bpy.app.build_revision >= '42816':
