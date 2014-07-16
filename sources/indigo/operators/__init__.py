@@ -25,6 +25,7 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 import os, time
+import math
 import xml.etree.cElementTree as ET
 import xml.dom.minidom as MD
 
@@ -39,6 +40,7 @@ from indigo.export import (
     SceneIterator, ExportCache
 )
 from indigo.export.igmesh import igmesh_writer
+from indigo.export.geometry import model_object
 
 class _Impl_operator(object):
     
@@ -132,7 +134,7 @@ class LightingChecker(SceneIterator):
     def isValid(self):
         return self.valid_lighting
     
-    def handleDuplis(self, obj, *args, **kwargs):
+    def handleDuplis(self, obj):
         if self.CheckedDuplis.have(obj): return
         self.CheckedDuplis.add(obj, obj)
         
@@ -154,7 +156,7 @@ class LightingChecker(SceneIterator):
         
         obj.dupli_list_clear()
     
-    def handleMesh(self, obj, *args, **kwargs):
+    def handleMesh(self, obj):
         if self.ObjectsChecked.have(obj): return
         
         emitting_object = False
@@ -178,7 +180,7 @@ class LightingChecker(SceneIterator):
         self.ObjectsChecked.add(obj, obj)
         self.valid_lighting |= emitting_object
     
-    def handleLamp(self, obj, *args, **kwargs):
+    def handleLamp(self, obj):
         if self.LampsChecked.have(obj): return
         
         self.valid_lighting |= obj.data.type in ('SUN', 'HEMI')
@@ -266,7 +268,7 @@ class _Impl_OT_indigo(_Impl_operator):
             #------------------------------------------------------------------------------
             # Init stats
             indigo_log('Indigo export started ...')
-            start_time = time.time()
+            export_start_time = time.time()
             
             igs_filename = self.check_output_path(self.properties.directory)
             
@@ -320,13 +322,6 @@ class _Impl_OT_indigo(_Impl_operator):
                 )
             
             #------------------------------------------------------------------------------
-            # Camera
-            indigo_log('Export camera')
-            scene_xml.append(
-                master_scene.camera.data.indigo_camera.build_xml_element(master_scene)
-            )
-            
-            #------------------------------------------------------------------------------
             # Tonemapping
             indigo_log('Export tonemapping')
             scene_xml.append(
@@ -348,15 +343,62 @@ class _Impl_OT_indigo(_Impl_operator):
             # however, the re-indexing at material export time is non-trivial for
             # now and probably not worth it.
             #light_layer_count = 0
+            
+            fps = master_scene.render.fps / master_scene.render.fps_base
+            start_frame = master_scene.frame_current
+            exposure = 1 / master_scene.camera.data.indigo_camera.exposure
+            camera = (master_scene.camera, [])
+            
+            if master_scene.indigo_engine.motionblur:
+                # When motion blur is on, calculate the number of frames covered by the exposure time
+                start_time = start_frame / fps
+                end_time = start_time + exposure
+                end_frame = math.ceil(end_time * fps)
+                #indigo_log('fps: %s'%fps)
+                #indigo_log('start_time: %s'%start_time)
+                #indigo_log('end_time: %s'%end_time)
+                #indigo_log('exposure: %s'%exposure)
+                #indigo_log('start_frame: %s'%start_frame)
+                #indigo_log('end_frame: %s'%end_frame)
+                
+                # end_frame + 1 because range is max excl
+                frame_list = [x for x in range(start_frame, end_frame+1)]
+            else:
+                frame_list = [start_frame]
+                
+            #indigo_log('frame_list: %s'%frame_list)
+            
+            #------------------------------------------------------------------------------
+            # Process all objects in all frames in all scenes.
+            for cur_frame in frame_list:
+                # Calculate normalised time for keyframes.
+                normalised_time = (cur_frame - start_frame) / fps / exposure
+                indigo_log('Processing frame: %i time: %f'%(cur_frame, normalised_time))
+                
+                geometry_exporter.normalised_time = normalised_time
+                bpy.context.scene.frame_set(cur_frame, 0.0)
+
+                # Add Camera matrix.
+                camera[1].append((normalised_time, camera[0].matrix_world.copy()))
+            
+                for ex_scene in export_scenes:
+                    if ex_scene is None: continue
+                    
+                    indigo_log('Processing objects for scene %s' % ex_scene.name)
+                    geometry_exporter.iterateScene(ex_scene)
+            
+            #------------------------------------------------------------------------------
+            # Export camera
+            indigo_log('Export camera')
+            scene_xml.append(
+                camera[0].data.indigo_camera.build_xml_element(master_scene, camera[1])
+            )
+            
+            #------------------------------------------------------------------------------
+            # Export light layers
             for ex_scene in export_scenes:
                 if ex_scene is None: continue
                 
-                #------------------------------------------------------------------------------
-                # Meshes and the materials assigned
-                indigo_log('Parsing objects for scene %s' % ex_scene.name)
-                geometry_exporter.iterateScene(ex_scene)
-                
-                #------------------------------------------------------------------------------
                 # Light layer names
                 for layer_name, idx in ex_scene.indigo_lightlayers.enumerate().items():
                     indigo_log('Light layer %i: %s' % (idx, layer_name))
@@ -421,7 +463,23 @@ class _Impl_OT_indigo(_Impl_operator):
             oc = 0
             scene_data_xml = ET.Element('scenedata')
             for ck, ci in geometry_exporter.ExportedObjects.items():        #@UnusedVariable
-                xml = ci[0]
+                obj_type = ci[0]
+                
+                if obj_type == 'OBJECT':
+                    obj = ci[1]
+                    mesh_name = ci[2]
+                    obj_matrices = ci[3]
+                    scene = ci[4]
+                    
+                    #indigo_log('obj %s'%obj)
+                    #indigo_log('mesh_name %s'%mesh_name)
+                    #indigo_log('obj_matrices %s'%obj_matrices)
+                    #indigo_log('scene %s'%scene)
+                    
+                    xml = geometry.model_object(scene).build_xml_element(obj, mesh_name, obj_matrices)
+                else:
+                    xml = ci[1]
+                    
                 scene_data_xml.append(xml)
                 oc += 1
             
@@ -429,7 +487,7 @@ class _Impl_OT_indigo(_Impl_operator):
                 efutil.export_path,
                 efutil.scene_filename(),
                 bpy.path.clean_name(master_scene.name),
-                master_scene.frame_current
+                start_frame
             )
             
             objects_file = open(objects_file_name, 'wb')
@@ -454,8 +512,12 @@ class _Impl_OT_indigo(_Impl_operator):
             
             #------------------------------------------------------------------------------
             # Print stats
-            end_time = time.time()
-            indigo_log('Export finished; took %f seconds' % (end_time-start_time))
+            export_end_time = time.time()
+            indigo_log('Export finished; took %f seconds' % (export_end_time-export_start_time))
+            
+            # Reset to start_frame.
+            if len(frame_list) > 1:
+                bpy.context.scene.frame_set(start_frame)
             
             return {'FINISHED'}
         

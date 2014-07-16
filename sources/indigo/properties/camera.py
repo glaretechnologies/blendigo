@@ -33,8 +33,7 @@ from extensions_framework import util as efutil
 
 from indigo import IndigoAddon
 from indigo.core.util import get_worldscale
-from indigo.export import indigo_log
-from indigo.export import xml_builder
+from indigo.export import ( indigo_log, exportutil, xml_builder )
 
 def aspect_ratio(context,p):
     return context.render.resolution_x / context.render.resolution_y
@@ -297,7 +296,7 @@ class indigo_camera(declarative_property_group, xml_builder):
     
     # xml_builder members
     
-    def build_xml_element(self, scene):
+    def build_xml_element(self, scene, matrix_list):
         xml = self.Element('camera')
         
         xml_format = {
@@ -324,13 +323,20 @@ class indigo_camera(declarative_property_group, xml_builder):
             xml_format['camera_type'] = ['orthographic']
             xml_format['sensor_width'] = [scene.camera.data.ortho_scale * ws] # Blender seems to use 'ortho_scale' for the sensor width.
         
-        cam_mat = scene.camera.matrix_world
-        #if bpy.app.build_revision >= '42816':
+        cam_mat = matrix_list[0][1]
         cam_mat = cam_mat.transposed()
         
         xml_format['pos']        = [ i*ws for i in cam_mat[3][0:3]]
         xml_format['forwards']    = [-i*ws for i in cam_mat[2][0:3]]
         xml_format['up']        = [ i*ws for i in cam_mat[1][0:3]]
+        
+        if len(matrix_list) > 1:
+            # Remove pos, conflicts with keyframes.
+            del(xml_format['pos'])
+        
+            keyframes = exportutil.matrixListToKeyframes(scene, scene.camera, matrix_list)
+                
+            xml_format['keyframe'] = tuple(keyframes)
         
         if self.autofocus:
             xml_format['autofocus'] = '' # is empty element

@@ -42,7 +42,8 @@ from indigo.export import ( indigo_log,
                             ExportCache,
                             xml_builder,
                             SceneIterator, OBJECT_ANALYSIS,
-                            indigo_visible
+                            indigo_visible,
+                            exportutil
                             )
 from indigo.export.igmesh import igmesh_writer
 
@@ -57,50 +58,6 @@ class model_base(xml_builder):
     def get_additional_elements(self, obj):
         return {}
 
-    def get_transform(self, obj, matrix, xml_format='matrix'):
-        #------------------------------------------------------------------------------
-        # get appropriate loc, rot, scale data
-        if matrix is not None:
-            lv, rm, sv = matrix.decompose()
-        else:
-            lv, rm, sv = obj.matrix_world.decompose()
-
-        rm = rm.to_matrix()
-        #------------------------------------------------------------------------------
-        # Process loc, rot, scale data
-        # get a rotation matrix that doesn't include scale info ...
-        # ... apply the world scale ...
-        # ... and invert it ...
-        ws = get_worldscale(self.scene)
-
-        # ... then apply non-uniform scaling to rotation matrix
-        sv_axes = mathutils.Matrix.Identity(3)
-        for i in range(3):
-            rm = rm * mathutils.Matrix.Scale(1/sv[i], 3, sv_axes.row[i])
-
-        rm_inverted = rm.inverted() * ws
-
-        xform = {
-            'pos': [str(co*ws) for co in lv],
-        }
-
-        if xml_format=='quat':
-            rmq = rm_inverted.to_quaternion()
-            xform['rotation_quaternion'] = {
-                'axis': list(rmq.axis),
-                'angle': [-rmq.angle]
-            }
-
-        elif xml_format=='matrix':
-            # convert the matrix to list of strings
-            rmr = []
-            for row in rm_inverted.col:
-                rmr.extend(row)
-
-            xform['rotation'] = { 'matrix': rmr }
-
-        return xform
-
     def get_format(self, obj, mesh_name, matrix_list):
         if len(matrix_list) > 0:
             matrix = matrix_list[0]
@@ -113,7 +70,7 @@ class model_base(xml_builder):
             'scale': [1.0],
         }
 
-        xml_format.update(self.get_transform(obj, matrix))
+        xml_format.update(exportutil.getTransform(self.scene, obj, matrix))
         xml_format.update(self.get_additional_elements(obj))
         return xml_format
 
@@ -165,49 +122,16 @@ class model_object(model_base):
             'scale': [1.0],
         }
 
-        # Add a base static rotation
-        xml_format.update(self.get_transform(obj, matrix_list[0], xml_format='matrix'))
-        del(xml_format['pos'])
+        # Add a base static rotation.
+        xml_format.update(exportutil.getTransform(self.scene, obj, matrix_list[0][1], xml_format='matrix'))
 
         if len(matrix_list) > 1:
-            if matrix_list[0] == None:
-                base_matrix = obj.matrix_world
-            else:
-                base_matrix = matrix_list[0]
-
-            rm_0, sm_0 = base_matrix.decompose()[1:]
-
-            # insert keyframes
-            keyframes = []
-            for i, matrix in enumerate(matrix_list):
-
-                # Diff matrix is the transform from base_matrix to matrix.
-                diff_matrix = matrix * base_matrix.inverted()
-
-                if matrix==None or matrix_list[0]==None:
-                    matrix_kf = matrix
-                else:
-                    # construct keyframes with rotation differences from base rotation
-                    # and absolute positions
-                    lm_k, rm_k, sm_k = matrix.decompose()
-
-                    diff_matrix.transpose()
-
-                    # Get the rotation component of the difference matrix.
-                    r_diff = diff_matrix.decompose()[1]
-
-                    matrix_kf = mathutils.Matrix.Translation(lm_k) * \
-                                mathutils.Matrix.Rotation(r_diff.angle, 4, r_diff.axis)
-
-                xform = self.get_transform(obj, matrix_kf, xml_format='quat')
-
-                xform['time'] = [i/(len(matrix_list)-1)]
-
-                keyframes.append(xform)
-
+            # Remove pos, conflicts with keyframes.
+            del(xml_format['pos'])
+        
+            keyframes = exportutil.matrixListToKeyframes(self.scene, obj, matrix_list)
+                
             xml_format['keyframe'] = tuple(keyframes)
-        else:
-            xml_format.update(self.get_transform(obj, matrix_list[0]))
 
         xml_format.update(self.get_additional_elements(obj))
         return xml_format
@@ -298,6 +222,8 @@ class GeometryExporter(SceneIterator):
     ExportedLamps = None
     ExportedMeshes = None
     MeshesOnDisk = None
+    
+    normalised_time = 0
 
     mesh_uses_shading_normals = {} # Map from exported_mesh_name to boolean
 
@@ -317,11 +243,11 @@ class GeometryExporter(SceneIterator):
         self.ExportedMeshes = {}
         self.MeshesOnDisk = {}
 
-    def handleDuplis(self, obj, *args, **kwargs):
+    def handleDuplis(self, obj):
         try:
-            if obj in self.ExportedDuplis:
-                indigo_log('Duplis for object %s already exported'%obj)
-                return
+            #if obj in self.ExportedDuplis:
+            #    indigo_log('Duplis for object %s already exported'%obj)
+            #    return
 
             self.ExportedDuplis[obj] = True
 
@@ -332,31 +258,21 @@ class GeometryExporter(SceneIterator):
             except Exception as err:
                 indigo_log('%s'%err)
                 return
+                
+            self.exporting_duplis = True
+            exported_objects = 0
 
             # Create our own DupliOb list to work around incorrect layers
             # attribute when inside create_dupli_list()..free_dupli_list()
-            duplis = []
             for dupli_ob in obj.dupli_list:
                 if dupli_ob.object.type not in self.supported_mesh_types:
                     continue
                 if not indigo_visible(self.scene, dupli_ob.object, is_dupli=True):
                     continue
 
-                duplis.append(
-                    (
-                        dupli_ob.object,
-                        dupli_ob.matrix.copy()
-                    )
-                )
-
-            obj.dupli_list_clear()
-
-            self.exporting_duplis = True
-            exported_objects = 0
-
-            # dupli object, dupli matrix
-            for do, dm in duplis:
-
+                do = dupli_ob.object
+                dm = dupli_ob.matrix.copy()
+                
                 # Check for group layer visibility, if the object is in a group
                 gviz = len(do.users_group) == 0
                 for grp in do.users_group:
@@ -365,23 +281,24 @@ class GeometryExporter(SceneIterator):
                     continue
 
                 exported_objects += 1
-
+                
                 self.exportModelElements(
-                    obj,
+                    do,
                     self.buildMesh(do),
-                    matrix=dm
+                    dm,
+                    dupli_ob
                 )
 
-            del duplis
+            obj.dupli_list_clear()
 
-            self.exporting_duplis = False
-
+            self.exporting_duplis = False          
+            
             indigo_log('... done, exported %s duplis' % exported_objects)
 
         except SystemError as err:
             indigo_log('Error with handleDuplis and object %s: %s' % (obj, err))
 
-    def handleLamp(self, obj, *args, **kwargs):
+    def handleLamp(self, obj):
         if OBJECT_ANALYSIS: indigo_log(' -> handleLamp: %s' % obj)
 
         if obj.data.type == 'AREA':
@@ -391,20 +308,13 @@ class GeometryExporter(SceneIterator):
         if obj.data.type == 'SUN':
             self.ExportedLamps[obj.name] = [obj.data.indigo_lamp_sun.build_xml_element(obj, self.scene)]
 
-    def handleMesh(self, obj, *args, **kwargs):
+    def handleMesh(self, obj):
         if OBJECT_ANALYSIS: indigo_log(' -> handleMesh: %s' % obj)
 
-        if 'matrix' in kwargs.keys():
-            self.exportModelElements(
-                obj,
-                self.buildMesh(obj),
-                matrix=kwargs['matrix']
-            )
-        else:
-            self.exportModelElements(
-                obj,
-                self.buildMesh(obj)
-            )
+        self.exportModelElements(
+            obj,
+            self.buildMesh(obj)
+        )
 
     def buildMesh(self, obj):
         """
@@ -464,8 +374,9 @@ class GeometryExporter(SceneIterator):
         if obj.type in self.supported_mesh_types:
         
             # If this object has already been exported, then don't export it again
-            if obj in self.ExportedMeshes:
-                return self.ExportedMeshes[obj]
+            exported_mesh = self.ExportedMeshes.get(obj)
+            if exported_mesh != None:
+                return exported_mesh
         
             # Create mesh with applied modifiers
             mesh = obj.to_mesh(self.scene, True, 'RENDER')
@@ -560,16 +471,38 @@ class GeometryExporter(SceneIterator):
 
             return mesh_definition
 
-    def exportModelElements(self, obj, mesh_definition, matrix=None):
+    def exportModelElements(self, obj, mesh_definition, matrix=None, dupli_ob=None):
         if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition, matrix==None))
+        
+        if matrix == None:
+            final_matrix = obj.matrix_world.copy()
+        else:
+            final_matrix = matrix
+        
+        # If this object was instanced by a DupliObject, hash the DupliObject's persistent_id
+        if dupli_ob != None:
+            key = hash((obj, dupli_ob.persistent_id[0]))
+        else:
+            key = hash(obj)
+            
+        #indigo_log('%s'%key)
+        
+        # If the model (object) was already exported, only update the keyframe list.
+        emodel = self.ExportedObjects.get(key)
+        if emodel != None:
+            if emodel[0] == 'OBJECT':
+                #indigo_log('Updating object: %s'%key)
+                emodel[3].append((self.normalised_time, final_matrix))
+            
+            return
 
         # Special handling for section planes:  If object has the section_plane attribute set, then export it as a section plane.
         if(obj.data != None and obj.data.indigo_mesh.section_plane):
             xml = SectionPlane(obj.matrix_world.col[3], obj.matrix_world.col[2], obj.data.indigo_mesh.cull_geometry).build_xml_element()
 
-            model_definition = (xml,)
+            model_definition = ('SECTION', xml)
 
-            self.ExportedObjects[self.object_id] = model_definition
+            self.ExportedObjects[key] = model_definition
             self.object_id += 1
             return
 
@@ -577,29 +510,37 @@ class GeometryExporter(SceneIterator):
         if(obj.data != None and obj.data.indigo_mesh.sphere_primitive):
             xml = SpherePrimitive(obj.matrix_world, obj).build_xml_element()
 
-            model_definition = (xml,)
+            model_definition = ('SPHERE', xml)
 
-            self.ExportedObjects[self.object_id] = model_definition
+            self.ExportedObjects[key] = model_definition
             self.object_id += 1
             return
 
-
         mesh_name = mesh_definition[0]
-
+        
+        # Special handling for exit portals
         if obj.type == 'MESH' and obj.data.indigo_mesh.exit_portal:
-            xml = exit_portal(self.scene).build_xml_element(obj, mesh_name, [matrix])
-        else:
-            if self.scene.indigo_engine.motionblur and not self.exporting_duplis:
-                blur_amount = (self.scene.render.fps/self.scene.render.fps_base)/self.scene.camera.data.indigo_camera.exposure
-                obj_matrices = self.get_motion_matrices(obj, matrix, frame_offset=blur_amount)
-            else:
-                obj_matrices = [matrix]
+            xml = exit_portal(self.scene).build_xml_element(obj, mesh_name, [final_matrix])
+            
+            model_definition = ('PORTAL', xml)
 
-            xml = model_object(self.scene).build_xml_element(obj, mesh_name, obj_matrices)
+            self.ExportedObjects[key] = model_definition
+            self.object_id += 1
+            return
+            
+        # Normal objects
+        #if self.scene.indigo_engine.motionblur and not self.exporting_duplis:
+        #    blur_amount = (self.scene.render.fps/self.scene.render.fps_base)/self.scene.camera.data.indigo_camera.exposure
+        #    obj_matrices = self.get_motion_matrices(obj, matrix, frame_offset=blur_amount)
+        #else:
+        obj_matrices = [(self.normalised_time, final_matrix)]
 
-        model_definition = (xml,)
+        model_definition = ('OBJECT', obj, mesh_name, obj_matrices, self.scene)
+        
+        #xml = model_object(self.scene).build_xml_element(obj, mesh_name, obj_matrices)
+        #model_definition = ('OBJECT', xml)
 
-        self.ExportedObjects[self.object_id] = model_definition
+        self.ExportedObjects[key] = model_definition
         self.object_id += 1
 
 
