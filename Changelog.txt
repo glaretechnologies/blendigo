@@ -1,3 +1,7 @@
+3.8.5.2
+--------
+* Improved motion blur using frame_set(). Number of frames used depends on exposure.
+
 3.8.5.1
 --------
 * Added whitepoint sliders to camera (visible when White Balance is set to "Custom").
