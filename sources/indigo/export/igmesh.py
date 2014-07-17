@@ -193,10 +193,17 @@ class igmesh_writer(object):
             # Write material name
             write_string(file, 'blendigo_clay')
         else:
+            # Count number of actual materials.
+            count = 0
+            for m in mats:
+                if m == None: continue
+                count += 1
+                
             # Write num used materials
-            write_uint32(file, len(mats))
+            write_uint32(file, count)
             
             for m in mats:
+                if m == None: continue
                 # Write material name
                 write_string(file, m.indigo_material.get_name(m))
         
