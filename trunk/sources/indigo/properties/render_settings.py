@@ -170,7 +170,7 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
         # Render settings
 
         'motionblur',
-        'glass_acceleration',
+        'foreground_alpha',
 
         'render_mode',
 
@@ -457,8 +457,8 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
         },
         {
             'type': 'bool',
-            'attr': 'glass_acceleration',
-            'name': 'Glass Acceleration',
+            'attr': 'foreground_alpha',
+            'name': 'Foreground Alpha',
             'default': False,
         },
         {
@@ -668,8 +668,8 @@ class indigo_engine(declarative_property_group, indigo.export.xml_builder):
         if not self.threads_auto:
             xml_format['renderer_settings']['num_threads'] = 'threads'
 
-        if self.bidir and self.glass_acceleration:
-            xml_format['renderer_settings']['glass_acceleration'] = ['true']
+        if self.foreground_alpha:
+            xml_format['renderer_settings']['render_foreground_alpha'] = ['true']
 
         # Make splat filter element
         if self.splat_filter in ['box', 'gaussian', 'fastbox']:
