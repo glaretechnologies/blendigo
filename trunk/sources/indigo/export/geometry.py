@@ -39,7 +39,6 @@ from extensions_framework import util as efutil
 
 from indigo.core.util import get_worldscale
 from indigo.export import ( indigo_log,
-                            ExportCache,
                             xml_builder,
                             SceneIterator, OBJECT_ANALYSIS,
                             indigo_visible,
@@ -243,7 +242,7 @@ class GeometryExporter(SceneIterator):
         self.ExportedMeshes = {}
         self.MeshesOnDisk = {}
 
-    def handleDuplis(self, obj):
+    def handleDuplis(self, obj, particle_system=None):
         try:
             #if obj in self.ExportedDuplis:
             #    indigo_log('Duplis for object %s already exported'%obj)
@@ -286,7 +285,8 @@ class GeometryExporter(SceneIterator):
                     do,
                     self.buildMesh(do),
                     dm,
-                    dupli_ob
+                    dupli_ob,
+                    particle_system
                 )
 
             obj.dupli_list_clear()
@@ -313,7 +313,8 @@ class GeometryExporter(SceneIterator):
 
         self.exportModelElements(
             obj,
-            self.buildMesh(obj)
+            self.buildMesh(obj),
+            obj.matrix_world.copy()
         )
 
     def buildMesh(self, obj):
@@ -471,34 +472,27 @@ class GeometryExporter(SceneIterator):
 
             return mesh_definition
 
-    def exportModelElements(self, obj, mesh_definition, matrix=None, dupli_ob=None):
-        if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition, matrix==None))
-        
-        if matrix == None:
-            final_matrix = obj.matrix_world.copy()
-        else:
-            final_matrix = matrix
+    def exportModelElements(self, obj, mesh_definition, matrix, dupli_ob=None, particle_system=None):
+        if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition))
         
         # If this object was instanced by a DupliObject, hash the DupliObject's persistent_id
         if dupli_ob != None:
-            key = hash((obj, dupli_ob.persistent_id[0]))
+            key = hash((obj, particle_system, dupli_ob.persistent_id[0]))
         else:
             key = hash(obj)
-            
-        #indigo_log('%s'%key)
         
         # If the model (object) was already exported, only update the keyframe list.
         emodel = self.ExportedObjects.get(key)
         if emodel != None:
             if emodel[0] == 'OBJECT':
-                #indigo_log('Updating object: %s'%key)
-                emodel[3].append((self.normalised_time, final_matrix))
+                # Append to list of (time, matrix) tuples.
+                emodel[3].append((self.normalised_time, matrix))
             
             return
 
         # Special handling for section planes:  If object has the section_plane attribute set, then export it as a section plane.
         if(obj.data != None and obj.data.indigo_mesh.section_plane):
-            xml = SectionPlane(obj.matrix_world.col[3], obj.matrix_world.col[2], obj.data.indigo_mesh.cull_geometry).build_xml_element()
+            xml = SectionPlane(matrix.col[3], matrix.col[2], obj.data.indigo_mesh.cull_geometry).build_xml_element()
 
             model_definition = ('SECTION', xml)
 
@@ -508,7 +502,7 @@ class GeometryExporter(SceneIterator):
 
         # Special handling for sphere primitives
         if(obj.data != None and obj.data.indigo_mesh.sphere_primitive):
-            xml = SpherePrimitive(obj.matrix_world, obj).build_xml_element()
+            xml = SpherePrimitive(matrix, obj).build_xml_element()
 
             model_definition = ('SPHERE', xml)
 
@@ -520,7 +514,7 @@ class GeometryExporter(SceneIterator):
         
         # Special handling for exit portals
         if obj.type == 'MESH' and obj.data.indigo_mesh.exit_portal:
-            xml = exit_portal(self.scene).build_xml_element(obj, mesh_name, [final_matrix])
+            xml = exit_portal(self.scene).build_xml_element(obj, mesh_name, [matrix])
             
             model_definition = ('PORTAL', xml)
 
@@ -528,59 +522,10 @@ class GeometryExporter(SceneIterator):
             self.object_id += 1
             return
             
-        # Normal objects
-        #if self.scene.indigo_engine.motionblur and not self.exporting_duplis:
-        #    blur_amount = (self.scene.render.fps/self.scene.render.fps_base)/self.scene.camera.data.indigo_camera.exposure
-        #    obj_matrices = self.get_motion_matrices(obj, matrix, frame_offset=blur_amount)
-        #else:
-        obj_matrices = [(self.normalised_time, final_matrix)]
+        # Create list of (time, matrix) tuples.
+        obj_matrices = [(self.normalised_time, matrix)]
 
         model_definition = ('OBJECT', obj, mesh_name, obj_matrices, self.scene)
-        
-        #xml = model_object(self.scene).build_xml_element(obj, mesh_name, obj_matrices)
-        #model_definition = ('OBJECT', xml)
 
         self.ExportedObjects[key] = model_definition
         self.object_id += 1
-
-
-    # frame_offset seems to be something like the shutter open period measured in fractions of a frame.
-    def get_motion_matrices(self, obj, base_matrix, frame_offset=1, ignore_scale=False):
-        if obj.animation_data != None and obj.animation_data.action != None and len(obj.animation_data.action.fcurves)>0:
-
-            motion_matrices = []
-
-            offsets = [0] + [i+1 for i in range(int(frame_offset))] + [frame_offset]
-
-            for offset in offsets:
-
-                next_frame = self.scene.frame_current + offset
-
-                anim_location = obj.location.copy()
-                anim_rotation = obj.rotation_euler.copy()
-                anim_scale    = obj.scale.copy()
-
-                for fc in obj.animation_data.action.fcurves:
-                    if fc.data_path == 'location':
-                        anim_location[fc.array_index] = fc.evaluate(next_frame)
-                    if fc.data_path == 'rotation_euler':
-                        anim_rotation[fc.array_index] = fc.evaluate(next_frame)
-                    if fc.data_path == 'scale':
-                        anim_scale[fc.array_index] = fc.evaluate(next_frame)
-
-                next_matrix  = mathutils.Matrix.Translation( mathutils.Vector(anim_location) )
-                anim_rotn_e = mathutils.Euler(anim_rotation)
-                anim_rotn_e.make_compatible(obj.rotation_euler)
-                anim_rotn_e = anim_rotn_e.to_matrix().to_4x4()
-                next_matrix *= anim_rotn_e
-
-                if not ignore_scale:
-                    next_matrix *= mathutils.Matrix.Scale(anim_scale[0], 4, mathutils.Vector([1,0,0]))
-                    next_matrix *= mathutils.Matrix.Scale(anim_scale[1], 4, mathutils.Vector([0,1,0]))
-                    next_matrix *= mathutils.Matrix.Scale(anim_scale[2], 4, mathutils.Vector([0,0,1]))
-
-                motion_matrices.append(next_matrix)
-
-            return motion_matrices
-        else:
-            return [obj.matrix_world]

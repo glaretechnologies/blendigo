@@ -134,7 +134,7 @@ class LightingChecker(SceneIterator):
     def isValid(self):
         return self.valid_lighting
     
-    def handleDuplis(self, obj):
+    def handleDuplis(self, obj, particle_system=None):
         if self.CheckedDuplis.have(obj): return
         self.CheckedDuplis.add(obj, obj)
         
@@ -164,6 +164,9 @@ class LightingChecker(SceneIterator):
         for ms in obj.material_slots:
             if self.MaterialsChecked.have(ms.material): continue
             self.MaterialsChecked.add(ms.material, ms.material)
+            
+            if ms.material == None: continue
+            if ms.material.indigo_material == None: continue
             
             iem = ms.material.indigo_material.indigo_material_emission
             mat_test = iem.emission_enabled

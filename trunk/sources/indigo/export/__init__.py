@@ -208,7 +208,7 @@ class SceneIterator(object):
                     for psys in obj.particle_systems:
                         export_original_object = export_original_object or psys.settings.use_render_emitter
                         if psys.settings.render_type in ('GROUP', 'OBJECT'):
-                            self.handleDuplis(obj)#, particle_system=psys)
+                            self.handleDuplis(obj, psys)
                          # PATH not supported?
                         elif OBJECT_ANALYSIS: indigo_log(' -> Unsupported Particle system type: %s' % psys.settings.render_type)
                 
