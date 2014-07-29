@@ -323,12 +323,11 @@ class indigo_camera(declarative_property_group, xml_builder):
             xml_format['camera_type'] = ['orthographic']
             xml_format['sensor_width'] = [scene.camera.data.ortho_scale * ws] # Blender seems to use 'ortho_scale' for the sensor width.
         
-        cam_mat = matrix_list[0][1]
-        cam_mat = cam_mat.transposed()
+        mat = matrix_list[0][1].transposed()
         
-        xml_format['pos']        = [ i*ws for i in cam_mat[3][0:3]]
-        xml_format['forwards']    = [-i*ws for i in cam_mat[2][0:3]]
-        xml_format['up']        = [ i*ws for i in cam_mat[1][0:3]]
+        xml_format['pos']        = [ i*ws for i in mat[3][0:3]]
+        xml_format['forwards']    = [-i*ws for i in mat[2][0:3]]
+        xml_format['up']        = [ i*ws for i in mat[1][0:3]]
         
         if len(matrix_list) > 1:
             # Remove pos, conflicts with keyframes.

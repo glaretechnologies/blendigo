@@ -134,12 +134,9 @@ class indigo_lamp_sun(declarative_property_group, xml_builder):
             'model': ['original']
         }
         
-        m = obj.matrix_world.copy()
-        m.invert()
-        #if bpy.app.build_revision >= '42816':
-        m = m.transposed()
+        m = obj.matrix_world.transposed()
         
-        fmt['sundir'] = [m[0][2], m[1][2], m[2][2]]
+        fmt['sundir'] = [m[2][0], m[2][1], m[2][2]]
         
         fmt['turbidity'] = [self.turbidity]
         

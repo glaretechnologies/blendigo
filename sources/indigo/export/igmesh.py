@@ -84,7 +84,7 @@ def write_list_of_vec3s(file, vec3_list):
 class igmesh_writer(object):
     
     @staticmethod
-    def factory(scene, obj, filename, debug=False):
+    def factory(scene, obj, filename, mesh, debug=False):
         
         debug = False
         
@@ -97,7 +97,7 @@ class igmesh_writer(object):
             raise Exception("Can only export 'MESH', 'SURFACE', 'FONT', 'CURVE' objects")
         
 
-        (used_mat_indices, use_shading_normals) = igmesh_writer.write_mesh(filename, scene, obj)
+        (used_mat_indices, use_shading_normals) = igmesh_writer.write_mesh(filename, scene, obj, mesh)
 
         if debug:
             end_time = time.time()
@@ -111,20 +111,14 @@ class igmesh_writer(object):
         
     ################################################################################
     @staticmethod
-    def write_mesh(filename, scene, obj):
+    def write_mesh(filename, scene, obj, mesh):
     
         profile = False
         
         exportDummyUVs = True
         
-        start_time = time.time()
-        
-        # Create mesh from object.
-        mesh = obj.to_mesh(scene, True, 'RENDER')
-        
-        get_mesh_from_blender_time = time.time() - start_time
         if profile:
-            indigo_log('get_mesh_from_blender_time : %0.5f sec' % (get_mesh_from_blender_time))
+            total_start_time = time.time()
             
         if len(mesh.tessfaces) < 1:
             raise UnexportableObjectException('Object %s has no faces!' % obj.name)
@@ -365,20 +359,15 @@ class igmesh_writer(object):
 
         quad_array = array.array('i', quad_data)
         quad_array.tofile(file)
-
-        
-        start_time = time.time()
-        
-        # Remove mesh created by to_mesh().
-        bpy.data.meshes.remove(mesh)
-            
-        if profile:
-            indigo_log('Removing mesh modifiers: %0.5f sec' % (time.time() - start_time))
         
         # Close the file we have been writing to.
         file.close()
         
         use_shading_normals = num_smooth > 0
+        
+        if profile:
+            total_time = time.time() - total_start_time
+            indigo_log('Total mesh writing time: %0.5f sec' % (total_time))
         
         return (used_mat_indices, use_shading_normals)
 
