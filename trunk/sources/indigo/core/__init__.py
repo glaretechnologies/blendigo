@@ -109,7 +109,8 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
             self.rendering           = False
 
             # force scene update to current rendering frame
-            context.frame_set(context.frame_current)
+            # Not sure why - Yves
+            #context.frame_set(context.frame_current)
 
             #------------------------------------------------------------------------------
             # Export the Scene

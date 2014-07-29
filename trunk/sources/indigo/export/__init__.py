@@ -171,12 +171,16 @@ class SceneIterator(object):
         'LAMP'
     ]
     
+    scene = None
     abort = False
+    
     def canAbort(self):
         return self.abort
     
     def iterateScene(self, scene):
-        for obj in scene.objects:
+        self.scene = scene
+    
+        for obj in self.scene.objects:
             if self.canAbort(): break
             if OBJECT_ANALYSIS: indigo_log('Analysing object %s : %s' % (obj, obj.type))
                 

@@ -33,7 +33,31 @@ from indigo.core.util import get_worldscale
 
 
 def getTransform(scene, obj, matrix, xml_format='matrix'):
-        #------------------------------------------------------------------------------
+        ws = get_worldscale(scene)
+        mat = matrix.transposed() * ws
+        
+        xform = {
+            'pos': [str(co) for co in mat.row[3][0:3]],
+        }
+
+        if xml_format=='quat':
+            rmq = mat.to_quaternion()
+            xform['rotation_quaternion'] = {
+                'axis': list(rmq.axis),
+                'angle': [-rmq.angle]
+            }
+
+        elif xml_format=='matrix':
+            # convert the matrix to list of strings
+            rmr = []
+            for row in mat.col:
+                rmr.extend(row[0:3])
+
+            xform['rotation'] = { 'matrix': rmr }
+            
+        return xform
+        
+        '''#------------------------------------------------------------------------------
         # get appropriate loc, rot, scale data
         if matrix is not None:
             lv, rm, sv = matrix.decompose()
@@ -74,7 +98,7 @@ def getTransform(scene, obj, matrix, xml_format='matrix'):
 
             xform['rotation'] = { 'matrix': rmr }
 
-        return xform
+        return xform'''
 
 def matrixListToKeyframes(scene, obj, matrix_list):
     if matrix_list[0][1] == None:
@@ -82,7 +106,7 @@ def matrixListToKeyframes(scene, obj, matrix_list):
     else:
         base_matrix = matrix_list[0][1]
 
-    rm_0, sm_0 = base_matrix.decompose()[1:]
+    #rm_0, sm_0 = base_matrix.decompose()[1:]
 
     # insert keyframes
     keyframes = []
@@ -113,7 +137,8 @@ def matrixListToKeyframes(scene, obj, matrix_list):
         xform['time'] = [time]
 
         keyframes.append(xform)
-        
+    
+    # For particles that are born after start frame or die before end frame.
     t0 = Decimal(matrix_list[0][0])
     if t0 > Decimal(0.0):
         keyframes.insert(0, dict(keyframes[0]))

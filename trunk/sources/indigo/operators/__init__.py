@@ -37,7 +37,7 @@ from indigo import IndigoAddon
 import indigo.export
 from indigo.export import (
     indigo_log, geometry, include, xml_multichild, xml_builder, indigo_visible,
-    SceneIterator, ExportCache
+    SceneIterator, ExportCache, exportutil
 )
 from indigo.export.igmesh import igmesh_writer
 from indigo.export.geometry import model_object
@@ -94,7 +94,9 @@ class _Impl_OT_igmesh(_Impl_operator):
             indigo_log('Cannot find mesh data in context', message_type='ERROR')
             return {'CANCELLED'}
         
-        igmesh_writer.factory(context.scene, obj, self.properties.filepath, debug=False)
+        mesh = obj.to_mesh(self.scene, True, 'RENDER')
+        igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh, debug=False)
+        bpy.data.meshes.remove(mesh)
         
         return {'FINISHED'}
     
@@ -118,12 +120,7 @@ bpy.types.INFO_MT_file_export.append(menu_func)
 class LightingChecker(SceneIterator):
     progress_thread_action = "Checking"
     
-    def __init__(self, scene, background_set=None):
-        self.scene = scene
-        self.background_set = background_set
-        
-        self.exporting_duplis = False
-        
+    def __init__(self):        
         self.valid_lighting = False
         
         self.ObjectsChecked = ExportCache("Objects")
@@ -223,7 +220,7 @@ class _Impl_OT_indigo(_Impl_operator):
         return True
     
     def check_lights(self, scene):
-        LC = LightingChecker(scene)
+        LC = LightingChecker()
         LC.iterateScene(scene)
         return LC.isValid()
     
@@ -261,108 +258,121 @@ class _Impl_OT_indigo(_Impl_operator):
             raise Exception('Failed to open output file for writing: check output path setting')
         
         return igs_filename
+        
+    # Exports a default background light if no light sources were found in the scene.
+    def export_default_background_light(self, export_scenes):
+        have_illumination = False
+        for ex_scene in export_scenes:
+            if ex_scene is None: continue
+            have_illumination |= self.check_lights(ex_scene)
+            
+        #------------------------------------------------------------------------------
+        # If there is no illumination in the scene, just add in a uniform environment light
+        if not have_illumination:
+            background_settings = ET.fromstring("""
+                <background_settings>
+                    <background_material>
+                        <material>
+                            <name>background_material</name>
+
+                            <diffuse>
+                                <base_emission>
+                                    <constant>
+                                        <rgb>
+                                            <rgb>1 1 1</rgb>
+                                            <gamma>1</gamma>
+                                        </rgb>
+                                    </constant>
+                                </base_emission>
+                            </diffuse>
+                        </material>
+                    </background_material>
+
+                    <emission_scale>
+                        <material_name>background_material</material_name>
+                        <measure>luminance</measure>
+                        <value>20000</value>
+                    </emission_scale>
+                </background_settings>
+            """)
+            
+            self.scene_xml.append(background_settings)
+            
+    # Exports default null and clay materials.
+    def export_tonemapping(self, master_scene):
+        if self.verbose: indigo_log('Exporting tonemapping')
+        self.scene_xml.append(
+            master_scene.camera.data.indigo_tonemapping.build_xml_element(master_scene)
+        )
+            
+    # Exports default null and clay materials.
+    def export_default_materials(self, master_scene):
+        from indigo.export.materials.Clay import ClayMaterial, NullMaterial
+        self.scene_xml.append(ClayMaterial().build_xml_element(master_scene))
+        self.scene_xml.append(NullMaterial().build_xml_element(master_scene))
+    
+    scene_xml = None
+    verbose = True
     
     def execute(self, master_scene):
         try:
             if master_scene is None:
-                indigo_log('Scene context is invalid')
+                #indigo_log('Scene context is invalid')
                 raise Exception('Scene context is invalid')
             
             #------------------------------------------------------------------------------
             # Init stats
-            indigo_log('Indigo export started ...')
+            if self.verbose: indigo_log('Indigo export started ...')
             export_start_time = time.time()
             
             igs_filename = self.check_output_path(self.properties.directory)
-            
             export_scenes = [master_scene.background_set, master_scene]
             
-            have_illumination = False
-            for ex_scene in export_scenes:
-                if ex_scene is None: continue
-                have_illumination |= self.check_lights(ex_scene)
-                
-            
-            indigo_log('Export render settings')
+            if self.verbose: indigo_log('Export render settings')
             
             #------------------------------------------------------------------------------
             # Start with render settings, this also creates the root <scene>
-            scene_xml = master_scene.indigo_engine.build_xml_element(master_scene)
+            self.scene_xml = master_scene.indigo_engine.build_xml_element(master_scene)
             
-            
-            #------------------------------------------------------------------------------
-            # If there is no illumination in the scene, just add in a uniform environment light
-            if not have_illumination:
-                background_settings = ET.fromstring("""
-                    <background_settings>
-                        <background_material>
-                            <material>
-                                <name>background_material</name>
-
-                                <diffuse>
-                                    <base_emission>
-                                        <constant>
-                                            <rgb>
-                                                <rgb>1 1 1</rgb>
-                                                <gamma>1</gamma>
-                                            </rgb>
-                                        </constant>
-                                    </base_emission>
-                                </diffuse>
-                            </material>
-                        </background_material>
-
-                        <emission_scale>
-                            <material_name>background_material</material_name>
-                            <measure>luminance</measure>
-                            <value>20000</value>
-                        </emission_scale>
-                    </background_settings>
-                """)
-                
-                scene_xml.append(
-                    background_settings
-                )
+            # Export background light if no light exists.
+            self.export_default_background_light(export_scenes)
             
             #------------------------------------------------------------------------------
             # Tonemapping
-            indigo_log('Export tonemapping')
-            scene_xml.append(
-                master_scene.camera.data.indigo_tonemapping.build_xml_element(master_scene)
-            )
+            self.export_tonemapping(master_scene)
             
             #------------------------------------------------------------------------------
             # Materials - always export the default clay material and a null material
-            from indigo.export.materials.Clay import ClayMaterial, NullMaterial
-            scene_xml.append(ClayMaterial().build_xml_element(master_scene))
-            scene_xml.append(NullMaterial().build_xml_element(master_scene))
+            self.export_default_materials(master_scene)
             
-            geometry_exporter = geometry.GeometryExporter(master_scene, master_scene.background_set)
-            
-            from indigo.export.light_layer import light_layer_xml
-            # TODO:
-            # light_layer_count was supposed to export correct indices when there
-            # is a background_set with emitters on light layers -
-            # however, the re-indexing at material export time is non-trivial for
-            # now and probably not worth it.
-            #light_layer_count = 0
-            
+            # Initialise values used for motion blur export.
             fps = master_scene.render.fps / master_scene.render.fps_base
             start_frame = master_scene.frame_current
             exposure = 1 / master_scene.camera.data.indigo_camera.exposure
             camera = (master_scene.camera, [])
+            
+            # Make a relative igs and mesh dir path like "TheAnimation/00002"
+            rel_mesh_dir = efutil.scene_filename()
+            rel_frame_dir = '%s/%05i' % (rel_mesh_dir, start_frame) #bpy.path.clean_name(master_scene.name), 
+            mesh_dir = '/'.join([efutil.export_path, rel_mesh_dir])
+            frame_dir = '/'.join([efutil.export_path, rel_frame_dir])
+            
+            # Initialise GeometryExporter.
+            geometry_exporter = geometry.GeometryExporter()
+            geometry_exporter.mesh_dir = mesh_dir
+            geometry_exporter.rel_mesh_dir = rel_mesh_dir
+            geometry_exporter.skip_existing_meshes = master_scene.indigo_engine.skip_existing_meshes
+            geometry_exporter.verbose = self.verbose
+            
+            # Make frame_dir directory if it does not exist yet.
+            if not os.path.exists(frame_dir):
+                os.makedirs(frame_dir)
             
             if master_scene.indigo_engine.motionblur:
                 # When motion blur is on, calculate the number of frames covered by the exposure time
                 start_time = start_frame / fps
                 end_time = start_time + exposure
                 end_frame = math.ceil(end_time * fps)
-                #indigo_log('fps: %s'%fps)
-                #indigo_log('start_time: %s'%start_time)
-                #indigo_log('end_time: %s'%end_time)
-                #indigo_log('exposure: %s'%exposure)
-                #indigo_log('start_frame: %s'%start_frame)
-                #indigo_log('end_frame: %s'%end_frame)
                 
                 # end_frame + 1 because range is max excl
                 frame_list = [x for x in range(start_frame, end_frame+1)]
@@ -376,7 +386,7 @@ class _Impl_OT_indigo(_Impl_operator):
             for cur_frame in frame_list:
                 # Calculate normalised time for keyframes.
                 normalised_time = (cur_frame - start_frame) / fps / exposure
-                indigo_log('Processing frame: %i time: %f'%(cur_frame, normalised_time))
+                if self.verbose: indigo_log('Processing frame: %i time: %f'%(cur_frame, normalised_time))
                 
                 geometry_exporter.normalised_time = normalised_time
                 bpy.context.scene.frame_set(cur_frame, 0.0)
@@ -387,30 +397,37 @@ class _Impl_OT_indigo(_Impl_operator):
                 for ex_scene in export_scenes:
                     if ex_scene is None: continue
                     
-                    indigo_log('Processing objects for scene %s' % ex_scene.name)
+                    if self.verbose: indigo_log('Processing objects for scene %s' % ex_scene.name)
                     geometry_exporter.iterateScene(ex_scene)
             
             #------------------------------------------------------------------------------
             # Export camera
-            indigo_log('Export camera')
-            scene_xml.append(
+            if self.verbose: indigo_log('Exporting camera')
+            self.scene_xml.append(
                 camera[0].data.indigo_camera.build_xml_element(master_scene, camera[1])
             )
             
             #------------------------------------------------------------------------------
             # Export light layers
+            from indigo.export.light_layer import light_layer_xml
+            # TODO:
+            # light_layer_count was supposed to export correct indices when there
+            # is a background_set with emitters on light layers -
+            # however, the re-indexing at material export time is non-trivial for
+            # now and probably not worth it.
+            #light_layer_count = 0
             for ex_scene in export_scenes:
                 if ex_scene is None: continue
                 
                 # Light layer names
                 for layer_name, idx in ex_scene.indigo_lightlayers.enumerate().items():
-                    indigo_log('Light layer %i: %s' % (idx, layer_name))
-                    scene_xml.append(
+                    if self.verbose: indigo_log('Light layer %i: %s' % (idx, layer_name))
+                    self.scene_xml.append(
                         light_layer_xml().build_xml_element(ex_scene, idx, layer_name)
                     )
                     # light_layer_count += 1
             
-            indigo_log('Export lamps')
+            if self.verbose: indigo_log('Exporting lamps')
             
             # use special n==1 case due to bug in indigo <sum> material
             num_lamps = len(geometry_exporter.ExportedLamps)
@@ -420,11 +437,11 @@ class _Impl_OT_indigo(_Impl_operator):
                 scene_background_settings_mat = ET.Element('background_material')
                 scene_background_settings.append(scene_background_settings_mat)
                 
-                for ck, ci in geometry_exporter.ExportedLamps.items():        #@UnusedVariable
+                for ck, ci in geometry_exporter.ExportedLamps.items():
                     for xml in ci:
                         scene_background_settings_mat.append(xml)
                 
-                scene_xml.append(scene_background_settings)
+                self.scene_xml.append(scene_background_settings)
             
             if num_lamps > 1:
                 
@@ -438,9 +455,9 @@ class _Impl_OT_indigo(_Impl_operator):
                     }
                 }
                 
-                for ck, ci in geometry_exporter.ExportedLamps.items():        #@UnusedVariable
+                for ck, ci in geometry_exporter.ExportedLamps.items():
                     for xml in ci:
-                        scene_xml.append(xml)
+                        self.scene_xml.append(xml)
                     
                     scene_background_settings_fmt['background_material']['material']['sum']['mat'].append({
                         'mat_name': [ck],
@@ -448,24 +465,31 @@ class _Impl_OT_indigo(_Impl_operator):
                     })
                 scene_background_settings_obj = xml_builder()
                 scene_background_settings_obj.build_subelements(None, scene_background_settings_fmt, scene_background_settings)
-                scene_xml.append(scene_background_settings)
+                self.scene_xml.append(scene_background_settings)
             
-            for ck, ci in geometry_exporter.ExportedMaterials.items():    #@UnusedVariable
+            # Export used materials.
+            if self.verbose: indigo_log('Exporting used materials')
+            material_count = 0
+            for ck, ci in geometry_exporter.ExportedMaterials.items():
                 for xml in ci:
-                    scene_xml.append(xml)
-            indigo_log('Exported used materials')
-            mc = 0
-            for ck, ci in geometry_exporter.ExportedMeshes.items():        #@UnusedVariable
-                mesh_name, xml = ci                                            #@UnusedVariable
-                scene_xml.append(xml)
-                mc += 1
-            indigo_log('Exported %i meshes' % mc)
+                    self.scene_xml.append(xml)
+                material_count += 1
+            if self.verbose: indigo_log('Exported %i materials' % material_count)
+            
+            # Export used meshes.
+            if self.verbose: indigo_log('Exporting meshes')
+            mesh_count = 0
+            for ck, ci in geometry_exporter.MeshesOnDisk.items():
+                mesh_name, xml = ci
+                self.scene_xml.append(xml)
+                mesh_count += 1
+            if self.verbose: indigo_log('Exported %i meshes' % mesh_count)
             
             #------------------------------------------------------------------------------
             # We write object instances to a separate file
             oc = 0
             scene_data_xml = ET.Element('scenedata')
-            for ck, ci in geometry_exporter.ExportedObjects.items():        #@UnusedVariable
+            for ck, ci in geometry_exporter.ExportedObjects.items():
                 obj_type = ci[0]
                 
                 if obj_type == 'OBJECT':
@@ -474,11 +498,6 @@ class _Impl_OT_indigo(_Impl_operator):
                     obj_matrices = ci[3]
                     scene = ci[4]
                     
-                    #indigo_log('obj %s'%obj)
-                    #indigo_log('mesh_name %s'%mesh_name)
-                    #indigo_log('obj_matrices %s'%obj_matrices)
-                    #indigo_log('scene %s'%scene)
-                    
                     xml = geometry.model_object(scene).build_xml_element(obj, mesh_name, obj_matrices)
                 else:
                     xml = ci[1]
@@ -486,11 +505,8 @@ class _Impl_OT_indigo(_Impl_operator):
                 scene_data_xml.append(xml)
                 oc += 1
             
-            objects_file_name = '%s%s/%s/%05d/objects.igs' % (
-                efutil.export_path,
-                efutil.scene_filename(),
-                bpy.path.clean_name(master_scene.name),
-                start_frame
+            objects_file_name = '%s/objects.igs' % (
+                frame_dir
             )
             
             objects_file = open(objects_file_name, 'wb')
@@ -498,12 +514,12 @@ class _Impl_OT_indigo(_Impl_operator):
             objects_file.close()
             # indigo_log('Exported %i object instances to %s' % (oc,objects_file_name))
             scene_data_include = include.xml_include( efutil.path_relative_to_export(objects_file_name) )
-            scene_xml.append( scene_data_include.build_xml_element(master_scene) )
+            self.scene_xml.append( scene_data_include.build_xml_element(master_scene) )
             
             #------------------------------------------------------------------------------
             # Write formatted XML for settings, materials and meshes
             out_file = open(igs_filename, 'w')
-            xml_str = ET.tostring(scene_xml, encoding='utf-8').decode()
+            xml_str = ET.tostring(self.scene_xml, encoding='utf-8').decode()
             
             # substitute back characters protected from entity encoding in CDATA nodes
             xml_str = xml_str.replace('{_LESSTHAN_}', '<')
@@ -516,6 +532,7 @@ class _Impl_OT_indigo(_Impl_operator):
             #------------------------------------------------------------------------------
             # Print stats
             export_end_time = time.time()
+            if self.verbose: indigo_log('Total mesh export time: %f seconds' % (geometry_exporter.total_mesh_export_time))
             indigo_log('Export finished; took %f seconds' % (export_end_time-export_start_time))
             
             # Reset to start_frame.

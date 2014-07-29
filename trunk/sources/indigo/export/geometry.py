@@ -211,10 +211,7 @@ class SpherePrimitive(xml_builder):
 
 
 class GeometryExporter(SceneIterator):
-    scene = None
-    background_set = None
-    exporting_duplis = False
-
+    # Cache
     ExportedMaterials = None
     ExportedObjects = None
     ExportedDuplis = None
@@ -222,33 +219,36 @@ class GeometryExporter(SceneIterator):
     ExportedMeshes = None
     MeshesOnDisk = None
     
+    mesh_uses_shading_normals = None
+    
+    # Options
     normalised_time = 0
-
-    mesh_uses_shading_normals = {} # Map from exported_mesh_name to boolean
+    mesh_dir = None
+    rel_mesh_dir = None
+    skip_existing_meshes = False
+    verbose = False
+    
+    # Stats
+    total_mesh_export_time = 0
 
     # serial counter for instances exported
     object_id = 0
 
-    def __init__(self, scene, background_set=None):
-        self.scene = scene
-        self.background_set = background_set
-
-        self.exporting_duplis = False
-
+    def __init__(self):        
         self.ExportedMaterials = {}
         self.ExportedObjects = {}
         self.ExportedDuplis = {}
         self.ExportedLamps = {}
         self.ExportedMeshes = {}
         self.MeshesOnDisk = {}
+        
+        self.mesh_uses_shading_normals = {} # Map from exported_mesh_name to boolean
 
     def handleDuplis(self, obj, particle_system=None):
         try:
             #if obj in self.ExportedDuplis:
             #    indigo_log('Duplis for object %s already exported'%obj)
             #    return
-
-            self.ExportedDuplis[obj] = True
 
             try:
                 obj.dupli_list_create(self.scene, 'RENDER')
@@ -258,7 +258,6 @@ class GeometryExporter(SceneIterator):
                 indigo_log('%s'%err)
                 return
                 
-            self.exporting_duplis = True
             exported_objects = 0
 
             # Create our own DupliOb list to work around incorrect layers
@@ -290,10 +289,10 @@ class GeometryExporter(SceneIterator):
                 )
 
             obj.dupli_list_clear()
-
-            self.exporting_duplis = False          
             
-            indigo_log('... done, exported %s duplis' % exported_objects)
+            self.ExportedDuplis[obj] = True
+            
+            if self.verbose: indigo_log('... done, exported %s duplis' % exported_objects)
 
         except SystemError as err:
             indigo_log('Error with handleDuplis and object %s: %s' % (obj, err))
@@ -366,17 +365,17 @@ class GeometryExporter(SceneIterator):
 
         return hash.hexdigest()
 
-
-
-
     def exportMeshElement(self, obj):
         if OBJECT_ANALYSIS: indigo_log('exportMeshElement: %s' % obj)
 
         if obj.type in self.supported_mesh_types:
         
-            # If this object has already been exported, then don't export it again
+            start_time = time.time()
+            
+            # If this object has already been exported, then don't export it again. 
             exported_mesh = self.ExportedMeshes.get(obj)
             if exported_mesh != None:
+                self.total_mesh_export_time += time.time() - start_time
                 return exported_mesh
         
             # Create mesh with applied modifiers
@@ -385,48 +384,30 @@ class GeometryExporter(SceneIterator):
             # Compute a hash over the mesh data (vertex positions, material names etc..)
             mesh_hash = self.meshHash(obj, mesh)
 
-            # Form a mesh name like "Cube_4618cbf0bc13316135d676fffe0a74fc9b0577909246477354da9254"
-            exported_mesh_name = bpy.path.clean_name(obj.data.name + '_' + mesh_hash)
-
-            # print('exported_mesh_name: %s' % exported_mesh_name)
+            # Form a mesh name like "4618cbf0bc13316135d676fffe0a74fc9b0577909246477354da9254"
+            # The name cannot contain the objects name, as the name itself is always unique.
+            exported_mesh_name = bpy.path.clean_name(mesh_hash)
 
             # If this mesh has already been exported, then don't export it again
-            if exported_mesh_name in self.MeshesOnDisk:
+            exported_mesh = self.MeshesOnDisk.get(exported_mesh_name)
+            if exported_mesh != None:
+                # Important! If an object is matched to a mesh on disk, add to ExportedMeshes.
+                # Otherwise the mesh checksum will be computed over and over again.
+                self.ExportedMeshes[obj] = exported_mesh
                 bpy.data.meshes.remove(mesh)
-                return self.MeshesOnDisk[exported_mesh_name]
+                self.total_mesh_export_time += time.time() - start_time
+                return exported_mesh
 
-            # Make a relative mesh dir path like "TheAnimation/Scene/00002"
-            rel_frame_dir = '%s/%s/%05i' % (efutil.scene_filename(), bpy.path.clean_name(self.scene.name), self.scene.frame_current)
-
-            # Make a relative mesh dir path for the meshes like "TheAnimation/Scene"
-            rel_mesh_dir = '%s/%s' % (efutil.scene_filename(), bpy.path.clean_name(self.scene.name)) # Don't include the frame number
-
-            mesh_dir  = '/'.join([efutil.export_path, rel_mesh_dir])
-            frame_dir = '/'.join([efutil.export_path, rel_frame_dir])
-
-            #print('MESH DIR: %s' % mesh_dir)
-            #print('frame_dir: %s' % frame_dir)
-
-            # Make frame_dir directory if it does not exist yet.
-            if not os.path.exists(frame_dir):
-                os.makedirs(frame_dir)
-
+            # Make full mesh path.
             mesh_filename = exported_mesh_name + '.igmesh'
-            full_mesh_path = efutil.filesystem_path( '/'.join([mesh_dir, mesh_filename]) )
-
-            #print('REL MESH DIR %s' % rel_mesh_dir)
-            #print('FULL MESH PATH %s' % full_mesh_path)
-
-            # Use binary igmesh format instead of <embedded>
-            indigo_log('Mesh Export: %s' % exported_mesh_name)
-            # indigo_log(' -> %s' % full_mesh_path)
-            start_time = time.time()
+            full_mesh_path = efutil.filesystem_path( '/'.join([self.mesh_dir, mesh_filename]) )
+            
+            #indigo_log('full_mesh_path: %s'%full_mesh_path)
 
             # pass the full mesh path to write to filesystem if the object is not a proxy
             if hasattr(obj.data, 'indigo_mesh') and not obj.data.indigo_mesh.valid_proxy():
-                if os.path.exists(full_mesh_path) and self.scene.indigo_engine.skip_existing_meshes:
+                if os.path.exists(full_mesh_path) and self.skip_existing_meshes:
                     # if skipping mesh write, parse faces to gather used mats
-
                     used_mat_indices = set()
                     num_smooth = 0
                     for face in mesh.tessfaces:
@@ -437,7 +418,7 @@ class GeometryExporter(SceneIterator):
                     use_shading_normals = num_smooth > 0
                 else:
                     # else let the igmesh_writer do its thing
-                    (used_mat_indices, use_shading_normals) = igmesh_writer.factory(self.scene, obj, full_mesh_path, debug=OBJECT_ANALYSIS)
+                    (used_mat_indices, use_shading_normals) = igmesh_writer.factory(self.scene, obj, full_mesh_path, mesh, debug=OBJECT_ANALYSIS)
                     self.mesh_uses_shading_normals[full_mesh_path] = use_shading_normals
             else:
                 # Assume igmesh has same number of mats as the proxy object
@@ -455,7 +436,7 @@ class GeometryExporter(SceneIterator):
                     self.ExportedMaterials[mat.name] = mat_xmls
 
             # .. put the relative path in the mesh element
-            filename = '/'.join([rel_mesh_dir, mesh_filename])
+            filename = '/'.join([self.rel_mesh_dir, mesh_filename])
 
             #print('MESH FILENAME %s' % filename)
 
@@ -469,6 +450,10 @@ class GeometryExporter(SceneIterator):
 
             self.MeshesOnDisk[exported_mesh_name] = mesh_definition
             self.ExportedMeshes[obj] = mesh_definition
+            
+            total = time.time() - start_time
+            self.total_mesh_export_time += total
+            if self.verbose: indigo_log('Mesh Export took: %f s' % total)
 
             return mesh_definition
 
