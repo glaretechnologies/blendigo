@@ -7,13 +7,13 @@
 
 ; Setup Blendigo parameters
 !define BLENDIGO_VERSION $%BLENDIGO_VERSION%
-!define BLENDER_VERSION $%BLENDER_VERSION%
+;!define BLENDER_VERSION $%BLENDER_VERSION%
 
 ; The name of the installer
-Name "Blendigo-2.6 ${BLENDIGO_VERSION} for Blender ${BLENDER_VERSION}"
+Name "Blendigo ${BLENDIGO_VERSION} for Blender"
 
 ; The file to write
-OutFile "blendigo-2.6-${BLENDIGO_VERSION}-installer.exe"
+OutFile "blendigo-${BLENDIGO_VERSION}-installer.exe"
 
 ;--------------------------------
 ; New style GUI setup
@@ -23,13 +23,13 @@ OutFile "blendigo-2.6-${BLENDIGO_VERSION}-installer.exe"
 !define MUI_UNICON "indigo.ico"
 
 !define MUI_PAGE_HEADER_TEXT "Blendigo Installation"
-!define MUI_PAGE_HEADER_SUBTEXT "Version ${BLENDIGO_VERSION} for Blender ${BLENDER_VERSION}"
+!define MUI_PAGE_HEADER_SUBTEXT "Version ${BLENDIGO_VERSION} for Blender"
 
 LangString MUI_TEXT_DIRECTORY_TITLE ${LANG_ENGLISH} "Blendigo Installation"
-LangString MUI_TEXT_DIRECTORY_SUBTITLE ${LANG_ENGLISH} "Version ${BLENDIGO_VERSION} for Blender ${BLENDER_VERSION}"
+LangString MUI_TEXT_DIRECTORY_SUBTITLE ${LANG_ENGLISH} "Version ${BLENDIGO_VERSION} for Blender"
 
 LangString MUI_TEXT_INSTALLING_TITLE ${LANG_ENGLISH} "Blendigo Installation"
-LangString MUI_TEXT_INSTALLING_SUBTITLE ${LANG_ENGLISH} "Version ${BLENDIGO_VERSION} for Blender ${BLENDER_VERSION}"
+LangString MUI_TEXT_INSTALLING_SUBTITLE ${LANG_ENGLISH} "Version ${BLENDIGO_VERSION} for Blender"
 
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "indigo_logo_150_57.bmp"
@@ -67,18 +67,18 @@ FunctionEnd
 !define MUI_WELCOMEFINISHPAGE_BITMAP_NOSTRETCH
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP "indigo_logo_163_314.bmp"
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP_NOSTRETCH
-!define MUI_WELCOMEPAGE_TITLE "Blendigo ${BLENDIGO_VERSION} for Blender ${BLENDER_VERSION}"
+!define MUI_WELCOMEPAGE_TITLE "Blendigo ${BLENDIGO_VERSION} for Blender"
 !define MUI_WELCOMEPAGE_TEXT "This installer will first attempt to auto-locate your Blender installation folder. If the folder is not found, you will be asked to locate Blender yourself."
 
 ; License page
 !define MUI_LICENSEPAGE_RADIOBUTTONS
 
 ; Directory page
-!define MUI_DIRECTORYPAGE_TEXT_TOP "Choose Blender ${BLENDER_VERSION} Installation Folder"
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Choose the Blendigo installation directory.$\n$\nNote: Must be the directory of the version you intend to install for, e.g. .../Blender/2.72 ."
 
 ; Installation page
-!define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "Blendigo ${BLENDIGO_VERSION} for Blender ${BLENDER_VERSION} Installation Complete"
-!define MUI_INSTFILESPAGE_ABORTHEADER_TEXT "Blendigo ${BLENDIGO_VERSION} for Blender ${BLENDER_VERSION} Installation Aborted"
+!define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "Blendigo ${BLENDIGO_VERSION} for Blender Installation Complete"
+!define MUI_INSTFILESPAGE_ABORTHEADER_TEXT "Blendigo ${BLENDIGO_VERSION} for Blender Installation Aborted"
 
 ;--------------------------------
 
@@ -89,34 +89,31 @@ RequestExecutionLevel admin
 ;--------------------------------
 
 Function DetectInstallPath
-	IfFileExists "$PROGRAMFILES32\Blender Foundation\Blender\${BLENDER_VERSION}" 0 TryProgFiles64
-		CreateDirectory "$PROGRAMFILES32\Blender Foundation\Blender\${BLENDER_VERSION}\scripts\addons"
-		StrCpy $INSTDIR "$PROGRAMFILES32\Blender Foundation\Blender"
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.72" 0 AppData2_71
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.72\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.72"
 		Return
 		
-	TryProgFiles64:
-	IfFileExists "$PROGRAMFILES64\Blender Foundation\Blender\${BLENDER_VERSION}" 0 TryRegistry
-		CreateDirectory "$PROGRAMFILES64\Blender Foundation\Blender\${BLENDER_VERSION}\scripts\addons"
-		StrCpy $INSTDIR "$PROGRAMFILES64\Blender Foundation\Blender"
+	AppData2_71:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.71" 0 AppData2_70
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.71\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.71"
 		Return
 		
-	TryRegistry:
-	ReadRegStr $0 HKCR blendfile\shell\open\command ""
-	StrCmp $0 "" TryAppData
-		; "D:\PATH\blender.exe" "%1" => D:\PATH
-		StrLen $1 $0
-		IntOp $3 $0 - 18
-		StrCpy $INSTDIR $0 $3 1
+	AppData2_70:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.70" 0 AppData2_69
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.70\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.70"
 		Return
-	
-	TryAppData:
-	IfFileExists "$APPDATA\Blender Foundation\Blender\${BLENDER_VERSION}" 0 AutoFindFailed
-		CreateDirectory "$APPDATA\Blender Foundation\Blender\${BLENDER_VERSION}\scripts\addons"
-		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender"
+		
+	AppData2_69:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.69" 0 AutoFindFailed
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.69\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.69"
 		Return
 
 	AutoFindFailed:
-	MessageBox MB_OK "Could not find the Blender ${BLENDER_VERSION} installation. Choose your Blender install folder on the next page."
+	MessageBox MB_OK "Could not find an installation of a supported version of Blender. Choose your Blender install folder on the next page."
 FunctionEnd
 
 ;--------------------------------
@@ -148,37 +145,32 @@ Page custom DetectInstallPath
 
 ; The stuff to install
 Section "" ;No components page, name is not important
-  ; Set output path to the installation directory.
-  SetOutPath $INSTDIR\${BLENDER_VERSION}\scripts\addons\indigo
-  
-  ; Put files there recursively
-  File /r ..\..\sources\indigo\*.py
-  
-  ; Write the uninstall keys for Windows
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "DisplayName" "Blendigo-2.6"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "BlenderVersion" "${BLENDER_VERSION}"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "InstallDir" "$INSTDIR"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "UninstallString" '"$INSTDIR\${BLENDER_VERSION}\scripts\addons\Blendigo_uninstall.exe"'
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "NoModify" 1
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "NoRepair" 1
-  WriteUninstaller "$INSTDIR\${BLENDER_VERSION}\scripts\addons\Blendigo_uninstall.exe"
+	; Set output path to the installation directory.
+	SetOutPath $INSTDIR\scripts\addons\indigo
+
+	; Put files there recursively
+	File /r ..\..\sources\indigo\*.py
+
+	; Write the uninstall keys for Windows
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo" "DisplayName" "Blendigo"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo" "InstallDir" "$INSTDIR"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo" "UninstallString" '"$INSTDIR\scripts\addons\Blendigo_uninstall.exe"'
+	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo" "NoModify" 1
+	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo" "NoRepair" 1
+	WriteUninstaller "$INSTDIR\scripts\addons\Blendigo_uninstall.exe"
   
 SectionEnd ; end the section
 
 Section "Uninstall"
-  
-  Var /GLOBAL BLENDER_VERSION
-  ReadRegStr $BLENDER_VERSION HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "BlenderVersion"
-  
-  Var /GLOBAL INSTALL_DIR
-  ReadRegStr $INSTALL_DIR HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6" "InstallDir"
-  
-  ; Remove files and uninstaller
-  Delete $INSTALL_DIR\$BLENDER_VERSION\scripts\addons\Blendigo_uninstall.exe
-  rmdir /r $INSTALL_DIR\$BLENDER_VERSION\scripts\addons\indigo
-  rmdir $INSTALL_DIR\$BLENDER_VERSION\scripts\addons\indigo
+	Var /GLOBAL INSTALL_DIR
+	ReadRegStr $INSTALL_DIR HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo" "InstallDir"
 
-  ; Remove registry keys
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo-2.6"
+	; Remove files and uninstaller
+	Delete $INSTALL_DIR\scripts\addons\Blendigo_uninstall.exe
+	rmdir /r $INSTALL_DIR\scripts\addons\indigo
+	rmdir $INSTALL_DIR\scripts\addons\indigo
+
+	; Remove registry keys
+	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo"
 
 SectionEnd
