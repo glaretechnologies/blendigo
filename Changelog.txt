@@ -1,3 +1,11 @@
+3.8.25.0
+--------
+* changed blendigo installer to install to appdata directory.
+* installer detects blender 2.69-72.
+* exact install path can be selected now (for newer, not auto detected version).
+* added fresnel scale and fresnel scale channel to phong material.
+* added backface emission.
+
 3.8.5.2
 --------
 * Improved motion blur using frame_set(). Number of frames used depends on exposure.

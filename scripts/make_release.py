@@ -19,7 +19,7 @@ if __name__ == '__main__':
 		
 		print("BL_VERSION: " + BL_VERSION);
 		
-		ZIP_NAME = "blendigo-2.6-%s.zip" % TAG
+		ZIP_NAME = "blendigo-%s.zip" % TAG
 		
 		cwd = os.getcwd()
 		
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 		# Make a Blender version string string like "2.68"
 		# This controls where the installed indigo files go in the blender program files dir.
 		os.environ['BLENDER_VERSION'] = str(bl_info['blender'][0]) + "." + str(bl_info['blender'][1]) + str(bl_info['blender'][2])
-		INSTALLER_NAME = "blendigo-2.6-%s-installer.exe" % TAG
+		INSTALLER_NAME = "blendigo-%s-installer.exe" % TAG
 		os.chdir('./installer_windows')
 		subprocess.call("makensis /V2 blendigo-25.nsi")
 		os.chdir(cwd)
