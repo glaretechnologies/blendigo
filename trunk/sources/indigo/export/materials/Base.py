@@ -295,4 +295,7 @@ class AbsorptionChannelMaterial(object):
 class FresnelScaleChannelMaterial(object):
     #['phong']
     def FresnelScaleChannel(self):
-        return self.get_channel(self.material_group.indigo_material_fresnel_scale, 'fresnel_scale', 'fresnel_scale')
+        if self.material_group.indigo_material_fresnel_scale.fresnel_scale_enabled:
+            return self.get_channel(self.material_group.indigo_material_fresnel_scale, 'fresnel_scale', 'fresnel_scale')
+        else:
+            return {}
