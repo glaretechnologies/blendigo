@@ -47,7 +47,7 @@ def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
 			args.extend(['-b',scene])
 			args.extend(['-P', 'scene_script.py'])
 			args.append('--')
-			args.append('--output-path=%s' % ('%s/%s.igs'%(output_path,name)))
+			args.append('--output-path=%s' % output_path)
 			args.append('--install-path=%s' % INDIGO_PATH)
 			args.append('--test-name=%s' % name)
 			args.append('--blendigo-version=%s' % BLENDIGO_VERSION)
