@@ -227,6 +227,19 @@ class indigo_ui_material_exponent(indigo_ui_material_subpanel):
     
     def draw_header(self, context):
         self.layout.prop(context.material.indigo_material.indigo_material_exponent, "exponent_enabled", text="")
+        
+@IndigoAddon.addon_register_class
+class indigo_ui_material_fresnel_scale(indigo_ui_material_subpanel):
+    bl_label = 'Material Fresnel Scale Map'
+    
+    INDIGO_COMPAT = PROPERTY_GROUP_USAGE['fresnel_scale']
+    
+    display_property_groups = [
+        ( ('material', 'indigo_material'), 'indigo_material_fresnel_scale' )
+    ]
+    
+    def draw_header(self, context):
+        self.layout.prop(context.material.indigo_material.indigo_material_fresnel_scale, "fresnel_scale_enabled", text="")
 
 @IndigoAddon.addon_register_class
 class indigo_ui_material_blendmap(indigo_ui_material_subpanel):
