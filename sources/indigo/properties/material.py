@@ -60,7 +60,8 @@ PROPERTY_GROUP_USAGE = {
     'displacement': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
     'exponent': {'phong', 'specular'},
     'blendmap': {'blended'},
-    'emission': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'}
+    'emission': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
+    'fresnel_scale': {'phong'},
 }
 
 def build_material_features(PGU):
@@ -303,6 +304,49 @@ class Shader(object):
                 'description': 'Shader text',
             },
         ]
+        
+'''class Constant(object):
+    
+    #channel_name = None
+    #name = None
+    
+    #controls = None
+    #visibility = None
+    #properties = None
+    
+    def __init__(self, channel, **opts):
+        self.channel_name = channel
+        self.name = channel+'_C'
+        defaults = { }
+        defaults.update(opts)
+        self.opts = defaults
+        
+        self.controls = self.get_controls()
+        self.visibility = self.get_visibility()
+        self.properties = self.get_properties()
+    
+    def get_controls(self):
+        return [
+            self.name + '_val',
+        ]
+    
+    def get_visibility(self):
+        return {
+            self.name+'_val':    { self.channel_name+'_type': 'constant' },
+        }
+    
+    def get_properties(self):
+        return [
+            {
+                'type': 'float',
+                'attr': self.name + '_val',
+                'name': 'Constant',
+                'description': 'The constant value.',
+                'min': self.opts['min'],
+                'max': self.opts['max'],
+                'default': self.opts['default'],
+            },
+        ]'''
 
 class Texture(object):
     
@@ -535,12 +579,18 @@ class MaterialChannel(object):
         
         defaults = {
             'spectrum': False,
+            #'constant': False,
             'texture': False,
             'shader': False,
             'switch': False,
             'spectrum_types': { 'rgb': True },
             'label': None,
             'master_colour': False,
+            #'constant_settings': {
+            #    'min': 0.0,
+            #    'max': 1.0,
+            #    'default': 0.666,
+            #},
         }
         defaults.update(opts)
         self.opts = defaults
@@ -552,6 +602,12 @@ class MaterialChannel(object):
             self.spectrum = Spectrum(name, **self.opts['spectrum_types'])
         else:
             self.spectrum = None
+            
+        #if self.opts['constant']:
+        #    self.types.append( ('constant', 'Constant', 'constant') )
+        #    self.constant = Constant(name, **self.opts['constant_settings'])
+        #else:
+        #    self.constant = None
         
         if self.opts['texture']:
             self.types.append( ('texture', 'Texture', 'texture') )
@@ -604,6 +660,8 @@ class MaterialChannel(object):
         
         if self.spectrum is not None:
             p += self.spectrum.properties
+        #if self.constant is not None:
+        #    p += self.constant.properties
         if self.texture is not None:
             p += self.texture.properties
         if self.shader is not None:
@@ -622,6 +680,9 @@ class MaterialChannel(object):
         
         if self.spectrum is not None:
             c += self.spectrum.controls
+            
+        #if self.constant is not None:
+        #    c += self.constant.controls
         
         if self.texture is not None:
             c += self.texture.controls
@@ -657,6 +718,13 @@ class MaterialChannel(object):
                 for v in sd.values():
                     v.update({self.name+'_enabled': True})
             d.update(sd)
+            
+        #if self.constant is not None:
+        #    sd = deepcopy(self.constant.visibility)
+        #    if self.opts['switch']:
+        #        for v in sd.values():
+        #            v.update({self.name+'_enabled': True})
+        #    d.update(sd)
         
         if self.texture is not None:
             td = deepcopy(self.texture.visibility)
@@ -760,6 +828,7 @@ class indigo_material_emission(indigo_material_feature):
         ['emission_scale_value', 'emission_scale_exp'],
         'emission_scale_measure',
         'emit_ies', 'emit_ies_path',
+        'backface_emit',
     ]
     
     visibility = {
@@ -773,6 +842,7 @@ class indigo_material_emission(indigo_material_feature):
         'emission_scale_measure':    { 'emission_enabled': True, 'emission_scale': True },
         'emit_ies':                    { 'emission_enabled': True },
         'emit_ies_path':            { 'emission_enabled': True, 'emit_ies': True},
+        'backface_emit':            { 'emission_enabled': True },
     }
     
     visibility.update( Cha_Emit.visibility )
@@ -864,6 +934,13 @@ class indigo_material_emission(indigo_material_feature):
             'description': ' IES Path',
             'default': '',
         },
+        {
+            'type': 'bool',
+            'attr': 'backface_emit',
+            'name': 'Back face emission',
+            'description': 'Controls of back of face is emitting or not',
+            'default': False,
+        },
     ]
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -921,6 +998,7 @@ class indigo_material_displacement(indigo_material_feature):
     def get_output(self, obj, indigo_material, blender_material, scene):
         return []
 
+#Cha_Exp = MaterialChannel('exponent', spectrum=False, constant=True, texture=True,  shader=True,  switch=True, label='Exponent Map', constant_settings={'min': 0.0, 'max': 1000000.0, 'default':1000.0})
 Cha_Exp = MaterialChannel('exponent', spectrum=False, texture=True,  shader=True,  switch=True, label='Exponent Map')
 
 @IndigoAddon.addon_register_class
@@ -930,6 +1008,19 @@ class indigo_material_exponent(indigo_material_feature):
     visibility    = Cha_Exp.visibility
     enabled        = Cha_Exp.enabled
     properties    = Cha_Exp.properties
+    
+    def get_output(self, obj, indigo_material, blender_material, scene):
+        return []
+        
+Cha_Fres = MaterialChannel('fresnel_scale', spectrum=False, texture=True,  shader=True,  switch=True, label='Fresnel Scale Map')
+
+@IndigoAddon.addon_register_class
+class indigo_material_fresnel_scale(indigo_material_feature):
+    
+    controls    = Cha_Fres.controls
+    visibility    = Cha_Fres.visibility
+    enabled        = Cha_Fres.enabled
+    properties    = Cha_Fres.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
         return []
@@ -1278,6 +1369,7 @@ class indigo_material_phong(indigo_material_feature):
     controls = [
         'specular_reflectivity',
         'exponent',
+        'fresnel_scale',
         
         'nk_data_type',
         'nk_data_preset',
@@ -1333,6 +1425,15 @@ class indigo_material_phong(indigo_material_feature):
             'default': 1000.0,
             'min': 0.0,
             'max': 1000000.0
+        },
+        {
+            'type': 'float',
+            'attr': 'fresnel_scale',
+            'name': 'Fresnel Scale',
+            'description': 'Fresnel Scale',
+            'default': 1.0,
+            'min': 0.0,
+            'max': 1.0
         },
         {
             'type': 'float',

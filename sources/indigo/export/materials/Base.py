@@ -71,6 +71,7 @@ class MaterialBase(xml_builder):
         op.update(self.BlendChannel())
         op.update(self.TransmittanceChannel())
         op.update(self.AbsorptionChannel())
+        op.update(self.FresnelScaleChannel())
         
         if len(self.found_textures) > 0:
             op.update({
@@ -210,6 +211,8 @@ class MaterialBase(xml_builder):
         return {}
     def AbsorptionChannel(self):
         return {}
+    def FresnelScaleChannel(self):
+        return {}
 
 # ... by also inheriting from the following as needed (multiple inheritance FTW)
 class AlbedoChannelMaterial(object):
@@ -288,3 +291,8 @@ class AbsorptionChannelMaterial(object):
     #['caoting']
     def AbsorptionChannel(self):
         return self.get_channel(self.material_group.indigo_material_absorption, 'absorption', 'absorption')
+        
+class FresnelScaleChannelMaterial(object):
+    #['phong']
+    def FresnelScaleChannel(self):
+        return self.get_channel(self.material_group.indigo_material_fresnel_scale, 'fresnel_scale', 'fresnel_scale')

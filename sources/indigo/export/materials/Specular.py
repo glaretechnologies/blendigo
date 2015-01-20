@@ -118,6 +118,7 @@ class SpecularMaterial(
         
         fmt = {
             'name': [self.material_name],
+            'backface_emit': [str(self.material_group.indigo_material_emission.backface_emit).lower()],
             element_name: {
                 'internal_medium_name': [self.material_name + '_medium']
             }

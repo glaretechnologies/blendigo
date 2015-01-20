@@ -26,7 +26,7 @@
 #
 from extensions_framework import util as efutil
 
-from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, MaterialBase
+from indigo.export.materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, FresnelScaleChannelMaterial, MaterialBase
 
 class PhongMaterial(
     AlbedoChannelMaterial,
@@ -35,6 +35,7 @@ class PhongMaterial(
     NormalChannelMaterial,
     DisplacementChannelMaterial,
     ExponentChannelMaterial,
+    FresnelScaleChannelMaterial,
     
     # MaterialBase needs to be last in this list
     MaterialBase
@@ -44,10 +45,14 @@ class PhongMaterial(
         
         fmt = {
             'name': [self.material_name],
+            'backface_emit': [str(self.material_group.indigo_material_emission.backface_emit).lower()],
             element_name: {
                 'ior': [self.property_group.ior],
                 'exponent': {
                     'constant': [self.property_group.exponent]
+                },
+                'fresnel_scale': {
+                    'constant': [self.property_group.fresnel_scale]
                 },
             }
         }

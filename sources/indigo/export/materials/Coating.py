@@ -45,6 +45,7 @@ class CoatingMaterial(
         
         fmt = {
             'name': [self.material_name],
+            'backface_emit': [str(self.material_group.indigo_material_emission.backface_emit).lower()],
             element_name: {
                 'ior': [self.property_group.ior],
                 'interference': [str(self.property_group.interference).lower()],
