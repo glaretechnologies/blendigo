@@ -1,11 +1,7 @@
-
-Subversion Repository
+GitHub Repository
 ==========================================
-https://blendigo.googlecode.com/svn/trunk
+https://github.com/glaretechnologies/blendigo
 
-Google Code Page
-==========================================
-https://code.google.com/p/blendigo/
 
 Testing Changes
 ==========================================
