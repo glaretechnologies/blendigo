@@ -134,6 +134,11 @@ class SpecularMaterial(
                 fmt[element_name]['arch_glass'] = ['true']
             else:
                 fmt[element_name]['arch_glass'] = ['false']
+
+            if self.property_group.single_face:
+                fmt[element_name]['single_face'] = ['true']
+            else:
+                fmt[element_name]['single_face'] = ['false']
         else:
             fmt[element_name]['exponent'] = [self.property_group.exponent]
         
