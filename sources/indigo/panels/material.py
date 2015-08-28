@@ -142,6 +142,19 @@ class indigo_ui_material_absorption(indigo_ui_material_subpanel):
         self.layout.prop(context.material.indigo_material.indigo_material_absorption, "absorption_enabled", text="")
 
 @IndigoAddon.addon_register_class
+class indigo_ui_material_absorption(indigo_ui_material_subpanel):
+    bl_label = 'Absorption Layer'
+    
+    INDIGO_COMPAT = PROPERTY_GROUP_USAGE['absorption_layer']
+    
+    display_property_groups = [
+        ( ('material', 'indigo_material'), 'indigo_material_absorption_layer' )
+    ]
+    
+    def draw_header(self, context):
+        self.layout.prop(context.material.indigo_material.indigo_material_absorption_layer, "absorption_layer_enabled", text="")
+
+@IndigoAddon.addon_register_class
 class indigo_ui_material_diffuse(indigo_ui_material_subpanel):
     bl_label = 'Material Diffuse Settings'
     

@@ -71,6 +71,7 @@ class MaterialBase(xml_builder):
         op.update(self.BlendChannel())
         op.update(self.TransmittanceChannel())
         op.update(self.AbsorptionChannel())
+        op.update(self.AbsorptionLayerChannel())
         op.update(self.FresnelScaleChannel())
         
         if len(self.found_textures) > 0:
@@ -212,6 +213,8 @@ class MaterialBase(xml_builder):
         return {}
     def AbsorptionChannel(self):
         return {}
+    def AbsorptionLayerChannel(self):
+        return {}
     def FresnelScaleChannel(self):
         return {}
 
@@ -292,6 +295,14 @@ class AbsorptionChannelMaterial(object):
     #['caoting']
     def AbsorptionChannel(self):
         return self.get_channel(self.material_group.indigo_material_absorption, 'absorption', 'absorption')
+
+class AbsorptionLayerChannelMaterial(object):
+    #['specular']
+    def AbsorptionLayerChannel(self):
+        if self.material_group.indigo_material_absorption_layer.absorption_layer_enabled:
+            return self.get_channel(self.material_group.indigo_material_absorption_layer, 'absorption_layer_transmittance', 'absorption_layer')
+        else:
+            return {}
         
 class FresnelScaleChannelMaterial(object):
     #['phong']
