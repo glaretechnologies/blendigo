@@ -25,7 +25,7 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 from indigo.export import xml_builder
-from indigo.export.materials.Base        import EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, MaterialBase
+from indigo.export.materials.Base        import EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, AbsorptionLayerChannelMaterial, MaterialBase
 from indigo.export.materials.spectra    import rgb, uniform
 
 class SpecularMedium(xml_builder):
@@ -103,6 +103,7 @@ class SpecularMedium(xml_builder):
         return fmt
 
 class SpecularMaterial(
+    AbsorptionLayerChannelMaterial,
     EmissionChannelMaterial,
     BumpChannelMaterial,
     NormalChannelMaterial,

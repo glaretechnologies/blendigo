@@ -50,6 +50,7 @@ PROPERTY_GROUP_USAGE = {
     'phong': {'phong'},
     'coating': {'coating'},
     'absorption': {'coating'},
+    'absorption_layer': {'specular'},
     'doublesidedthin': {'doublesidedthin'},
     'transmittance': {'doublesidedthin'},
     'diffuse': {'diffuse'},
@@ -1060,6 +1061,19 @@ class indigo_material_absorption(indigo_material_feature):
     visibility    = Cha_Absorption.visibility
     enabled        = Cha_Absorption.enabled
     properties    = Cha_Absorption.properties
+    
+    def get_output(self, obj, indigo_material, blender_material, scene):
+        return []
+
+Cha_AbsorptionLayer  = MaterialChannel('absorption_layer', spectrum=True, texture=True,  shader=True,  switch=True, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True, 'blackbody': True, 'rgb_default':(0.0,0.0,0.0)}, label='Absorption Layer')
+
+@IndigoAddon.addon_register_class
+class indigo_material_absorption_layer(indigo_material_feature):
+    
+    controls    = Cha_AbsorptionLayer.controls
+    visibility    = Cha_AbsorptionLayer.visibility
+    enabled        = Cha_AbsorptionLayer.enabled
+    properties    = Cha_AbsorptionLayer.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
         return []
