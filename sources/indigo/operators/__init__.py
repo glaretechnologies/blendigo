@@ -32,6 +32,7 @@ import xml.dom.minidom as MD
 import bpy            #@UnresolvedImport
 
 from extensions_framework import util as efutil
+from extensions_framework import declarative_property_group
 
 from indigo import IndigoAddon
 import indigo.export
@@ -588,4 +589,39 @@ class INDIGO_OT_lightlayer_remove(bpy.types.Operator):
         else:
             w.lightlayers.remove( self.properties.lg_index )
         w.lightlayers_index = len(w.lightlayers)-1
+        return {'FINISHED'}
+
+@IndigoAddon.addon_register_class
+class INDIGO_OT_medium_add(bpy.types.Operator):
+    """Add a new medium definition to the scene"""
+
+    bl_idname = "indigo.medium_add"
+    bl_label = "Add Indigo Medium"
+
+    new_medium_name = bpy.props.StringProperty(default='New Medium')
+
+    def invoke(self, context, event):
+        me = context.scene.indigo_material_medium.medium
+        #me = context.material.indigo_material_medium.medium
+        me.add()
+        new_me = me[len(me) - 1]
+        new_me.name = self.properties.new_medium_name
+        return {'FINISHED'}
+
+@IndigoAddon.addon_register_class
+class INDIGO_OT_medium_remove(bpy.types.Operator):
+    '''Remove the selected medium definition'''
+
+    bl_idname = "indigo.medium_remove"
+    bl_label = "Remove Indigo Medium"
+
+    me_index = bpy.props.IntProperty(default=-1)
+
+    def invoke(self, context, event):
+        w = context.scene.indigo_material_medium
+        if self.properties.me_index == -1:
+            w.medium.remove(w.medium_index)
+        else:
+            w.medium.remove( self.properties.me_index )
+        w.medium_index = len(w.medium)-1
         return {'FINISHED'}
