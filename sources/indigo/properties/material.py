@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond, Yves Collé
+# Doug Hammond, Yves Collé, Marco Goebel
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -51,6 +51,7 @@ PROPERTY_GROUP_USAGE = {
     'coating': {'coating'},
     'absorption': {'coating'},
     'absorption_layer': {'specular'},
+    'medium': {},
     'doublesidedthin': {'doublesidedthin'},
     'transmittance': {'doublesidedthin'},
     'diffuse': {'diffuse'},
@@ -621,7 +622,7 @@ class MaterialChannel(object):
             self.shader = Shader(name)
         else:
             self.shader = None
-        
+                  
         self.controls = self.get_controls()
         self.enabled = self.get_enabled()
         self.visibility = self.get_visibility()
@@ -1078,82 +1079,24 @@ class indigo_material_absorption_layer(indigo_material_feature):
     def get_output(self, obj, indigo_material, blender_material, scene):
         return []
 
-Spe_SSS_Scatter = MaterialChannel('sss_scatter', spectrum=True, texture=False, shader=False, switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True})
-Spe_SSS_Phase = MaterialChannel('sss_phase_hg', spectrum=True, texture=False, shader=False, switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True})
-Spe_Medium_Basic = MaterialChannel('medium_basic', spectrum=True, texture=False, shader=False, switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True}, master_colour=True)
-
 @IndigoAddon.addon_register_class
 class indigo_material_specular(indigo_material_feature):
     
     controls = [
         'type',
-        'transparent', 'exponent',
-        'arch_glass',
-        'single_face',
-        'precedence',
-        
-        'medium_type',
-        'medium_ior',
-        'medium_cauchy_b',
-        'medium_gain',
-    ] + \
-    Spe_Medium_Basic.controls + \
-    [
-        'medium_haemoglobin',
-        'medium_melanin',
-        'medium_eumelanin',
-        'medium_turbidity',
-        
-        'sss',
-    ] + \
-    Spe_SSS_Scatter.controls + \
-    [
-        
-        'sss_phase_function',
-    ] + \
-    Spe_SSS_Phase.controls
+        'exponent',
+        [ 'transparent', 'arch_glass', 'single_face'],
+        'medium_chooser',
+    ]
     
     visibility = {
         'transparent':            { 'type':'specular'},
         'exponent':                { 'type': 'glossy_transparent' },
         'arch_glass':            { 'type':'specular'},
         'single_face':            { 'type':'specular'},
-        
-        'medium_ior':            { 'medium_type': 'basic' },
-        'medium_cauchy_b':        { 'medium_type': 'basic' },
-        
-        'medium_basic_type':    { 'medium_type': 'basic' },
-        'medium_haemoglobin':    { 'medium_type': 'dermis' },
-        'medium_melanin':        { 'medium_type': 'epidermis' },
-        'medium_eumelanin':        { 'medium_type': 'epidermis' },
-        'medium_turbidity':        { 'medium_type': 'atmosphere' },
-        
-        'sss_scatter_type'    :    { 'sss': True },
-        'sss_phase_function':    { 'sss': True },
-        'sss_phase_hg_type':    { 'sss': True, 'sss_phase_function': 'hg' },
+        'medium_chooser':            { },
     }
-    
-    Spe_SSS_Scatter_vis = deepcopy(Spe_SSS_Scatter.visibility)
-    
-    for k,v in Spe_SSS_Scatter_vis.items():
-        v.update({ 'sss': True })
-    
-    visibility.update( Spe_SSS_Scatter_vis )
-    
-    Spe_SSS_Phase_vis = deepcopy(Spe_SSS_Phase.visibility)
-    
-    for k,v in Spe_SSS_Phase_vis.items():
-        v.update({ 'sss': True, 'sss_phase_function': 'hg' })
-    
-    visibility.update( Spe_SSS_Phase_vis )
-    
-    Spe_Medium_Basic_vis = deepcopy(Spe_Medium_Basic.visibility)
-    
-    for k,v in Spe_Medium_Basic_vis.items():
-        v.update({ 'medium_type': 'basic' })
-    
-    visibility.update( Spe_Medium_Basic_vis )
-    
+
     properties = [
         {
             'type': 'enum',
@@ -1165,6 +1108,22 @@ class indigo_material_specular(indigo_material_feature):
                 ('specular', 'Specular', 'specular'),
                 ('glossy_transparent', 'Glossy Transparent', 'glossy_transparent'),
             ]
+        },
+        {
+            'type': 'prop_search',
+            'attr': 'medium_chooser',
+            'src': lambda s,c:  s.scene.indigo_material_medium,
+            'src_attr': 'medium',
+            'trg': lambda s,c:  c.indigo_material_specular,
+            'trg_attr': 'medium_chooser',
+            'name': 'Medium'
+        },
+        {
+            'type': 'string',
+            'attr': 'medium_chooser',
+            'name': 'Medium',
+            'description': 'Medium',
+            'items': []
         },
         {
             'type': 'bool',
@@ -1205,98 +1164,8 @@ class indigo_material_specular(indigo_material_feature):
             'min': 1,
             'max': 100
         },
-        {
-            'type': 'bool',
-            'attr': 'sss',
-            'name': 'SSS',
-            'description': 'SSS',
-            'default': False,
-        },
-        {
-            'type': 'enum',
-            'attr': 'sss_phase_function',
-            'name': 'Phase Function',
-            'description': 'Phase Function',
-            'default': 'uniform',
-            'items': [
-                ('uniform', 'Uniform', 'uniform'),
-                ('hg', 'Henyey Greenstein', 'hg')
-            ]
-        },
-        {
-            'type': 'enum',
-            'attr': 'medium_type',
-            'name': 'Medium Type',
-            'description': 'Medium Type',
-            'default': 'basic',
-            'items': [
-                ('basic', 'Basic', 'basic'),
-                ('dermis', 'Dermis', 'dermis'),
-                ('epidermis', 'Epidermis', 'epidermis'),
-                ('atmosphere', 'Atmosphere', 'atmosphere'),
-            ]
-        },
-        {
-            'type': 'float',
-            'attr': 'medium_ior',
-            'name': 'IOR',
-            'description': 'IOR',
-            'default': 1.5,
-            'min': 0.0,
-            'max': 20.0,
-            'precision': 6
-        },
-        {
-            'type': 'float',
-            'attr': 'medium_cauchy_b',
-            'name': 'Cauchy B',
-            'description': 'Cauchy B',
-            'default': 0.0,
-            'min': 0.0,
-            'max': 1.0,
-            'precision': 6
-        },
-        {
-            'type': 'float',
-            'attr': 'medium_haemoglobin',
-            'name': 'Haemoglobin',
-            'description': 'Haemoglobin',
-            'default': 0.001,
-            'min': 0.0,
-            'max': 1.0
-        },
-        {
-            'type': 'float',
-            'attr': 'medium_melanin',
-            'name': 'Melanin',
-            'description': 'Melanin',
-            'default': 0.15,
-            'min': 0.0,
-            'max': 1.0
-        },
-        {
-            'type': 'float',
-            'attr': 'medium_eumelanin',
-            'name': 'Eumelanin',
-            'description': 'Eumelanin',
-            'default': 0.001,
-            'min': 0.0,
-            'max': 1.0
-        },
-        {
-            'type': 'float',
-            'attr': 'medium_turbidity',
-            'name': 'Turbidity',
-            'description': 'Turbidity',
-            'default': 2.2,
-            'min': 1.0,
-            'max': 10.0
-        },
-    ] + \
-        Spe_Medium_Basic.properties + \
-        Spe_SSS_Scatter.properties + \
-        Spe_SSS_Phase.properties
-    
+    ] 
+        
     def _copy_props(self, src, trg):
         for prop in src.properties:
             attr_name = prop['attr']
@@ -2018,3 +1887,4 @@ class indigo_material_external(indigo_material_feature):
 
         except Exception as err:
             raise Exception(str(err))
+
