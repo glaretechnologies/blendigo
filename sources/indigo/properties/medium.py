@@ -32,6 +32,8 @@ import xml.etree.cElementTree as ET
 
 from extensions_framework import declarative_property_group
 from extensions_framework import util as efutil
+from extensions_framework.validate import Logic_OR as LOR, Logic_AND as LAND
+
 from indigo import IndigoAddon
 from indigo.properties.material import MaterialChannel
 
@@ -88,11 +90,15 @@ class indigo_material_medium_data(declarative_property_group):
         'medium_posx':        { 'medium_type': 'atmosphere' },
         'medium_posy':        { 'medium_type': 'atmosphere' },
         'medium_posz':        { 'medium_type': 'atmosphere' },
+        'sss':  { 'medium_type': 'basic' },
         'sss_scatter_type'    :    { 'sss': True },
         'sss_phase_function':    { 'sss': True },
         'sss_phase_hg_type':    { 'sss': True, 'sss_phase_function': 'hg' },
     }     
 
+    enabled = {
+        'sss': {'medium_type': 'basic'},
+        }
     Med_SSS_Scatter_vis = deepcopy(Med_SSS_Scatter.visibility)
     
     for k,v in Med_SSS_Scatter_vis.items():
@@ -145,7 +151,7 @@ class indigo_material_medium_data(declarative_property_group):
            {
             'type': 'bool',
             'attr': 'sss',
-            'name': 'SSS',
+            'name': 'Subsurface scattering',
             'description': 'SSS',
             'default': False,
         },

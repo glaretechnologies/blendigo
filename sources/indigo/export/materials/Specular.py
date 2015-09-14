@@ -42,12 +42,21 @@ class SpecularMaterial(
     def get_format(self):
         # will be specular or glossy_transparent
         element_name = self.property_group.type
+        medium_name = self.property_group.medium_chooser 
         
+        # TODO:
+        # medium check <-> name
+        if len(medium_name) == 0:
+            medium_name = "basic"
+                 
+        else:
+            medium_name = medium_name + '_medium'
+            
         fmt = {
             'name': [self.material_name],
             'backface_emit': [str(self.material_group.indigo_material_emission.backface_emit).lower()],
             element_name: {
-                'internal_medium_name': [self.property_group.medium_chooser + '_medium']
+                'internal_medium_name': [ medium_name ]
             }
         }
         

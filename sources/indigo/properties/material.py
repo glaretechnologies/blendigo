@@ -1190,12 +1190,7 @@ class indigo_material_specular(indigo_material_feature):
             blender_material,
             scene=scene
         )
-        #sm = SpecularMedium(blender_material.name, self)
-        #sm = medium_xml(indigo_material, self)
-        #self._copy_props(self, sm)
-        #sme = sm.build_xml_element()
         
-        #return [sme, im]
         return [ im ]
 
 @IndigoAddon.addon_register_class

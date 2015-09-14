@@ -96,7 +96,7 @@ class _Impl_OT_igmesh(_Impl_operator):
             return {'CANCELLED'}
         
         mesh = obj.to_mesh(self.scene, True, 'RENDER')
-        igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh, debug=False)
+        igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh, debug=True)
         bpy.data.meshes.remove(mesh)
         
         return {'FINISHED'}
@@ -224,7 +224,10 @@ class _Impl_OT_indigo(_Impl_operator):
         LC = LightingChecker()
         LC.iterateScene(scene)
         return LC.isValid()
-    
+   
+    def check_medium(self, scene):
+        pass
+        
     def check_output_path(self, path):
         efutil.export_path = efutil.filesystem_path(path)
         
@@ -468,6 +471,7 @@ class _Impl_OT_indigo(_Impl_operator):
                 scene_background_settings_obj.build_subelements(None, scene_background_settings_fmt, scene_background_settings)
                 self.scene_xml.append(scene_background_settings)
             
+            #------------------------------------------------------------------------------
             # Export Medium
             from indigo.export.materials.medium import medium_xml
             # TODO:
@@ -477,13 +481,42 @@ class _Impl_OT_indigo(_Impl_operator):
             for ex_scene in export_scenes:
                 if ex_scene is None: continue
                 
-                # Medium names
-                for idx in ex_scene.indigo_material_medium.items():
-                    #if self.verbose: indigo_log('Medium %s: %s' % (idx.medium))
+                medium = ex_scene.indigo_material_medium.medium
+                
+                if len (medium.items()) > 0:
+                  for medium_name, medium_data in medium.items():
+                                                                      
+                    #sm = medium_xml(indigo_material_medium, self)
+                    #self._copy_props(self, sm)
+                    #indigo_log('Medium %s: %s' % (idx))
                     self.scene_xml.append(
-                        medium_xml().build_xml_element(ex_scene, idx)
+                        medium_xml(ex_scene, medium_name, medium_data).build_xml_element(ex_scene, medium_name, medium_data)
                     )
-
+                # TODO: check specular for defaults
+                #if len (medium.items()) == 0 or self.check_medium(ex_scene):
+                basic_medium = ET.fromstring("""
+                                <medium>
+                                   <uid>10200137</uid>
+		                             <name>basic</name>
+			                           <precedence>10</precedence>
+			                             <basic>
+				                           <ior>1.5</ior>
+				                           <cauchy_b_coeff>0</cauchy_b_coeff>
+				                           <max_extinction_coeff>1</max_extinction_coeff>
+				                           <absorption_coefficient>
+					                         <constant>
+						                      <uniform>
+							                   <value>0</value>
+						                      </uniform>
+					                         </constant>
+				                           </absorption_coefficient>
+			                             </basic>
+	                            </medium>   
+                         """)
+            
+                self.scene_xml.append(basic_medium)
+                         
+            #------------------------------------------------------------------------------
             # Export used materials.
             if self.verbose: indigo_log('Exporting used materials')
             material_count = 0
