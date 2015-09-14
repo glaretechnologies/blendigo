@@ -57,13 +57,14 @@ class indigo_material_medium_data(declarative_property_group):
     controls = [
     'medium_type',
     'precedence',
+    
+    [ 'medium_ior', 'medium_cauchy_b' ],
     ] + \
     Med_Medium_Basic.controls + \
-    [
-    [ 'medium_ior', 'medium_cauchy_b' ],
-    [  'medium_melanin', 'medium_eumelanin',],
+    [ [  'medium_melanin', 'medium_eumelanin',],
     'medium_haemoglobin',
-    [ 'medium_turbidity', 'medium_posx', 'medium_posy', 'medium_posz', ],
+    [ 'medium_turbidity',],
+    [ 'medium_posx', 'medium_posy', 'medium_posz', ],
     'sss',
     ] + \
     Med_SSS_Scatter.controls + \
@@ -177,6 +178,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_ior',
             'name': 'IOR',
             'description': 'IOR',
+            'slider': True,
             'default': 1.5,
             'min': 0.0,
             'max': 20.0,
@@ -188,6 +190,7 @@ class indigo_material_medium_data(declarative_property_group):
             'name': 'Cauchy B',
             'description': 'Cauchy B',
             'default': 0.0,
+            'slider': True,
             'min': 0.0,
             'max': 1.0,
             'precision': 6
@@ -197,6 +200,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_haemoglobin',
             'name': 'Haemoglobin',
             'description': 'Haemoglobin',
+            'slider': True,
             'default': 0.001,
             'min': 0.0,
             'max': 1.0
@@ -206,6 +210,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_melanin',
             'name': 'Melanin',
             'description': 'Melanin',
+            'slider': True,
             'default': 0.15,
             'min': 0.0,
             'max': 1.0
@@ -215,6 +220,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_eumelanin',
             'name': 'Eumelanin',
             'description': 'Eumelanin',
+            'slider': True,
             'default': 0.001,
             'min': 0.0,
             'max': 1.0
@@ -224,6 +230,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_turbidity',
             'name': 'Turbidity',
             'description': 'Turbidity',
+            'slider': True,
             'default': 2.2,
             'min': 1.0,
             'max': 10.0
@@ -266,7 +273,7 @@ class indigo_material_medium_data(declarative_property_group):
         Med_Medium_Basic.properties + \
         Med_SSS_Scatter.properties + \
         Med_SSS_Phase.properties
-     
+
 @IndigoAddon.addon_register_class
 class indigo_material_medium(declarative_property_group):
     ''' container for the medium list'''

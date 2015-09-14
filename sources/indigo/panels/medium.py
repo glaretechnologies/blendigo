@@ -66,5 +66,3 @@ class indigo_ui_material_medium(bl_ui.properties_material.MaterialButtonsPanel, 
                     context,
                     property_group=current_med
                 )
-
-    

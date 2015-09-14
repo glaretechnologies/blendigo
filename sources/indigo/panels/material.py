@@ -59,11 +59,24 @@ class indigo_ui_material_subpanel(indigo_ui_material_panel_base):
 
 @IndigoAddon.addon_register_class
 class indigo_ui_material(indigo_ui_material_panel_base):
-    bl_label = 'Indigo Render Material Settings'
-    
+    """    Material Type First     """
+
+    bl_label = ''
+    bl_options = {'HIDE_HEADER'}
+
+    @classmethod
+    def poll(cls, context):
+        engine = context.scene.render.engine
+        return (context.material or context.object) and (engine in cls.COMPAT_ENGINES)
+
     display_property_groups = [
-        ( ('material',), 'indigo_material' ),
+        ( ('material',), 'indigo_material' ), 
     ]
+
+    def draw(self, context):
+         layout = self.layout
+         row = self.layout.row(align=True)
+         super().draw(context)
 
 @IndigoAddon.addon_register_class
 class indigo_ui_material_colour(indigo_ui_material_subpanel):

@@ -468,6 +468,22 @@ class _Impl_OT_indigo(_Impl_operator):
                 scene_background_settings_obj.build_subelements(None, scene_background_settings_fmt, scene_background_settings)
                 self.scene_xml.append(scene_background_settings)
             
+            # Export Medium
+            from indigo.export.materials.medium import medium_xml
+            # TODO:
+            # check if medium is currently used by material and add 
+            # basic medium for SpecularMaterial default
+
+            for ex_scene in export_scenes:
+                if ex_scene is None: continue
+                
+                # Medium names
+                for idx in ex_scene.indigo_material_medium.items():
+                    #if self.verbose: indigo_log('Medium %s: %s' % (idx.medium))
+                    self.scene_xml.append(
+                        medium_xml().build_xml_element(ex_scene, idx)
+                    )
+
             # Export used materials.
             if self.verbose: indigo_log('Exporting used materials')
             material_count = 0
@@ -602,7 +618,6 @@ class INDIGO_OT_medium_add(bpy.types.Operator):
 
     def invoke(self, context, event):
         me = context.scene.indigo_material_medium.medium
-        #me = context.material.indigo_material_medium.medium
         me.add()
         new_me = me[len(me) - 1]
         new_me.name = self.properties.new_medium_name
