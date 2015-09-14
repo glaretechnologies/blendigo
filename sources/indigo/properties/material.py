@@ -28,10 +28,13 @@ import re, os, zipfile
 from copy import deepcopy
 
 import bpy        #@UnresolvedImport
+import bl_ui
 import xml.etree.cElementTree as ET
 
 from extensions_framework import declarative_property_group
 from extensions_framework import util as efutil
+from extensions_framework.ui import property_group_renderer
+from extensions_framework.validate import Logic_OR as LOR, Logic_AND as LAND 
 
 from indigo import IndigoAddon
 from indigo.core.util import getResourcesPath 
@@ -39,8 +42,9 @@ from indigo.export.materials.Diffuse    import DiffuseMaterial
 from indigo.export.materials.Phong        import PhongMaterial
 from indigo.export.materials.Coating    import CoatingMaterial
 from indigo.export.materials.DoubleSidedThin    import DoubleSidedThinMaterial
-from indigo.export.materials.Specular    import SpecularMaterial, SpecularMedium
+from indigo.export.materials.Specular    import SpecularMaterial
 from indigo.export.materials.Blend        import BlendMaterial
+from indigo.export.materials.medium      import  medium_xml
 from indigo.export.materials.External    import ExternalMaterial
 from indigo.export import ( indigo_log )
 
@@ -1092,9 +1096,13 @@ class indigo_material_specular(indigo_material_feature):
     visibility = {
         'transparent':            { 'type':'specular'},
         'exponent':                { 'type': 'glossy_transparent' },
+        'single_face':             {'type': 'specular'}, 
         'arch_glass':            { 'type':'specular'},
-        'single_face':            { 'type':'specular'},
         'medium_chooser':            { },
+    }
+
+    enabled = {
+        'single_face':            LAND([{'arch_glass': True}, {'type': 'specular'}, ]),
     }
 
     properties = [
@@ -1104,6 +1112,7 @@ class indigo_material_specular(indigo_material_feature):
             'name': 'Specular Type',
             'description': 'Specular Type',
             'default': 'specular',
+            'expand': True,
             'items': [
                 ('specular', 'Specular', 'specular'),
                 ('glossy_transparent', 'Glossy Transparent', 'glossy_transparent'),
@@ -1181,11 +1190,8 @@ class indigo_material_specular(indigo_material_feature):
             blender_material,
             scene=scene
         )
-        sm = SpecularMedium(blender_material.name, self)
-        self._copy_props(self, sm)
-        sme = sm.build_xml_element( blender_material )
         
-        return [sme, im]
+        return [ im ]
 
 @IndigoAddon.addon_register_class
 class indigo_material_diffuse(indigo_material_feature):

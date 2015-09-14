@@ -32,6 +32,8 @@ import xml.etree.cElementTree as ET
 
 from extensions_framework import declarative_property_group
 from extensions_framework import util as efutil
+from extensions_framework.validate import Logic_OR as LOR, Logic_AND as LAND
+
 from indigo import IndigoAddon
 from indigo.properties.material import MaterialChannel
 
@@ -57,13 +59,14 @@ class indigo_material_medium_data(declarative_property_group):
     controls = [
     'medium_type',
     'precedence',
+    
+    [ 'medium_ior', 'medium_cauchy_b' ],
     ] + \
     Med_Medium_Basic.controls + \
-    [
-    [ 'medium_ior', 'medium_cauchy_b' ],
-    [  'medium_melanin', 'medium_eumelanin',],
+    [ [  'medium_melanin', 'medium_eumelanin',],
     'medium_haemoglobin',
-    [ 'medium_turbidity', 'medium_posx', 'medium_posy', 'medium_posz', ],
+    [ 'medium_turbidity',],
+    [ 'medium_posx', 'medium_posy', 'medium_posz', ],
     'sss',
     ] + \
     Med_SSS_Scatter.controls + \
@@ -87,11 +90,15 @@ class indigo_material_medium_data(declarative_property_group):
         'medium_posx':        { 'medium_type': 'atmosphere' },
         'medium_posy':        { 'medium_type': 'atmosphere' },
         'medium_posz':        { 'medium_type': 'atmosphere' },
+        'sss':  { 'medium_type': 'basic' },
         'sss_scatter_type'    :    { 'sss': True },
         'sss_phase_function':    { 'sss': True },
         'sss_phase_hg_type':    { 'sss': True, 'sss_phase_function': 'hg' },
     }     
 
+    enabled = {
+        'sss': {'medium_type': 'basic'},
+        }
     Med_SSS_Scatter_vis = deepcopy(Med_SSS_Scatter.visibility)
     
     for k,v in Med_SSS_Scatter_vis.items():
@@ -144,7 +151,7 @@ class indigo_material_medium_data(declarative_property_group):
            {
             'type': 'bool',
             'attr': 'sss',
-            'name': 'SSS',
+            'name': 'Subsurface scattering',
             'description': 'SSS',
             'default': False,
         },
@@ -177,6 +184,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_ior',
             'name': 'IOR',
             'description': 'IOR',
+            'slider': True,
             'default': 1.5,
             'min': 0.0,
             'max': 20.0,
@@ -188,6 +196,7 @@ class indigo_material_medium_data(declarative_property_group):
             'name': 'Cauchy B',
             'description': 'Cauchy B',
             'default': 0.0,
+            'slider': True,
             'min': 0.0,
             'max': 1.0,
             'precision': 6
@@ -197,6 +206,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_haemoglobin',
             'name': 'Haemoglobin',
             'description': 'Haemoglobin',
+            'slider': True,
             'default': 0.001,
             'min': 0.0,
             'max': 1.0
@@ -206,6 +216,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_melanin',
             'name': 'Melanin',
             'description': 'Melanin',
+            'slider': True,
             'default': 0.15,
             'min': 0.0,
             'max': 1.0
@@ -215,6 +226,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_eumelanin',
             'name': 'Eumelanin',
             'description': 'Eumelanin',
+            'slider': True,
             'default': 0.001,
             'min': 0.0,
             'max': 1.0
@@ -224,6 +236,7 @@ class indigo_material_medium_data(declarative_property_group):
             'attr': 'medium_turbidity',
             'name': 'Turbidity',
             'description': 'Turbidity',
+            'slider': True,
             'default': 2.2,
             'min': 1.0,
             'max': 10.0
@@ -266,7 +279,7 @@ class indigo_material_medium_data(declarative_property_group):
         Med_Medium_Basic.properties + \
         Med_SSS_Scatter.properties + \
         Med_SSS_Phase.properties
-     
+
 @IndigoAddon.addon_register_class
 class indigo_material_medium(declarative_property_group):
     ''' container for the medium list'''

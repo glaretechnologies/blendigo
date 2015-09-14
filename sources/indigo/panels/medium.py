@@ -39,7 +39,7 @@ class world_panel(bl_ui.properties_world.WorldButtonsPanel, property_group_rende
     
 @IndigoAddon.addon_register_class
 class indigo_ui_material_medium(bl_ui.properties_material.MaterialButtonsPanel, property_group_renderer):
-    bl_label = 'Medium'
+    bl_label = 'Indigo Medium'
    
     #INDIGO_COMPAT = PROPERTY_GROUP_USAGE['medium']
     COMPAT_ENGINES = {IndigoAddon.BL_IDNAME}
@@ -54,12 +54,10 @@ class indigo_ui_material_medium(bl_ui.properties_material.MaterialButtonsPanel, 
             current_med_ind = context.scene.indigo_material_medium.medium_index
             current_med = context.scene.indigo_material_medium.medium[current_med_ind]
 
-            # 'name' is not a member of current_vol.properties,
-            # so we draw it explicitly
             self.layout.prop(
                 current_med, 'name'
             )
-         # Here we draw the currently selected luxrender_volumes_data property group
+
             for control in current_med.controls:
                 self.draw_column(
                     control,
@@ -68,5 +66,3 @@ class indigo_ui_material_medium(bl_ui.properties_material.MaterialButtonsPanel, 
                     context,
                     property_group=current_med
                 )
-
-    
