@@ -96,7 +96,7 @@ class _Impl_OT_igmesh(_Impl_operator):
             return {'CANCELLED'}
         
         mesh = obj.to_mesh(self.scene, True, 'RENDER')
-        igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh, debug=True)
+        igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh, debug=False)
         bpy.data.meshes.remove(mesh)
         
         return {'FINISHED'}
@@ -481,18 +481,21 @@ class _Impl_OT_indigo(_Impl_operator):
             for ex_scene in export_scenes:
                 if ex_scene is None: continue
                 
-                medium = ex_scene.indigo_material_medium.medium
+                indigo_material_medium = ex_scene.indigo_material_medium
+                medium = indigo_material_medium.medium
                 
-                if len (medium.items()) > 0:
-                  for medium_name, medium_data in medium.items():
-                                                                      
+                if len(indigo_material_medium.medium.items()) == 0 : continue
+                
+                for medium_name, medium_data in medium.items():
+                    
                     indigo_log('Exporting medium: %s ' % (medium_name))
                     self.scene_xml.append(
                         medium_xml(ex_scene, medium_name, medium_data).build_xml_element(ex_scene, medium_name, medium_data)
                     )
+                indigo_log('Exporting Medium: %s ' % (medium_name))         
                 # TODO: 
                 # check for unused medium	
-                basic_medium = ET.fromstring("""
+            basic_medium = ET.fromstring("""
                                 <medium>
                                    <uid>10200137</uid>
 		                             <name>basic</name>
@@ -512,8 +515,8 @@ class _Impl_OT_indigo(_Impl_operator):
 	                            </medium>   
                          """)
             
-                self.scene_xml.append(basic_medium)
-                indigo_log('Exporting Medium: %s ' % (medium_name))         
+            self.scene_xml.append(basic_medium)
+            
             #------------------------------------------------------------------------------
             # Export used materials.
             if self.verbose: indigo_log('Exporting used materials')
