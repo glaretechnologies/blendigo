@@ -42,6 +42,7 @@ import indigo.properties.camera
 import indigo.properties.environment
 import indigo.properties.lamp
 import indigo.properties.material
+import indigo.properties.medium
 import indigo.properties.object
 import indigo.properties.render_settings
 import indigo.properties.tonemapping
@@ -51,6 +52,7 @@ import indigo.panels.camera
 #import indigo.panels.image
 import indigo.panels.lamp
 import indigo.panels.material
+import indigo.panels.medium
 import indigo.panels.object
 import indigo.panels.render
 import indigo.panels.world
