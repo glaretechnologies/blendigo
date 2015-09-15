@@ -7,7 +7,7 @@
 # --------------------------------------------------------------------------
 #
 # Authors:
-# Doug Hammond,Marco Goebel
+# Doug Hammond, Marco Goebel
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -33,14 +33,6 @@ class medium_xml(xml_builder):
      def build_xml_element(self, scene,medium_name, medium_data ):
         xml = self.Element('medium')
         self.build_subelements(scene, self.get_format(), xml)
-        #self.build_subelements(
-        #    scene,
-        #    {
-        #        'name': [medium_name +'_medium'],
-        #        'layer_name':  [medium_data]
-        #    },
-        #    xml
-        #)
         return xml
     
      def __init__(self, scene,medium_name, medium_data):

@@ -48,7 +48,8 @@ class SpecularMaterial(
         # medium check <-> name
         if len(medium_name) == 0:
             medium_name = "basic"
-                 
+        # TODO:
+        # check is medium exists         
         else:
             medium_name = medium_name + '_medium'
             
@@ -71,7 +72,7 @@ class SpecularMaterial(
             else:
                 fmt[element_name]['arch_glass'] = ['false']
 
-            if self.property_group.single_face:
+            if self.property_group.single_face and self.property_group.arch_glass:
                 fmt[element_name]['single_face'] = ['true']
             else:
                 fmt[element_name]['single_face'] = ['false']
