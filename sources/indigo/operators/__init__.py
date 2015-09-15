@@ -225,7 +225,7 @@ class _Impl_OT_indigo(_Impl_operator):
         LC.iterateScene(scene)
         return LC.isValid()
    
-    def check_medium(self, scene):
+    def check_medium(self, obj):
         pass
         
     def check_output_path(self, path):
@@ -475,7 +475,7 @@ class _Impl_OT_indigo(_Impl_operator):
             # Export Medium
             from indigo.export.materials.medium import medium_xml
             # TODO:
-            # check if medium is currently used by material and add 
+            # check if medium is currently used by any material and add 
             # basic medium for SpecularMaterial default
 
             for ex_scene in export_scenes:
@@ -486,14 +486,12 @@ class _Impl_OT_indigo(_Impl_operator):
                 if len (medium.items()) > 0:
                   for medium_name, medium_data in medium.items():
                                                                       
-                    #sm = medium_xml(indigo_material_medium, self)
-                    #self._copy_props(self, sm)
-                    #indigo_log('Medium %s: %s' % (idx))
+                    indigo_log('Exporting medium: %s ' % (medium_name))
                     self.scene_xml.append(
                         medium_xml(ex_scene, medium_name, medium_data).build_xml_element(ex_scene, medium_name, medium_data)
                     )
-                # TODO: check specular for defaults
-                #if len (medium.items()) == 0 or self.check_medium(ex_scene):
+                # TODO: 
+                # check for unused medium	
                 basic_medium = ET.fromstring("""
                                 <medium>
                                    <uid>10200137</uid>
@@ -515,7 +513,7 @@ class _Impl_OT_indigo(_Impl_operator):
                          """)
             
                 self.scene_xml.append(basic_medium)
-                         
+                indigo_log('Exporting Medium: %s ' % (medium_name))         
             #------------------------------------------------------------------------------
             # Export used materials.
             if self.verbose: indigo_log('Exporting used materials')
