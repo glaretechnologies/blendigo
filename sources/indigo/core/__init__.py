@@ -227,7 +227,7 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
 
             try:
                 for k,v in config_updates.items():
-                    efutil.write_config_value('indigo_console', 'defaults', k, v)
+                    efutil.write_config_value('indigo', 'defaults', k, v)
             except Exception as err:
                 indigo_log('Saving indigo config failed: %s' % err, message_type='ERROR')
 
