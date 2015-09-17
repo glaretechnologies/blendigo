@@ -145,7 +145,7 @@ class indigo_material_medium_data(declarative_property_group):
                 ('basic', 'Basic', 'basic'),
                 ('dermis', 'Dermis', 'dermis'),
                 ('epidermis', 'Epidermis', 'epidermis'),
-                ('atmosphere', 'Atmosphere', 'atmosphere'),
+              #  ('atmosphere', 'Atmosphere', 'atmosphere'),
             ]
         },
            {
@@ -164,19 +164,6 @@ class indigo_material_medium_data(declarative_property_group):
             'items': [
                 ('uniform', 'Uniform', 'uniform'),
                 ('hg', 'Henyey Greenstein', 'hg')
-            ]
-        },
-        {
-            'type': 'enum',
-            'attr': 'medium_type',
-            'name': 'Medium',
-            'description': 'Medium Type',
-            'default': 'basic',
-            'items': [
-                ('basic', 'Basic', 'basic'),
-                ('dermis', 'Dermis', 'dermis'),
-                ('epidermis', 'Epidermis', 'epidermis'),
-                ('atmosphere', 'Atmosphere', 'atmosphere'),
             ]
         },
         {

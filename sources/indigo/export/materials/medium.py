@@ -35,8 +35,9 @@ class medium_xml(xml_builder):
         self.build_subelements(scene, self.get_format(), xml)
         return xml
     
-     def __init__(self, scene,medium_name, medium_data):
+     def __init__(self, scene,medium_name, medium_index, medium_data):
         self.medium_name = medium_name
+        self.medium_index = medium_index
         self.medium_data = medium_data
     
      def get_format(self):
@@ -44,6 +45,7 @@ class medium_xml(xml_builder):
         
         fmt = {
             'name': [self.medium_name + '_medium'],
+            'uid': [self.medium_index + 10000 ],
             'precedence': [self.medium_data.precedence],
             self.medium_data.medium_type: {}
         }

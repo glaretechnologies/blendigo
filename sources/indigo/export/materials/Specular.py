@@ -24,9 +24,13 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 #
+import bpy
+
 from indigo.export import xml_builder
 from indigo.export.materials.Base        import EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, AbsorptionLayerChannelMaterial, MaterialBase
 from indigo.export.materials.spectra    import rgb, uniform
+
+
 
 class SpecularMaterial(
     AbsorptionLayerChannelMaterial,
@@ -43,7 +47,8 @@ class SpecularMaterial(
         # will be specular or glossy_transparent
         element_name = self.property_group.type
         medium_name = self.property_group.medium_chooser 
-        
+        # get medium index
+        medium_index = bpy.context.scene.indigo_material_medium.medium.find(medium_name)
         # TODO:
         # medium check <-> name
         if len(medium_name) == 0:
@@ -57,7 +62,8 @@ class SpecularMaterial(
             'name': [self.material_name],
             'backface_emit': [str(self.material_group.indigo_material_emission.backface_emit).lower()],
             element_name: {
-                'internal_medium_name': [ medium_name ]
+                #'internal_medium_name': [ medium_name ],
+                'internal_medium_uid': [ +medium_index + 10000 ]
             }
         }
         

@@ -488,9 +488,11 @@ class _Impl_OT_indigo(_Impl_operator):
                 
                 for medium_name, medium_data in medium.items():
                     
+                    medium_index = ex_scene.indigo_material_medium.medium.find(medium_name) # more precise if same name
+                    
                     indigo_log('Exporting medium: %s ' % (medium_name))
                     self.scene_xml.append(
-                        medium_xml(ex_scene, medium_name, medium_data).build_xml_element(ex_scene, medium_name, medium_data)
+                        medium_xml(ex_scene, medium_name, medium_index, medium_data).build_xml_element(ex_scene, medium_name, medium_data)
                     )
                 indigo_log('Exporting Medium: %s ' % (medium_name))         
                 # TODO: 
