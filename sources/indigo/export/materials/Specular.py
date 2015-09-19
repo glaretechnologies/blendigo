@@ -51,10 +51,10 @@ class SpecularMaterial(
         medium_index = bpy.context.scene.indigo_material_medium.medium.find(medium_name)
         # TODO:
         # medium check <-> name
-        if len(medium_name) == 0:
+        if (len(medium_name) == 0) or  (medium_index == -1):
             medium_name = "basic"
-        # TODO:
-        # check is medium exists         
+            medium_index = 10190137
+                     
         else:
             medium_name = medium_name + '_medium'
             
