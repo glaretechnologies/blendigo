@@ -35,6 +35,7 @@
     <Compile Include="export\materials\Diffuse.py" />
     <Compile Include="export\materials\DoubleSidedThin.py" />
     <Compile Include="export\materials\External.py" />
+    <Compile Include="export\materials\medium.py" />
     <Compile Include="export\materials\Phong.py" />
     <Compile Include="export\materials\spectra.py" />
     <Compile Include="export\materials\Specular.py" />
@@ -44,6 +45,7 @@
     <Compile Include="panels\image.py" />
     <Compile Include="panels\lamp.py" />
     <Compile Include="panels\material.py" />
+    <Compile Include="panels\medium.py" />
     <Compile Include="panels\object.py" />
     <Compile Include="panels\render.py" />
     <Compile Include="panels\world.py" />
@@ -52,6 +54,7 @@
     <Compile Include="properties\environment.py" />
     <Compile Include="properties\lamp.py" />
     <Compile Include="properties\material.py" />
+    <Compile Include="properties\medium.py" />
     <Compile Include="properties\object.py" />
     <Compile Include="properties\render_settings.py" />
     <Compile Include="properties\tonemapping.py" />

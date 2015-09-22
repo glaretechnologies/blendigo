@@ -32,6 +32,7 @@ import xml.dom.minidom as MD
 import bpy            #@UnresolvedImport
 
 from extensions_framework import util as efutil
+from extensions_framework import declarative_property_group
 
 from indigo import IndigoAddon
 import indigo.export
@@ -223,7 +224,10 @@ class _Impl_OT_indigo(_Impl_operator):
         LC = LightingChecker()
         LC.iterateScene(scene)
         return LC.isValid()
-    
+   
+    def check_medium(self, obj):
+        pass
+        
     def check_output_path(self, path):
         efutil.export_path = efutil.filesystem_path(path)
         
@@ -467,6 +471,55 @@ class _Impl_OT_indigo(_Impl_operator):
                 scene_background_settings_obj.build_subelements(None, scene_background_settings_fmt, scene_background_settings)
                 self.scene_xml.append(scene_background_settings)
             
+            #------------------------------------------------------------------------------
+            # Export Medium
+            from indigo.export.materials.medium import medium_xml
+            # TODO:
+            # check if medium is currently used by any material and add 
+            # basic medium for SpecularMaterial default
+
+            for ex_scene in export_scenes:
+                if ex_scene is None: continue
+                
+                indigo_material_medium = ex_scene.indigo_material_medium
+                medium = indigo_material_medium.medium
+                
+                if len(indigo_material_medium.medium.items()) == 0 : continue
+                
+                for medium_name, medium_data in medium.items():
+                    
+                    medium_index = ex_scene.indigo_material_medium.medium.find(medium_name) # more precise if same name
+                    
+                    indigo_log('Exporting medium: %s ' % (medium_name))
+                    self.scene_xml.append(
+                        medium_xml(ex_scene, medium_name, medium_index, medium_data).build_xml_element(ex_scene, medium_name, medium_data)
+                    )
+                indigo_log('Exporting Medium: %s ' % (medium_name))         
+                # TODO: 
+                # check for unused medium	
+            basic_medium = ET.fromstring("""
+                                <medium>
+                                   <uid>10200137</uid>
+		                             <name>basic</name>
+			                           <precedence>10</precedence>
+			                             <basic>
+				                           <ior>1.5</ior>
+				                           <cauchy_b_coeff>0</cauchy_b_coeff>
+				                           <max_extinction_coeff>1</max_extinction_coeff>
+				                           <absorption_coefficient>
+					                         <constant>
+						                      <uniform>
+							                   <value>0</value>
+						                      </uniform>
+					                         </constant>
+				                           </absorption_coefficient>
+			                             </basic>
+	                            </medium>   
+                         """)
+            
+            self.scene_xml.append(basic_medium)
+            
+            #------------------------------------------------------------------------------
             # Export used materials.
             if self.verbose: indigo_log('Exporting used materials')
             material_count = 0
@@ -588,4 +641,38 @@ class INDIGO_OT_lightlayer_remove(bpy.types.Operator):
         else:
             w.lightlayers.remove( self.properties.lg_index )
         w.lightlayers_index = len(w.lightlayers)-1
+        return {'FINISHED'}
+
+@IndigoAddon.addon_register_class
+class INDIGO_OT_medium_add(bpy.types.Operator):
+    """Add a new medium definition to the scene"""
+
+    bl_idname = "indigo.medium_add"
+    bl_label = "Add Indigo Medium"
+
+    new_medium_name = bpy.props.StringProperty(default='New Medium')
+
+    def invoke(self, context, event):
+        me = context.scene.indigo_material_medium.medium
+        me.add()
+        new_me = me[len(me) - 1]
+        new_me.name = self.properties.new_medium_name
+        return {'FINISHED'}
+
+@IndigoAddon.addon_register_class
+class INDIGO_OT_medium_remove(bpy.types.Operator):
+    '''Remove the selected medium definition'''
+
+    bl_idname = "indigo.medium_remove"
+    bl_label = "Remove Indigo Medium"
+
+    me_index = bpy.props.IntProperty(default=-1)
+
+    def invoke(self, context, event):
+        w = context.scene.indigo_material_medium
+        if self.properties.me_index == -1:
+            w.medium.remove(w.medium_index)
+        else:
+            w.medium.remove( self.properties.me_index )
+        w.medium_index = len(w.medium)-1
         return {'FINISHED'}

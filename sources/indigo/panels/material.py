@@ -25,6 +25,7 @@
 # ***** END GPL LICENCE BLOCK *****
 #
 import bl_ui            #@UnresolvedImport
+import bpy
 
 from extensions_framework.ui import property_group_renderer
 
@@ -59,11 +60,25 @@ class indigo_ui_material_subpanel(indigo_ui_material_panel_base):
 
 @IndigoAddon.addon_register_class
 class indigo_ui_material(indigo_ui_material_panel_base):
-    bl_label = 'Indigo Render Material Settings'
-    
+    """    Material Type First     """
+
+    bl_label = ''
+    bl_options = {'HIDE_HEADER'}
+
+    @classmethod
+    def poll(cls, context):
+        engine = context.scene.render.engine
+        return (context.material or context.object) and (context.object.active_material)
+
     display_property_groups = [
-        ( ('material',), 'indigo_material' ),
-    ]
+       ( ('material',), 'indigo_material' ), 
+       ]
+
+
+    def draw(self, context):
+         layout = self.layout
+         row = self.layout.row(align=True)
+         super().draw(context)
 
 @IndigoAddon.addon_register_class
 class indigo_ui_material_colour(indigo_ui_material_subpanel):
@@ -142,7 +157,7 @@ class indigo_ui_material_absorption(indigo_ui_material_subpanel):
         self.layout.prop(context.material.indigo_material.indigo_material_absorption, "absorption_enabled", text="")
 
 @IndigoAddon.addon_register_class
-class indigo_ui_material_absorption(indigo_ui_material_subpanel):
+class indigo_ui_material_absorption_layer(indigo_ui_material_subpanel):
     bl_label = 'Absorption Layer'
     
     INDIGO_COMPAT = PROPERTY_GROUP_USAGE['absorption_layer']

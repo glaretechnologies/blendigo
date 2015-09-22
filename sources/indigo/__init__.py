@@ -52,3 +52,4 @@ if os.getenv('BLENDIGO_RELEASE') == None:
         register, unregister = IndigoAddon.init_functions()
     
         from indigo import core
+
