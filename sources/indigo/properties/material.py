@@ -1132,7 +1132,6 @@ class indigo_material_specular(indigo_material_feature):
             'attr': 'medium_chooser',
             'name': 'Medium',
             'description': 'Medium',
-            'items': []
         },
         {
             'type': 'bool',
