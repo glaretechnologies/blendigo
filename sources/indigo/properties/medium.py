@@ -61,6 +61,7 @@ class indigo_material_medium_data(declarative_property_group):
     'precedence',
     
     [ 'medium_ior', 'medium_cauchy_b' ],
+    'max_extinction_coeff',
     ] + \
     Med_Medium_Basic.controls + \
     [ [  'medium_melanin', 'medium_eumelanin',],
@@ -81,6 +82,7 @@ class indigo_material_medium_data(declarative_property_group):
         'medium_type':    { },
         'medium_ior':            { 'medium_type': 'basic' },
         'medium_cauchy_b':        { 'medium_type': 'basic' },
+        'max_extinction_coeff':        { 'medium_type': 'basic' },
 
         'medium_basic_type':    { 'medium_type': 'basic' },
         'medium_haemoglobin':    { 'medium_type': 'dermis' },
@@ -186,6 +188,17 @@ class indigo_material_medium_data(declarative_property_group):
             'slider': True,
             'min': 0.0,
             'max': 1.0,
+            'precision': 6
+        },
+        {
+            'type': 'float',
+            'attr': 'max_extinction_coeff',
+            'name': 'Max. ext. coeff',
+            'description': 'max_extinction_coeff',
+            'default': 1.0,
+            'slider': True,
+            'min': 0.0,
+            'max': 1,
             'precision': 6
         },
         {
@@ -328,7 +341,7 @@ class indigo_material_medium(declarative_property_group):
     
     def enumerate(self):
         en = {
-            'default': 0,
+            'default': 1,
         }
         idx = 1
         for name, me in lambda s,c: s.scene.indigo_material_medium.items():
