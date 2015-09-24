@@ -52,8 +52,7 @@ class SpecularMaterial(
         medium_index = medium.find(medium_name)
         
         if (len(medium_name) == 0) or  (medium_index == -1):
-            #medium_name = "basic"
-            medium_index = len(medium)+10 # seems indigo medium uid starts at 10...
+            medium_index = len(medium) 
         else:
             medium_name = medium_name + '_medium'
             
@@ -61,8 +60,7 @@ class SpecularMaterial(
             'name': [self.material_name],
             'backface_emit': [str(self.material_group.indigo_material_emission.backface_emit).lower()],
             element_name: {
-                #'internal_medium_name': [ medium_name ],
-                'internal_medium_uid': [ medium_index ]
+                'internal_medium_uid': [ medium_index + 10 ] # seems indigo medium uid starts at 10...
             }
         }
         

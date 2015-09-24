@@ -475,8 +475,7 @@ class _Impl_OT_indigo(_Impl_operator):
             # Export Medium
             from indigo.export.materials.medium import medium_xml
             # TODO:
-            # check if medium is currently used by any material and add 
-            # basic medium for SpecularMaterial default
+            # check if medium is currently used by any material 
 
             for ex_scene in export_scenes:
                 if ex_scene is None: continue
@@ -491,23 +490,27 @@ class _Impl_OT_indigo(_Impl_operator):
                     self.scene_xml.append(
                         medium_xml(ex_scene, medium_name, medium_index, medium_data).build_xml_element(ex_scene, medium_name, medium_data)
                     )
-                
-            # generate basic medium XML
-            medium_xml = ET.Element('medium')
-            ET.SubElement(medium_xml, 'name').text="basic"
-            ET.SubElement(medium_xml, 'uid').text=str(len(medium)+10) # it seems indigo medium uid starts at 10...
-            ET.SubElement(medium_xml, 'precedence').text="10"
-            basic = ET.SubElement(medium_xml, 'basic')
-            ET.SubElement(basic, 'ior').text="1.5"
-            ET.SubElement(basic, 'cauchy_b_coeff').text="0"
-            ET.SubElement(basic, 'max_extinction_coeff').text="1"
-            absorbtion_coefficient= ET.SubElement(basic, 'absorption_coefficient')
-            constant = ET.SubElement(absorbtion_coefficient, 'constant')
-            uniform=ET.SubElement(constant, 'uniform')
-            ET.SubElement(uniform,'value').text="0"
-            
-            self.scene_xml.append(medium_xml)
-            
+
+            basic_medium = ET.fromstring("""
+                                <medium>
+                                   <uid>"""+str(len(medium)+10)+"""</uid>
+		                             <name>Basic medium</name>
+			                           <precedence>10</precedence>
+			                             <basic>
+				                           <ior>1.5</ior>
+				                           <cauchy_b_coeff>0</cauchy_b_coeff>
+				                           <max_extinction_coeff>1</max_extinction_coeff>
+				                           <absorption_coefficient>
+					                         <constant>
+						                      <uniform>
+							                   <value>0</value>
+						                      </uniform>
+					                         </constant>
+				                           </absorption_coefficient>
+			                             </basic>
+	                            </medium>   
+                         """) 
+            self.scene_xml.append(basic_medium)
 
             #------------------------------------------------------------------------------
             # Export used materials.
