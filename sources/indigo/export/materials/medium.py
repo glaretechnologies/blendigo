@@ -44,24 +44,28 @@ class medium_xml(xml_builder):
         medium_data = self.medium_data.medium_type
         
         fmt = {
-            'name': [self.medium_name + '_medium'],
-            'uid': [self.medium_index + 10000 ],
-            'precedence': [self.medium_data.precedence],
+            'name': [self.medium_name + '_medium']}
+        if self.medium_index != -1:
+                fmt.update( {'uid': [self.medium_index + 10 ],})  # indigo uid starts at 10
+        fmt.update( {'precedence': [self.medium_data.precedence],
             self.medium_data.medium_type: {}
-        }
+        })
         
         if self.medium_data.medium_type == 'basic':
             fmt[self.medium_data.medium_type] = {
                 'ior': [self.medium_data.medium_ior],
-                'cauchy_b_coeff': [self.medium_data.medium_cauchy_b]
+                'cauchy_b_coeff': [self.medium_data.medium_cauchy_b],
+                'max_extinction_coeff': [self.medium_data.max_extinction_coeff]
             }
             if self.medium_data.medium_type_SP_type == 'rgb':
-                fmt[self.medium_data.medium_type]['absorption_coefficient_spectrum'] = rgb([(1.0-i)*self.medium_data.medium_type_SP_rgb_gain for i in self.medium_data.medium_type_SP_rgb])
+                SP = rgb([(1.0-i)*self.medium_data.medium_type_SP_rgb_gain for i in self.medium_data.medium_type_SP_rgb])
             elif self.medium_data.medium_type_SP_type == 'uniform':
-                fmt[self.medium_data.medium_type]['absorption_coefficient_spectrum'] = uniform([
+                SP = uniform([
                     self.medium_data.medium_type_SP_uniform_val * \
                     10**self.medium_data.medium_type_SP_uniform_exp
                 ])
+            
+            fmt[self.medium_data.medium_type]['absorption_coefficient'] = { 'constant': SP }
             
             if self.medium_data.sss:
                  if self.medium_data.sss_scatter_SP_type == 'rgb':
@@ -100,11 +104,6 @@ class medium_xml(xml_builder):
             fmt[self.medium_data.medium_type] = {
                 'melanin_fraction': [self.medium_data.medium_melanin],
                 'melanin_type_blend': [self.medium_data.medium_eumelanin],
-            }
-        elif self.medium_data.medium_type == 'atmosphere':
-            fmt[self.medium_data.medium_type] = {
-                'turbidity': [self.medium_data.medium_turbidity],
-                'center': [ str(self.medium_data.medium_posx) + ' ' + str(self.medium_data.medium_posy) + ' ' + str(self.medium_data.medium_posz)],
             }
         return fmt
 

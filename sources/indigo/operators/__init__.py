@@ -475,32 +475,26 @@ class _Impl_OT_indigo(_Impl_operator):
             # Export Medium
             from indigo.export.materials.medium import medium_xml
             # TODO:
-            # check if medium is currently used by any material and add 
-            # basic medium for SpecularMaterial default
+            # check if medium is currently used by any material 
 
             for ex_scene in export_scenes:
                 if ex_scene is None: continue
                 
-                indigo_material_medium = ex_scene.indigo_material_medium
-                medium = indigo_material_medium.medium
+                medium = ex_scene.indigo_material_medium.medium
                 
-                if len(indigo_material_medium.medium.items()) == 0 : continue
+                if len(medium.items()) < 0 : continue
                 
-                for medium_name, medium_data in medium.items():
-                    
-                    medium_index = ex_scene.indigo_material_medium.medium.find(medium_name) # more precise if same name
-                    
+                for medium_index, medium_data in enumerate(medium):
+                    medium_name = medium_data.name
                     indigo_log('Exporting medium: %s ' % (medium_name))
                     self.scene_xml.append(
                         medium_xml(ex_scene, medium_name, medium_index, medium_data).build_xml_element(ex_scene, medium_name, medium_data)
                     )
-                indigo_log('Exporting Medium: %s ' % (medium_name))         
-                # TODO: 
-                # check for unused medium	
+
             basic_medium = ET.fromstring("""
                                 <medium>
-                                   <uid>10200137</uid>
-		                             <name>basic</name>
+                                   <uid>"""+str(len(medium)+10)+"""</uid>
+		                             <name>Basic medium</name>
 			                           <precedence>10</precedence>
 			                             <basic>
 				                           <ior>1.5</ior>
@@ -515,10 +509,9 @@ class _Impl_OT_indigo(_Impl_operator):
 				                           </absorption_coefficient>
 			                             </basic>
 	                            </medium>   
-                         """)
-            
+                         """) 
             self.scene_xml.append(basic_medium)
-            
+
             #------------------------------------------------------------------------------
             # Export used materials.
             if self.verbose: indigo_log('Exporting used materials')
