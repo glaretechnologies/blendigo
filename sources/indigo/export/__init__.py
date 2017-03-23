@@ -206,6 +206,7 @@ class SceneIterator(object):
                 else:
                     export_original_object = True
                 
+                
                 if number_psystems > 0:
                     export_original_object = False
                     if OBJECT_ANALYSIS: indigo_log(' -> has %i particle systems' % number_psystems)
