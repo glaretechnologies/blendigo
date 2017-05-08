@@ -1,8 +1,33 @@
+import os, subprocess, sys, time
+
+# Sign the windows installer with the Glare tech code signing key
+def signProgram(app_name, exe_path):
+	
+	max_retries = 3
+	
+	# v7.0A does not come with vs 2008
+	#signtool_path = 'C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A/Bin/signtool.exe'
+	signtool_path = "C:/Program Files (x86)/Microsoft SDKs/Windows/v7.1A/Bin/signtool.exe"
+	#signtool_path = 'C:/Program Files/Microsoft SDKs/Windows/v6.0A/Bin/signtool.exe'
+	command = "\"" + signtool_path + "\" sign /f " + os.environ['INDIGO_TRUNK_DIR'] + "/code_signing/Glare-Technologies-Limited-Glare.p12 /p " + os.environ['GLARE_CODE_SIGNING_PASSWORD'] + " /d \"" + app_name + "\" /du http://www.indigorenderer.com /t http://tsa.starfieldtech.com \"" + exe_path + "\""
+
+	num_retries = 0
+	while(num_retries < max_retries):
+		print(command)
+		if(subprocess.call(command) == 0):
+			break
+
+		num_retries += 1
+		time.sleep(1.0)
+
+	if(num_retries >= max_retries):
+		print("Signing failed after some attempts, giving up")
+		exit(1) # Fail
+
+
 if __name__ == '__main__':
 	
 	try:
-		import os, subprocess, sys
-		
 		if len(sys.argv) < 2:
 			raise Exception('Not enough args, need server upload username')
 		
@@ -34,11 +59,16 @@ if __name__ == '__main__':
 		# This controls where the installed indigo files go in the blender program files dir.
 		os.environ['BLENDER_VERSION'] = str(bl_info['blender'][0]) + "." + str(bl_info['blender'][1]) + str(bl_info['blender'][2])
 		INSTALLER_NAME = "blendigo-%s-installer.exe" % TAG
+
+		print("Making Windows installer ./installer_windows/" + INSTALLER_NAME + "...");
+
 		os.chdir('./installer_windows')
 		subprocess.call("makensis /V2 blendigo-25.nsi")
 		os.chdir(cwd)
 		del os.environ['BLENDIGO_VERSION']
 		del os.environ['BLENDER_VERSION']
+
+		signProgram("Blendigo " + TAG, './installer_windows/' + INSTALLER_NAME)
 		
 		if os.path.exists(ZIP_NAME):
 			server = "downloads.indigorenderer.com"
