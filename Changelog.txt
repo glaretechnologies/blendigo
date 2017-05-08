@@ -1,3 +1,7 @@
+3.8.25.1
+--------
+* Fixed instancing (thanks to Marcin for his contribution!)
+
 3.8.25.0
 --------
 * changed blendigo installer to install to appdata directory.
