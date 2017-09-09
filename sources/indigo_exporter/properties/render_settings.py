@@ -529,9 +529,15 @@ def get_render_devices(refresh=False):
     global device_list_updated
     if refresh:
         import subprocess, os
-        indi_path = os.path.join(find_indigo(), "indigo_console.exe")
-        out = subprocess.run([indi_path, '--gpu_info'], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-                
+        from .. core.util import getConsolePath
+        
+        indigo_path = getConsolePath()
+        if not os.path.exists(indigo_path):
+            print('Wrong Indigo path')
+            return device_list
+        
+        out = subprocess.run([indigo_path, '--gpu_info'], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        
         device_list = []
         
         platforms = out.stdout.decode('utf-8', 'replace')
@@ -574,16 +580,6 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
     get_render_devices(True)
     
     def refresh_device_collection(self):
-        '''
-        self.render_devices.clear()
-        device_list.append(['', '', 0])
-        device_list.append(['', '', 0])
-        device_list.append(['', '', 0])
-        self.render_devices.add()
-        self.render_devices.add()
-        self.render_devices.add().platform='test'
-        '''
-        
         devices = device_list[:]
         # remove obsolete entries
         k = 0

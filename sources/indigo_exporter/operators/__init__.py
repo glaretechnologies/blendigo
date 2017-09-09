@@ -552,9 +552,10 @@ class _Impl_OT_indigo(_Impl_operator):
             xml_str = xml_str.replace('{_LESSTHAN_}', '<')
             xml_str = xml_str.replace('{_GREATERTHAN_}', '>')
             
-            print(xml_str)
-            with open('D:\\xml_output.txt', 'w') as f:
-                f.write(xml_str)
+            # debug
+            #print(xml_str)
+            #with open('D:\\xml_output.txt', 'w') as f:
+            #    f.write(xml_str)
             
             xml_dom = MD.parseString(xml_str)
             xml_dom.writexml(out_file, addindent='\t', newl='\n', encoding='utf-8')
