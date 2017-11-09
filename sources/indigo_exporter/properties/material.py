@@ -1134,7 +1134,7 @@ def find_nkdata(self, context):
             return NK_CACHE[nk_path]
         
         nks = os.listdir(nk_path)
-        nks = [('nkdata/' + nk, nk[:-3], nk[:-3]) for nk in nks if nk[0] != '.']
+        nks = [('nkdata/' + nk, nk[:-3], nk[:-3]) for nk in nks if nk[0] != '.' and nk not in ('7059.nk')] # 7059.nk not supported in Indigo
         NK_CACHE[nk_path] = nks
         return nks
     except:

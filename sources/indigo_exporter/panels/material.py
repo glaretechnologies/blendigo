@@ -129,7 +129,12 @@ class indigo_ui_material_phong(material_subpanel, bpy.types.Panel):
         col.prop(indigo_material_phong, 'roughness')
         col.prop(indigo_material_phong, 'fresnel_scale')
         col.prop(indigo_material_phong, 'nk_data_type')
-        col.prop(indigo_material_phong, 'ior')
+        if indigo_material_phong.nk_data_type == 'preset':
+            col.prop(indigo_material_phong, 'nk_data_preset')
+        elif indigo_material_phong.nk_data_type == 'file':
+            col.prop(indigo_material_phong, 'nk_data_file')
+        elif indigo_material_phong.nk_data_type == 'none':
+            col.prop(indigo_material_phong, 'ior')
         
 class indigo_ui_material_coating(material_subpanel, bpy.types.Panel):
     bl_label = 'Material Coating Settings'
