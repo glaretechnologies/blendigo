@@ -48,52 +48,59 @@ def set_render_mode(self, context):
     if self.render_mode == 'bidir':
         self.bidir = True
         self.metro = False
-        self.alpha_mask = False
+        self.foreground_alpha = False
         self.material_id = False
         self.gpu = False
         self.shadow = False
+        self.depth_pass = False
     if self.render_mode == 'bidir_mlt':
         self.bidir = True
         self.metro = True
-        self.alpha_mask = False
+        self.foreground_alpha = False
         self.material_id = False
         self.gpu = False
         self.shadow = False
+        self.depth_pass = False
     if self.render_mode == 'path_cpu':
         self.bidir = False
         self.metro = False
-        self.alpha_mask = False
+        self.foreground_alpha = False
         self.material_id = False
         self.gpu = False
         self.shadow = False
+        self.depth_pass = False
     if self.render_mode == 'path_gpu':
         self.bidir = False
         self.metro = False
-        self.alpha_mask = False
+        self.foreground_alpha = False
         self.material_id = False
         self.gpu = True
         self.shadow = False
-    if self.render_mode == 'alpha':
-        self.bidir = False
-        self.metro = False
-        self.alpha_mask = True
-        self.material_id = False
-        self.gpu = False
-        self.shadow = False
+        self.depth_pass = False
     if self.render_mode == 'material_id':
         self.bidir = False
         self.metro = False
-        self.alpha_mask = False
+        self.foreground_alpha = False
         self.material_id = True
         self.gpu = False
         self.shadow = False
+        self.depth_pass = False
     if self.render_mode == 'shadow':
         self.bidir = False
         self.metro = False
-        self.alpha_mask = False
+        self.foreground_alpha = False
         self.material_id = False
         self.gpu = False
         self.shadow = True
+        self.depth_pass = False
+    if self.render_mode == 'depth':
+        self.bidir = False
+        self.metro = False
+        self.foreground_alpha = False
+        self.material_id = False
+        self.gpu = False
+        self.shadow = False
+        self.depth_pass = True
 
 def set_filter_preset(self, context):
     if self.filter_preset == 'default':
@@ -184,8 +191,8 @@ properties = [
             ('bidir_mlt', 'BiDir MLT (CPU)', 'Bidirectional Path Tracing with Metropolis Light Transport on the CPU'),
             ('path_cpu', 'Path (CPU)', 'Path Tracing on the CPU'),
             ('path_gpu', 'Path (GPU)', 'GPU accelerated Path Tracing'),
-            ('alpha', 'Alpha Mask', 'Render an alpha mask for compositing'),
             ('material_id', 'Material ID', 'Render materials as unique flat colours for compositing'),
+            ('depth', 'Depth', 'A greyscale image corresponding to camera depth values is generated, used for post-processing'),
             ('shadow', 'Shadow Pass', 'Render shadow pass for compositing'),
             ('custom', 'Custom', 'Choose your own settings')
         ],
@@ -201,10 +208,18 @@ properties = [
         'default': False
     },
     {
+        # legacy
         'type': 'bool',
         'attr': 'alpha_mask',
         'name': 'Alpha Mask',
         'description': 'Enable Alpha Mask Rendering',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'depth_pass',
+        'name': 'Depth',
+        'description': 'Enable Depth Image Rendering',
         'default': False,
     },
     {
@@ -291,23 +306,41 @@ properties = [
     {
         'type': 'bool',
         'attr': 'save_exr_utm',
-        'name': 'Save Raw EXR',
+        'name': 'Un-tonemapped EXR',
         'description': 'Save Raw (un-tonemapped) EXR format',
         'default': False
     },
     {
         'type': 'bool',
         'attr': 'save_exr_tm',
-        'name': 'Save EXR',
+        'name': 'Tonemapped EXR',
         'description': 'Save (tonemapped) EXR format',
         'default': False
     },
     {
         'type': 'bool',
         'attr': 'save_igi',
-        'name': 'Save IGI',
+        'name': 'Indigo Image',
         'description': 'Save native IGI format',
         'default': False
+    },
+    {
+        'type': 'bool',
+        'attr': 'clamp_contributions',
+        'name': 'Clamping',
+        'description': 'Enable contribution clamping',
+        'default': False
+    },
+    {
+        'type': 'int',
+        'attr': 'max_contribution',
+        'name': 'Max Contrib',
+        'description': 'Max contribution brightness, lower this as a last resort to suppress fireflies',
+        'default': 10,
+        'min': 1,
+        'soft_min': 1,
+        'max': 64,
+        'soft_max': 64
     },
     {
         'type': 'int',
@@ -648,7 +681,11 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
                 'aperture_diffraction': [str(scene.camera.data.indigo_camera.ad).lower()],
                 'vignetting': [str(scene.camera.data.indigo_camera.vignetting).lower()],
                 'post_process_diffraction': [str(scene.camera.data.indigo_camera.ad_post).lower()],
-                'render_foreground_alpha': 'alpha_mask',
+                'render_foreground_alpha': 'foreground_alpha',
+                'depth_pass': 'depth_pass',
+                'max_contribution': 'max_contribution',
+                'clamp_contributions': 'clamp_contributions',
+                
                 'material_id_tracer': 'material_id',
                 'shadow_pass': 'shadow',
 
@@ -660,9 +697,6 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
         xml_format['renderer_settings']['auto_choose_num_threads'] = 'threads_auto'
         if not self.threads_auto:
             xml_format['renderer_settings']['num_threads'] = 'threads'
-
-        if self.foreground_alpha:
-            xml_format['renderer_settings']['render_foreground_alpha'] = ['true']
 
         # Make splat filter element
         if self.splat_filter in ['box', 'gaussian', 'fastbox']:

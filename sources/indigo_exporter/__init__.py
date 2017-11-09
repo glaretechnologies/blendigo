@@ -22,7 +22,7 @@ bl_info = {
     "name": "Indigo Exporter 2",
     "description": "",
     "author": "Your Name",
-    "version": (0, 0, 2),
+    "version": (0, 0, 3),
     "blender": (2, 78, 0),
     "location": "View3D",
     "warning": "This addon is still in development.",

@@ -25,16 +25,25 @@ class IndigoRenderEngineSettings(bpy.types.Panel):
             row = sub.row()
             
             sc = row.column()
-            sc.prop(indigo_engine, 'alpha_mask')
-            sc.prop(indigo_engine, 'material_id')
+            sc.prop(indigo_engine, 'gpu')
+            sc.prop(indigo_engine, 'bidir')
             sc.prop(indigo_engine, 'metro')
             
             sc = row.column()
-            sc.prop(indigo_engine, 'bidir')
-            sc.prop(indigo_engine, 'gpu')
+            sc.prop(indigo_engine, 'foreground_alpha')
+            sc.prop(indigo_engine, 'material_id')
             sc.prop(indigo_engine, 'shadow')
             
-            col.separator()
+        col.separator()
+        
+        #### TODO clamping, max contrib
+        box = col.box()
+        row = box.row()
+        row.prop(indigo_engine, 'clamp_contributions')
+        sub = row.row()
+        if not indigo_engine.clamp_contributions:
+            sub.active = False
+        sub.prop(indigo_engine, 'max_contribution')
         
         
         col.label("Filter Settings:")
@@ -152,11 +161,11 @@ class IndigoRenderExportSettings(bpy.types.Panel):
         
         sc = row.column()
         sc.prop(indigo_engine, 'save_exr_utm')
+        sc.prop(indigo_engine, 'save_exr_tm')
         sc.prop(indigo_engine, 'save_igi')
-        sc.prop(indigo_engine, 'ov_watermark')
         
         sc = row.column()
-        sc.prop(indigo_engine, 'save_exr_tm')
+        sc.prop(indigo_engine, 'ov_watermark')
         sc.prop(indigo_engine, 'ov_info')
         sc.prop(indigo_engine, 'logging')
         
