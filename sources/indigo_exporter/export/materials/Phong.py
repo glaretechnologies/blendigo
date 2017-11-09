@@ -22,14 +22,16 @@ class PhongMaterial(
             'backface_emit': [str(self.material_group.indigo_material_emission.backface_emit).lower()],
             element_name: {
                 'ior': [self.property_group.ior],
-                'exponent': {
-                    'constant': [self.property_group.exponent]
-                },
                 'fresnel_scale': {
                     'constant': [self.property_group.fresnel_scale]
                 },
             }
         }
+                
+        if self.property_group.use_roughness:
+            fmt[element_name]['roughness'] = {'constant': [self.property_group.roughness]}
+        else:
+            fmt[element_name]['exponent'] = {'constant': [self.property_group.exponent]}
         
         fmt[element_name].update(self.get_channels())
         

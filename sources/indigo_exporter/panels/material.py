@@ -126,7 +126,7 @@ class indigo_ui_material_phong(material_subpanel, bpy.types.Panel):
         indigo_material_phong = indigo_material.indigo_material_phong
          
         col.prop(indigo_material_phong, 'specular_reflectivity')
-        col.prop(indigo_material_phong, 'exponent')
+        col.prop(indigo_material_phong, 'roughness')
         col.prop(indigo_material_phong, 'fresnel_scale')
         col.prop(indigo_material_phong, 'nk_data_type')
         col.prop(indigo_material_phong, 'ior')

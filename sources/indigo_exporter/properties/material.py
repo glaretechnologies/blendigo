@@ -928,8 +928,6 @@ def getRoughness(self):
         return self.roughness_value
     else:
         roughness = (2/(self.exponent + 2))**(1/6)
-        #self.roughness_value = roughness
-        #self.use_roughness = True
         return roughness
     
 def setRoughness(self, value):
@@ -1141,7 +1139,7 @@ def find_nkdata(self, context):
         return nks
     except:
         return []
-    
+
 @register_properties_dict
 class indigo_material_phong(indigo_material_feature):
     
@@ -1206,6 +1204,34 @@ class indigo_material_phong(indigo_material_feature):
             'default': 1000.0,
             'min': 0.0,
             'max': 1000000.0
+        },
+        {
+            # this acts as exponent-roughness bridge
+            'type': 'float',
+            'attr': 'roughness',
+            'name': 'Roughness',
+            'description': 'Roughness',
+            'default': 0.5,
+            'min': 0.0,
+            'max': 1.0,
+            'get': getRoughness,
+            'set': setRoughness,
+        },
+        {
+            'type': 'float',
+            'attr': 'roughness_value',
+            'name': 'Roughness',
+            'description': 'Roughness',
+            'default': 0.5,
+            'min': 0.0,
+            'max': 1.0,
+        },
+        {
+            'type': 'bool',
+            'attr': 'use_roughness',
+            'name': 'Use Roughness',
+            'description': 'Use Roughness',
+            'default': False,
         },
         {
             'type': 'float',

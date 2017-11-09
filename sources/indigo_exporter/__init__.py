@@ -1,8 +1,5 @@
 '''
-Copyright (C) 2017 YOUR NAME
-YOUR@MAIL.com
-
-Created by YOUR NAME
+Created by Marcin Zielinski, Doug Hammond, Thomas Ludwig, Nicholas Chapman, Yves Colle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,11 +16,11 @@ Created by YOUR NAME
 '''
 
 bl_info = {
-    "name": "Indigo Exporter 2",
-    "description": "",
-    "author": "Your Name",
-    "version": (0, 0, 3),
-    "blender": (2, 78, 0),
+    "name": "Blendigo - Indigo Exporter",
+    "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
+    "author": "Glare Technologies Ltd.",
+    "version": (4, 0, 3),
+    "blender": (2, 79, 0),
     "location": "View3D",
     "warning": "This addon is still in development.",
     "wiki_url": "",
