@@ -87,7 +87,7 @@ properties = [
         'soft_min': 0.001,
         'max': 8000,
         'soft_max': 8000,
-        #'compute': lambda c, self: 1 / self.exposure
+        'compute': lambda c, self: 1 / self.exposure
     },
     {
         'type': 'float',
