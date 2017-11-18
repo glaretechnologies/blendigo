@@ -40,7 +40,8 @@ PROPERTY_GROUP_USAGE = {
     'bumpmap': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
     'normalmap': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
     'displacement': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
-    'exponent': {'phong', 'specular'},
+    'exponent': {'phong', 'specular'}, #legacy
+    'roughness': {'phong', 'specular'},
     'blendmap': {'blended'},
     'emission': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
     'fresnel_scale': {'phong'},
@@ -669,11 +670,10 @@ class MaterialChannel(object):
         return d
 
 
-class indigo_material_feature(bpy.types.PropertyGroup):
+class indigo_material_feature(bpy.types.PropertyGroup):#just a label for now
     pass
 
 Cha_Emit = MaterialChannel('emission', spectrum=True,  texture=True, shader=False, switch=True, label='Emission', spectrum_types={'rgb':True,'blackbody':True,'uniform':True})
-
 def EmissionLightLayerParameter():
     return [
         {
@@ -692,7 +692,6 @@ def EmissionLightLayerParameter():
             'name': 'Light Layer'
         },
     ]
-    
 @register_properties_dict
 class indigo_material_emission(indigo_material_feature):
     enabled = Cha_Emit.enabled
@@ -795,7 +794,6 @@ class indigo_material_emission(indigo_material_feature):
         return []
     
 Cha_Colour = MaterialChannel('colour', spectrum=True, texture=True, shader=True, switch=False, master_colour=True)
-
 @register_properties_dict
 class indigo_material_colour(indigo_material_feature):
     controls    = Cha_Colour.controls
@@ -807,7 +805,6 @@ class indigo_material_colour(indigo_material_feature):
         return []
     
 Cha_Bump = MaterialChannel('bumpmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Bump Map')
-
 @register_properties_dict
 class indigo_material_bumpmap(indigo_material_feature):
     
@@ -820,7 +817,6 @@ class indigo_material_bumpmap(indigo_material_feature):
         return []
     
 Cha_Normal = MaterialChannel('normalmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Normal Map')
-
 @register_properties_dict
 class indigo_material_normalmap(indigo_material_feature):
     
@@ -833,7 +829,6 @@ class indigo_material_normalmap(indigo_material_feature):
         return []
     
 Cha_Disp = MaterialChannel('displacement', spectrum=False, texture=True,  shader=True,  switch=True, label='Displacement Map')
-
 @register_properties_dict
 class indigo_material_displacement(indigo_material_feature):
     
@@ -844,9 +839,9 @@ class indigo_material_displacement(indigo_material_feature):
     
     def get_output(self, obj, indigo_material, blender_material, scene):
         return []
-    
-Cha_Exp = MaterialChannel('exponent', spectrum=False, texture=True,  shader=True,  switch=True, label='Exponent Map')
 
+#legacy    
+Cha_Exp = MaterialChannel('exponent', spectrum=False, texture=True,  shader=True,  switch=True, label='Exponent Map')
 @register_properties_dict
 class indigo_material_exponent(indigo_material_feature):
     
@@ -857,9 +852,20 @@ class indigo_material_exponent(indigo_material_feature):
     
     def get_output(self, obj, indigo_material, blender_material, scene):
         return []
+#new
+Cha_Rough = MaterialChannel('roughness', spectrum=False, texture=True,  shader=True,  switch=True, label='Roughness Map')
+@register_properties_dict
+class indigo_material_roughness(indigo_material_feature):
+    
+    #controls    = Cha_Rough.controls
+    #visibility    = Cha_Rough.visibility
+    enabled        = Cha_Rough.enabled
+    properties    = Cha_Rough.properties
+    
+    def get_output(self, obj, indigo_material, blender_material, scene):
+        return []
         
 Cha_Fres = MaterialChannel('fresnel_scale', spectrum=False, texture=True,  shader=True,  switch=True, label='Fresnel Scale Map')
-
 @register_properties_dict
 class indigo_material_fresnel_scale(indigo_material_feature):
     
@@ -872,7 +878,6 @@ class indigo_material_fresnel_scale(indigo_material_feature):
         return []
 
 Cha_BlendMap  = MaterialChannel('blendmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Blend Map')
-
 @register_properties_dict
 class indigo_material_blendmap(indigo_material_feature):
     
@@ -885,7 +890,6 @@ class indigo_material_blendmap(indigo_material_feature):
         return []
         
 Cha_Transmittance  = MaterialChannel('transmittance', spectrum=True, texture=True,  shader=True,  switch=False, spectrum_types={'rgb':True, 'uniform':True, 'rgb_default':(0.5,0.5,0.5)}, label='Transmittance')
-
 @register_properties_dict
 class indigo_material_transmittance(indigo_material_feature):
     
@@ -898,7 +902,6 @@ class indigo_material_transmittance(indigo_material_feature):
         return []
         
 Cha_Absorption  = MaterialChannel('absorption', spectrum=True, texture=True,  shader=True,  switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True, 'rgb_default':(0.0,0.0,0.0)}, label='Absorption')
-
 @register_properties_dict
 class indigo_material_absorption(indigo_material_feature):
     
@@ -911,7 +914,6 @@ class indigo_material_absorption(indigo_material_feature):
         return []
 
 Cha_AbsorptionLayer  = MaterialChannel('absorption_layer', spectrum=True, texture=True,  shader=True,  switch=True, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True, 'blackbody': True, 'rgb_default':(0.0,0.0,0.0)}, label='Absorption Layer')
-
 @register_properties_dict
 class indigo_material_absorption_layer(indigo_material_feature):
     
@@ -1830,7 +1832,8 @@ class Indigo_Material_Properties(bpy.types.PropertyGroup):
     indigo_material_bumpmap = bpy.props.PointerProperty(type = indigo_material_bumpmap)
     indigo_material_normalmap = bpy.props.PointerProperty(type = indigo_material_normalmap)
     indigo_material_displacement = bpy.props.PointerProperty(type = indigo_material_displacement)
-    indigo_material_exponent = bpy.props.PointerProperty(type = indigo_material_exponent)
+    indigo_material_exponent = bpy.props.PointerProperty(type = indigo_material_exponent) #legacy
+    indigo_material_roughness = bpy.props.PointerProperty(type = indigo_material_roughness) #new
     indigo_material_fresnel_scale = bpy.props.PointerProperty(type = indigo_material_fresnel_scale)
     indigo_material_blendmap = bpy.props.PointerProperty(type = indigo_material_blendmap)
     indigo_material_transmittance = bpy.props.PointerProperty(type = indigo_material_transmittance)

@@ -41,7 +41,8 @@ class MaterialBase(xml_builder):
         op.update(self.BumpChannel())
         op.update(self.NormalChannel())
         op.update(self.DisplacementChannel())
-        op.update(self.ExponentChannel())
+        op.update(self.ExponentChannel()) # to delete?
+        op.update(self.RoughnessChannel())
         op.update(self.BlendChannel())
         op.update(self.TransmittanceChannel())
         op.update(self.AbsorptionChannel())
@@ -179,7 +180,9 @@ class MaterialBase(xml_builder):
         return {}
     def DisplacementChannel(self):
         return {}
-    def ExponentChannel(self):
+    def ExponentChannel(self):# to delete?
+        return {}# to delete?
+    def RoughnessChannel(self):
         return {}
     def BlendChannel(self):
         return {}
@@ -243,12 +246,20 @@ class DisplacementChannelMaterial(object):
         else:
             return {}
 
-class ExponentChannelMaterial(object):
+class ExponentChannelMaterial(object): # to delete?
     #['phong', 'specular::glossy_transparent']
     def ExponentChannel(self):
         if (self.material_group.indigo_material_exponent.exponent_enabled and self.material_group.type == 'phong') or \
            (self.material_group.indigo_material_exponent.exponent_enabled and self.material_group.type == 'specular' and self.material_group.indigo_material_specular.type == 'glossy_transparent'):
             return self.get_channel(self.material_group.indigo_material_exponent, 'exponent', 'exponent')
+        else:
+            return {}
+class RoughnessChannelMaterial(object):
+    #['phong', 'specular::glossy_transparent']
+    def RoughnessChannel(self):
+        if (self.material_group.indigo_material_roughness.roughness_enabled and self.material_group.type == 'phong') or \
+           (self.material_group.indigo_material_roughness.roughness_enabled and self.material_group.type == 'specular' and self.material_group.indigo_material_specular.type == 'glossy_transparent'):
+            return self.get_channel(self.material_group.indigo_material_roughness, 'roughness', 'roughness')
         else:
             return {}
 

@@ -1,7 +1,7 @@
 import bpy
 
 from .. import xml_builder
-from .. materials.Base        import EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, AbsorptionLayerChannelMaterial, MaterialBase
+from .. materials.Base        import EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, RoughnessChannelMaterial, AbsorptionLayerChannelMaterial, MaterialBase
 from .. materials.spectra    import rgb, uniform
 
 
@@ -12,7 +12,8 @@ class SpecularMaterial(
     BumpChannelMaterial,
     NormalChannelMaterial,
     DisplacementChannelMaterial,
-    ExponentChannelMaterial,
+    #ExponentChannelMaterial, # to delete?
+    RoughnessChannelMaterial,
     
     # MaterialBase needs to be last in this list
     MaterialBase

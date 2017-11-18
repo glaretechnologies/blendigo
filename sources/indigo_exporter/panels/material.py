@@ -532,7 +532,9 @@ class indigo_ui_material_displacement(material_subpanel, bpy.types.Panel):
                 row.prop(indigo_material_displacement, 'displacement_TX_smooth')
             elif indigo_material_displacement.displacement_type == 'shader':
                 col.prop(indigo_material_displacement, 'displacement_SH_text', text="Shader Text")
-                
+
+#legacy
+'''
 class indigo_ui_material_exponent(material_subpanel, bpy.types.Panel):
     bl_label = 'Material Exponent Map'
     
@@ -575,6 +577,51 @@ class indigo_ui_material_exponent(material_subpanel, bpy.types.Panel):
                 row.prop(indigo_material_exponent, 'exponent_TX_smooth')
             elif indigo_material_exponent.exponent_type == 'shader':
                 col.prop(indigo_material_exponent, 'exponent_SH_text', text="Shader Text")
+'''
+# new
+class indigo_ui_material_roughness(material_subpanel, bpy.types.Panel):
+    bl_label = 'Material Roughness Map'
+    
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and context.object.active_material.indigo_material.type in PROPERTY_GROUP_USAGE['roughness'] \
+            and (False if hasattr(context.object.active_material.indigo_material, 'indigo_material_specular') and context.object.active_material.indigo_material.indigo_material_specular.type != 'glossy_transparent' else True)
+
+    def draw_header(self, context):
+        self.layout.prop(context.object.active_material.indigo_material.indigo_material_roughness, "roughness_enabled", text="")
+    
+    def draw(self, context):
+        indigo_material = context.object.active_material.indigo_material
+        indigo_material_roughness = indigo_material.indigo_material_roughness
+        
+        layout = self.layout
+        if indigo_material_roughness.roughness_enabled:
+            col = self.layout.column()
+            col.prop(indigo_material_roughness, 'roughness_type')
+            if indigo_material_roughness.roughness_type == 'texture':
+                col = self.layout.column()
+                col.prop_search(indigo_material_roughness, 'roughness_TX_texture', context.object.active_material, 'texture_slots')
+                
+                col = self.layout.column()
+                col.prop(indigo_material_roughness, 'roughness_TX_A')
+                col.enabled = indigo_material_roughness.roughness_TX_abc_from_tex == False
+
+                col = self.layout.column()
+                col.prop(indigo_material_roughness, 'roughness_TX_B')
+                col.enabled = indigo_material_roughness.roughness_TX_abc_from_tex == False
+
+                col = self.layout.column()
+                col.prop(indigo_material_roughness, 'roughness_TX_C')
+                col.enabled = indigo_material_roughness.roughness_TX_abc_from_tex == False
+
+                col = self.layout.column()
+                col.prop_search(indigo_material_roughness, 'roughness_TX_uvset', context.object.data, 'uv_textures')
+
+                row = self.layout.row()
+                row.prop(indigo_material_roughness, 'roughness_TX_abc_from_tex')
+                row.prop(indigo_material_roughness, 'roughness_TX_smooth')
+            elif indigo_material_roughness.roughness_type == 'shader':
+                col.prop(indigo_material_roughness, 'roughness_SH_text', text="Shader Text")
                 
 class indigo_ui_material_fresnel_scale(material_subpanel, bpy.types.Panel):
     bl_label = 'Material Fresnel Scale Map'

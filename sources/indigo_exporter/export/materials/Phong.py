@@ -1,6 +1,6 @@
 from extensions_framework import util as efutil
 
-from .. materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, FresnelScaleChannelMaterial, MaterialBase
+from .. materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, ExponentChannelMaterial, RoughnessChannelMaterial, FresnelScaleChannelMaterial, MaterialBase
 
 class PhongMaterial(
     AlbedoChannelMaterial,
@@ -8,7 +8,8 @@ class PhongMaterial(
     BumpChannelMaterial,
     NormalChannelMaterial,
     DisplacementChannelMaterial,
-    ExponentChannelMaterial,
+    #ExponentChannelMaterial, # to delete?
+    RoughnessChannelMaterial,
     FresnelScaleChannelMaterial,
     
     # MaterialBase needs to be last in this list
