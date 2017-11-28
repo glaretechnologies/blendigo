@@ -255,9 +255,9 @@ class ExponentChannelMaterial(object): # to delete?
         else:
             return {}
 class RoughnessChannelMaterial(object):
-    #['phong', 'specular::glossy_transparent']
+    #['phong', 'specular::glossy_transparent', 'fastsss']
     def RoughnessChannel(self):
-        if (self.material_group.indigo_material_roughness.roughness_enabled and self.material_group.type == 'phong') or \
+        if (self.material_group.indigo_material_roughness.roughness_enabled and self.material_group.type in ['phong', 'fastsss']) or \
            (self.material_group.indigo_material_roughness.roughness_enabled and self.material_group.type == 'specular' and self.material_group.indigo_material_specular.type == 'glossy_transparent'):
             return self.get_channel(self.material_group.indigo_material_roughness, 'roughness', 'roughness')
         else:

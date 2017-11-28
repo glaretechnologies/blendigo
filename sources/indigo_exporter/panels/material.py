@@ -111,7 +111,25 @@ class indigo_ui_material_specular(material_subpanel, bpy.types.Panel):
         
         col.prop_search(indigo_material_specular, 'medium_chooser', context.scene.indigo_material_medium, 'medium')
         
+class indigo_ui_material_fastsss(material_subpanel, bpy.types.Panel):
+    bl_label = 'Material Fast SSS Settings'
+    
+    @classmethod
+    def poll(cls, context):
+        return super().poll(context) and context.object.active_material.indigo_material.type in PROPERTY_GROUP_USAGE['fastsss']
+
+    def draw(self, context):
+        layout = self.layout
+        col = self.layout.column()
+        indigo_material = context.object.active_material.indigo_material
+        indigo_material_fastsss = indigo_material.indigo_material_fastsss
+         
+        row = col.row()
         
+        col.prop_search(indigo_material_fastsss, 'medium_chooser', context.scene.indigo_material_medium, 'medium')
+        col.prop(indigo_material_fastsss, 'roughness')
+        col.prop(indigo_material_fastsss, 'fresnel_scale')
+                
 class indigo_ui_material_phong(material_subpanel, bpy.types.Panel):
     bl_label = 'Material Phong Settings'
     
@@ -584,8 +602,14 @@ class indigo_ui_material_roughness(material_subpanel, bpy.types.Panel):
     
     @classmethod
     def poll(cls, context):
-        return super().poll(context) and context.object.active_material.indigo_material.type in PROPERTY_GROUP_USAGE['roughness'] \
-            and (False if hasattr(context.object.active_material.indigo_material, 'indigo_material_specular') and context.object.active_material.indigo_material.indigo_material_specular.type != 'glossy_transparent' else True)
+        #return super().poll(context) and context.object.active_material.indigo_material.type in PROPERTY_GROUP_USAGE['roughness'] and (False if context.object.active_material.indigo_material.type == 'specular' and context.object.active_material.indigo_material.indigo_material_specular.type != 'glossy_transparent' else True)
+        if super().poll(context) and context.object.active_material.indigo_material.type in PROPERTY_GROUP_USAGE['roughness']:
+            if context.object.active_material.indigo_material.type == 'specular' and context.object.active_material.indigo_material.indigo_material_specular.type == 'specular':
+                return False
+            return True
+        return False
+            
+            
 
     def draw_header(self, context):
         self.layout.prop(context.object.active_material.indigo_material.indigo_material_roughness, "roughness_enabled", text="")
@@ -748,7 +772,7 @@ class indigo_ui_material_emission(material_subpanel, bpy.types.Panel):
                 col = self.layout.column()
                 col.prop_search(indigo_material_emission, 'emission_TX_uvset', context.object.data, 'uv_textures')
 
-                row = self.layout.row()
+                row = col.row()
                 row.prop(indigo_material_emission, 'emission_TX_abc_from_tex')
                 row.prop(indigo_material_emission, 'emission_TX_smooth')
             elif indigo_material_emission.emission_type == 'spectrum':
@@ -756,7 +780,7 @@ class indigo_ui_material_emission(material_subpanel, bpy.types.Panel):
                 if indigo_material_emission.emission_SP_type == 'rgb':
                     row = col.row()
                     row.prop(indigo_material_emission, 'emission_SP_rgb')
-                    col.prop(indigo_material_emission, 'emission_SP_rgb_gain')
+                    #col.prop(indigo_material_emission, 'emission_SP_rgb_gain')
                 elif indigo_material_emission.emission_SP_type == 'uniform':
                     row = col.row(align=True)
                     row.prop(indigo_material_emission, 'emission_SP_uniform_val')
@@ -765,9 +789,11 @@ class indigo_ui_material_emission(material_subpanel, bpy.types.Panel):
                     row = col.row(align=True)
                     row.prop(indigo_material_emission, 'emission_SP_blackbody_temp')
                     row.prop(indigo_material_emission, 'emission_SP_blackbody_gain')
-            
-            
             #
+            
+            col.separator()
+            col.prop_search(indigo_material_emission, 'emit_layer', context.scene.indigo_lightlayers, 'lightlayers')
+            
             col.separator()
             col.prop(indigo_material_emission, 'emission_scale')
             if indigo_material_emission.emission_scale:

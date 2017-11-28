@@ -19,13 +19,15 @@ from .. export.materials.Specular    import SpecularMaterial
 from .. export.materials.Blend        import BlendMaterial
 from .. export.materials.medium      import  medium_xml
 from .. export.materials.External    import ExternalMaterial
+from .. export.materials.Null    import NullMaterial
+from .. export.materials.FastSSS    import FastSSSMaterial
 from .. export import ( indigo_log )
 
 from .. import export
 from . import register_properties_dict
 
 PROPERTY_GROUP_USAGE = {
-    'colour': {'diffuse', 'phong'},
+    'colour': {'diffuse', 'phong', 'fastsss'},
     'specular': {'specular'},
     'phong': {'phong'},
     'coating': {'coating'},
@@ -37,14 +39,16 @@ PROPERTY_GROUP_USAGE = {
     'diffuse': {'diffuse'},
     'blended': {'blended'},
     'external': {'external'},
-    'bumpmap': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
-    'normalmap': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
-    'displacement': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
+    'bumpmap': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin', 'fastsss'},
+    'normalmap': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin', 'fastsss'},
+    'displacement': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin', 'fastsss'},
     'exponent': {'phong', 'specular'}, #legacy
-    'roughness': {'phong', 'specular'},
+    'roughness': {'phong', 'specular', 'fastsss'},
     'blendmap': {'blended'},
-    'emission': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin'},
-    'fresnel_scale': {'phong'},
+    'emission': {'diffuse', 'phong', 'specular', 'coating', 'doublesidedthin', 'null', 'fastsss'},
+    'fresnel_scale': {'phong', 'fastsss'},
+    'null': {'null'},
+    'fastsss': {'fastsss'},
 }
 
 def build_material_features(PGU):
@@ -1804,7 +1808,65 @@ class indigo_material_external(indigo_material_feature):
 
         except Exception as err:
             raise Exception(str(err))
-            
+
+@register_properties_dict
+class indigo_material_null(indigo_material_feature):
+    properties = []
+    
+    def get_output(self, obj, indigo_material, blender_material, scene):
+        im = NullMaterial(obj, blender_material.name, indigo_material, self).build_xml_element(
+            blender_material,
+            scene=scene
+        )
+        return [im]
+    
+@register_properties_dict
+class indigo_material_fastsss(indigo_material_feature):
+    channel_name = 'albedo'
+    
+    properties = [
+        {
+            'type': 'prop_search',
+            'attr': 'medium_chooser',
+            'src': lambda s,c:  s.scene.indigo_material_medium,
+            'src_attr': 'medium',
+            'trg': lambda s,c:  c.indigo_material_specular,
+            'trg_attr': 'medium_chooser',
+            'name': 'Medium'
+        },
+        {
+            'type': 'string',
+            'attr': 'medium_chooser',
+            'name': 'Medium',
+            'description': 'Medium',
+            'items': []
+        },
+        {
+            'type': 'float',
+            'attr': 'roughness',
+            'name': 'Roughness',
+            'description': 'Roughness',
+            'default': 0.5,
+            'min': 0.0,
+            'max': 1.0,
+        },
+        {
+            'type': 'float',
+            'attr': 'fresnel_scale',
+            'name': 'Fresnel Scale',
+            'description': 'Fresnel Scale',
+            'default': 1.0,
+            'min': 0.0,
+            'max': 1.0
+        },
+    ]
+    
+    def get_output(self, obj, indigo_material, blender_material, scene):
+        im = FastSSSMaterial(obj, blender_material.name, indigo_material, self).build_xml_element(
+            blender_material,
+            scene=scene
+        )
+        return [im]
             
 @register_properties_dict
 class Indigo_Material_Properties(bpy.types.PropertyGroup):
@@ -1823,7 +1885,9 @@ class Indigo_Material_Properties(bpy.types.PropertyGroup):
                 ('doublesidedthin', 'DoubleSidedThin', 'doublesidedthin'),
                 ('specular', 'Specular', 'specular'),
                 ('blended', 'Blended', 'blended'),
-                ('external', 'External', 'external')
+                ('external', 'External', 'external'),
+                ('null', 'Null', 'null'),
+                ('fastsss', 'Fast SSS', 'fastsss'),
             ]
         },
     ]
@@ -1846,6 +1910,8 @@ class Indigo_Material_Properties(bpy.types.PropertyGroup):
     indigo_material_doublesidedthin = bpy.props.PointerProperty(type = indigo_material_doublesidedthin)
     indigo_material_blended = bpy.props.PointerProperty(type = indigo_material_blended)
     indigo_material_external = bpy.props.PointerProperty(type = indigo_material_external)
+    indigo_material_null = bpy.props.PointerProperty(type = indigo_material_null)
+    indigo_material_fastsss = bpy.props.PointerProperty(type = indigo_material_fastsss)
     
     def get_name(self, blender_mat):
         if self.type == 'external':

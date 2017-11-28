@@ -22,7 +22,7 @@ class ClayMaterial(xml_builder):
         )
         return xml
 
-class NullMaterial(xml_builder):
+class NullMaterialDummy(xml_builder):
     '''
     The Null material
     '''
@@ -38,3 +38,4 @@ class NullMaterial(xml_builder):
             xml
         )
         return xml
+    
