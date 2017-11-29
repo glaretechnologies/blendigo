@@ -806,7 +806,9 @@ class indigo_ui_material_emission(material_subpanel, bpy.types.Panel):
                 row = col.row(align=True)
                 row.prop(indigo_material_emission, 'emit_gain_val')
                 row.prop(indigo_material_emission, 'emit_gain_exp')
-                
+            
+            col.separator()    
+            col.prop(indigo_material_emission, 'em_sampling_mult')
             col.prop(indigo_material_emission, 'emit_ies')
             if indigo_material_emission.emit_ies:
                 col.prop(indigo_material_emission, 'emit_ies_path')

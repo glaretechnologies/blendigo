@@ -100,3 +100,6 @@ class IndigoUITonemapping(bpy.types.Panel):
             if indigo_tonemapping.camera_response_type == 'file':
                 col.prop(indigo_tonemapping, 'camera_response_file')
             col.prop(indigo_tonemapping, 'camera_ev')
+        elif indigo_tonemapping.tonemap_type == 'filmic':
+            row = layout.row(align=True)
+            row.prop(indigo_tonemapping, 'filmic_scale')

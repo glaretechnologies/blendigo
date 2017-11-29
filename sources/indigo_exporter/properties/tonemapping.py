@@ -39,6 +39,7 @@ class Indigo_Tonemapping_Properties(bpy.types.PropertyGroup, xml_builder):
                 ('reinhard', 'Reinhard', 'reinhard'),
                 ('linear', 'Linear', 'linear'),
                 ('camera', 'Camera', 'camera'),
+                ('filmic', 'Filmic', 'filmic'),
             ],
         },
         {
@@ -56,6 +57,15 @@ class Indigo_Tonemapping_Properties(bpy.types.PropertyGroup, xml_builder):
             'type': 'text',
             'attr': 'reinhard_label',
             'name': 'Reinhard Tonemapping Settings:'
+        },
+        {
+            'type': 'float',
+            'attr': 'filmic_scale',
+            'name': 'Scale',
+            'description': 'Scale',
+            'default': 1,
+            'min': 0.0,
+            'max': 4,
         },
         {
             'type': 'float',
@@ -191,6 +201,12 @@ class Indigo_Tonemapping_Properties(bpy.types.PropertyGroup, xml_builder):
                     'response_function_path': crf,
                     'ev_adjust': 'camera_ev',
                     'film_iso': [scene.camera.data.indigo_camera.iso]
+                }
+            }
+        elif self.tonemap_type == 'filmic':
+            xml_format = {
+                'filmic': {
+                    'scale': 'filmic_scale',
                 }
             }
         else:

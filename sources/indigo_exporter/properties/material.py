@@ -683,7 +683,7 @@ def EmissionLightLayerParameter():
         {
             'attr': 'emit_layer',
             'type': 'string',
-            'name': 'emit_layer',
+            'name': 'Light Layer',
             'description': 'lightlayer; leave blank to use default'
         },
         {
@@ -791,6 +791,17 @@ class indigo_material_emission(indigo_material_feature):
             'name': 'Back face emission',
             'description': 'Controls of back of face is emitting or not',
             'default': False,
+        },
+        {
+            'type': 'float',
+            'attr': 'em_sampling_mult',
+            'name': 'Emission Sampling Multiplayer',
+            'description': 'A multiplier for the amount of sampling emission from this light material will receive',
+            'default': 1.0,
+            'min': 0.0,
+            #'soft_min': 0.0,
+            'max': 99999.0,
+            #'soft_max': 10.0,
         },
     ]
     

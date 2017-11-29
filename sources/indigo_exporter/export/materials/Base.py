@@ -212,6 +212,7 @@ class EmissionChannelMaterial(object):
                     self.scene.indigo_lightlayers.gain_for_layer(epg.emit_layer) * epg.emit_power * epg.emit_gain_val * (10**epg.emit_gain_exp)
                 ]),
             }
+            
             if self.scene.indigo_lightlayers.ignore:
                 ems['layer'] = [0]
             else:
