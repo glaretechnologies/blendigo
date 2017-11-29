@@ -554,8 +554,8 @@ class _Impl_OT_indigo(_Impl_operator):
             
             # debug
             #print(xml_str)
-            with open('D:\\xml_output.txt', 'w') as f:
-                f.write(xml_str)
+            #with open('D:\\xml_output.txt', 'w') as f:
+            #    f.write(xml_str)
             
             xml_dom = MD.parseString(xml_str)
             xml_dom.writexml(out_file, addindent='\t', newl='\n', encoding='utf-8')
