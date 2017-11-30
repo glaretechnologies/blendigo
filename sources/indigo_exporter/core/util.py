@@ -60,6 +60,16 @@ def getInstallPath(scene=None):
 
     return ""
 
+def getSettingsPath():
+    if isLinux():
+        return getInstallPath(scene)
+    elif isMac():
+        return '~/Library/Application Support/Indigo Renderer'
+    elif isWindows():
+        return os.path.join(os.getenv('APPDATA'), 'Indigo Renderer')
+    
+    return getInstallPath(scene)
+    
 def getResourcesPath(scene=None):
     if isLinux():
         return getInstallPath(scene)

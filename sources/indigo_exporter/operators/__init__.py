@@ -559,7 +559,8 @@ class _Impl_OT_indigo(_Impl_operator):
             
             #------------------------------------------------------------------------------
             # Computing devices
-            settings_file = os.path.join(bpy.context.scene.indigo_engine.install_path, 'settings.xml')
+            from .. core.util import getSettingsPath
+            settings_file = os.path.join(getSettingsPath(), 'settings.xml')
 
             outermark = \
             """<selected_opencl_devices>
