@@ -552,14 +552,65 @@ class _Impl_OT_indigo(_Impl_operator):
             xml_str = xml_str.replace('{_LESSTHAN_}', '<')
             xml_str = xml_str.replace('{_GREATERTHAN_}', '>')
             
-            # debug
-            #print(xml_str)
-            #with open('D:\\xml_output.txt', 'w') as f:
-            #    f.write(xml_str)
             
             xml_dom = MD.parseString(xml_str)
             xml_dom.writexml(out_file, addindent='\t', newl='\n', encoding='utf-8')
             out_file.close()
+            
+            #------------------------------------------------------------------------------
+            # Computing devices
+            settings_file = os.path.join(bpy.context.scene.indigo_engine.install_path, 'settings.xml')
+
+            outermark = \
+            """<selected_opencl_devices>
+            {}
+            </selected_opencl_devices>"""
+                        
+            devicemark = \
+            """<device>
+                    <device_name><![CDATA[{}]]></device_name>
+                    <vendor_name><![CDATA[{}]]></vendor_name>
+                    <id>{}</id>
+                </device>"""
+            devices = ''
+            for d in bpy.context.scene.indigo_engine.render_devices:
+                devices += devicemark.format(d.device, d.vendor, d.id)
+            selected_devices_xml = outermark.format(devices)
+                    
+            if os.path.exists(settings_file):
+                # settings file exists
+                with open(settings_file, 'r') as f:
+                    xml_string = f.read()
+                
+                import re
+                pattern = r'<settings>.*</settings>'
+                if re.search(pattern, xml_string, re.DOTALL | re.IGNORECASE):
+                    # <settings> tag exists (file seems to be correct)
+                    pattern = r'<selected_opencl_devices>.*</selected_opencl_devices>'
+                    if re.search(pattern, xml_string, re.DOTALL | re.IGNORECASE):
+                        # computing devices already exists        
+                        xml_string = re.sub(pattern, selected_devices_xml, xml_string, flags=re.DOTALL | re.IGNORECASE)
+                    else:
+                        # computing devices does not exists yet
+                        xml_string = re.sub(r'</settings>', selected_devices_xml+"</settings>", xml_string, flags=re.DOTALL | re.IGNORECASE)
+                else:
+                    # settings tag does not exist. create new body
+                    xml_string =\
+            """<?xml version="1.0" encoding="utf-8"?>
+            <settings>
+                {}
+            </settings>""".format(selected_devices_xml)
+
+            else:
+                # create new file
+                xml_string =\
+            """<?xml version="1.0" encoding="utf-8"?>
+            <settings>
+                {}
+            </settings>""".format(selected_devices_xml)
+
+            with open(settings_file, 'w') as f:
+                f.write(xml_string)
             
             #------------------------------------------------------------------------------
             # Print stats

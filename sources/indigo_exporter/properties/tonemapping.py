@@ -65,7 +65,7 @@ class Indigo_Tonemapping_Properties(bpy.types.PropertyGroup, xml_builder):
             'description': 'Scale',
             'default': 1,
             'min': 0.0,
-            'max': 4,
+            'max': 999999,
         },
         {
             'type': 'float',

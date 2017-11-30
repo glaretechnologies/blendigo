@@ -129,6 +129,7 @@ class IndigoDevice(bpy.types.PropertyGroup):
         cls.id = bpy.props.IntProperty(name="ID")
         cls.platform = bpy.props.StringProperty(name="Platform")
         cls.device = bpy.props.StringProperty(name="Device")
+        cls.vendor = bpy.props.StringProperty(name="Vendor")
         cls.use = bpy.props.BoolProperty(name="Use", default=True)
 
 properties = [
@@ -492,9 +493,7 @@ properties = [
         'description': 'x Oversampling',
         'default': 2,
         'min': 1,
-        'soft_min': 1,
-        'max': 4,
-        'soft_max': 4,
+        'max': 10,
     },
     {
         'type': 'int',
@@ -572,7 +571,6 @@ def get_render_devices(refresh=False):
         out = subprocess.run([indigo_path, '--gpu_info'], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         
         device_list = []
-        
         platforms = out.stdout.decode('utf-8', 'replace')
         platforms = platforms.split("platform_id: ")[1:]
 
@@ -585,6 +583,10 @@ def get_render_devices(refresh=False):
                 if l.startswith("platform_name"):
                     platform_name = l.split(": ")[1]
                     
+            for l in p:
+                if l.startswith("platform_vendor"):
+                    platform_vendor = l.split(": ")[1]
+                    
             for d in devices[1:]:
                 d = d.splitlines()
                 device_id = int(d[0].split()[0])
@@ -592,7 +594,7 @@ def get_render_devices(refresh=False):
                     if l.startswith("device_name"):
                         device_name = l.split(": ")[1]
                 
-                device_list.append((platform_name, device_name, device_id))
+                device_list.append((platform_name, device_name, platform_vendor, device_id))
             
         print('\n********\n', device_list, '\n*******')
         return device_list
@@ -621,7 +623,7 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
             
             for i, dl in enumerate(devices):
                 found = False
-                if [d.platform, d.device, d.id] == dl:
+                if [d.platform, d.device, d.vendor, d.id] == dl:
                     del devices[i]
                     found = True
                     break
@@ -642,7 +644,8 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
             device = self.render_devices.add()
             device.platform = d[0]
             device.device = d[1]
-            device.id = d[2]
+            device.vendor = d[2]
+            device.id = d[3]
         
     
     # xml_builder members

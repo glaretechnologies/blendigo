@@ -795,7 +795,7 @@ class indigo_material_emission(indigo_material_feature):
         {
             'type': 'float',
             'attr': 'em_sampling_mult',
-            'name': 'Emission Sampling Multiplayer',
+            'name': 'Emission Sampling Multiplier',
             'description': 'A multiplier for the amount of sampling emission from this light material will receive',
             'default': 1.0,
             'min': 0.0,
