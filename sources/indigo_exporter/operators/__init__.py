@@ -575,7 +575,8 @@ class _Impl_OT_indigo(_Impl_operator):
                 </device>"""
             devices = ''
             for d in bpy.context.scene.indigo_engine.render_devices:
-                devices += devicemark.format(d.device, d.vendor, d.id)
+                if d.use:
+                    devices += devicemark.format(d.device, d.vendor, d.id)
             selected_devices_xml = outermark.format(devices)
                     
             if os.path.exists(settings_file):

@@ -193,7 +193,7 @@ properties = [
             ('path_cpu', 'Path (CPU)', 'Path Tracing on the CPU'),
             ('path_gpu', 'Path (GPU)', 'GPU accelerated Path Tracing'),
             ('material_id', 'Material ID', 'Render materials as unique flat colours for compositing'),
-            ('depth', 'Depth', 'A greyscale image corresponding to camera depth values is generated, used for post-processing'),
+            ('depth', 'Depth Pass', 'A greyscale image corresponding to camera depth values is generated, used for post-processing'),
             ('shadow', 'Shadow Pass', 'Render shadow pass for compositing'),
             ('custom', 'Custom', 'Choose your own settings')
         ],
@@ -219,7 +219,7 @@ properties = [
     {
         'type': 'bool',
         'attr': 'depth_pass',
-        'name': 'Depth',
+        'name': 'Depth Pass',
         'description': 'Enable Depth Image Rendering',
         'default': False,
     },
@@ -573,6 +573,8 @@ def get_render_devices(refresh=False):
         device_list = []
         platforms = out.stdout.decode('utf-8', 'replace')
         platforms = platforms.split("platform_id: ")[1:]
+        
+        device_counters = {}
 
         for p in platforms:
             devices = p.split("----------- Device")
@@ -589,10 +591,18 @@ def get_render_devices(refresh=False):
                     
             for d in devices[1:]:
                 d = d.splitlines()
-                device_id = int(d[0].split()[0])
+                #device_id = int(d[0].split()[0])
                 for l in d[1:]:
                     if l.startswith("device_name"):
                         device_name = l.split(": ")[1]
+                
+                # device ids - ids are used to differentiate devices with the same name. Distinct devices have the same id.
+                did = '{} {}'.format(device_name, platform_vendor)
+                if device_counters.keys().isdisjoint([did]):
+                    device_counters[did] = 0
+                else:
+                    device_counters[did] += 1
+                device_id = device_counters[did]
                 
                 device_list.append((platform_name, device_name, platform_vendor, device_id))
             

@@ -30,7 +30,7 @@ class IndigoRenderEngineSettings(bpy.types.Panel):
             sc.prop(indigo_engine, 'metro')
             
             sc = row.column()
-            sc.prop(indigo_engine, 'foreground_alpha')
+            sc.prop(indigo_engine, 'depth_pass')
             sc.prop(indigo_engine, 'material_id')
             sc.prop(indigo_engine, 'shadow')
             
