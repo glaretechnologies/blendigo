@@ -82,7 +82,8 @@ def getGuiPath(scene=None):
     if isLinux():
         return os.path.join(getInstallPath(scene), "indigo")
     if isMac():
-        return os.path.join(getInstallPath(scene), "Contents", "MacOS", "Indigo")
+        #return os.path.join(getInstallPath(scene), "Contents", "MacOS", "Indigo")
+        return getInstallPath(scene)
     elif isWindows():
         return os.path.join(getInstallPath(scene), "indigo.exe")
 
