@@ -681,6 +681,7 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
                 for d in self.render_devices:
                     if (d.device, d.vendor) == dd and not d.use:
                         d.use = True
+                        break
             
         
     

@@ -288,7 +288,7 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
                 # Launch the Indigo process.
                 from . util import isMac
                 if isMac():
-                    indigo_args = ['open','-a'] + indigo_args
+                    indigo_args = ['open','-a'] + [indigo_args[0]] + ['-n', '--args'] + indigo_args[1:]
                 indigo_proc = subprocess.Popen(indigo_args, stdout=f_stdout)
                 indigo_pid = indigo_proc.pid
                 indigo_log('Started Indigo process, PID: %i' % indigo_pid)
