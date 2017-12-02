@@ -62,13 +62,13 @@ def getInstallPath(scene=None):
 
 def getSettingsPath():
     if isLinux():
-        return getInstallPath(scene)
+        return os.path.join(getInstallPath(scene), 'settings.xml')
     elif isMac():
-        return os.path.expanduser('~/Library/Application Support/Indigo Renderer/')
+        return os.path.expanduser('~/Library/Application Support/Indigo Renderer/settings.xml')
     elif isWindows():
-        return os.path.join(os.getenv('APPDATA'), 'Indigo Renderer')
+        return os.path.join(os.getenv('APPDATA'), 'Indigo Renderer', 'settings.xml')
     
-    return getInstallPath(scene)
+    return os.path.join(getInstallPath(scene), 'settings.xml')
     
 def getResourcesPath(scene=None):
     if isLinux():

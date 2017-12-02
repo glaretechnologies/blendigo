@@ -5,6 +5,7 @@ from extensions_framework.util import find_config_value, write_config_value
 
 from .. import export, bl_info
 from .. core.util import PlatformInformation, getInstallPath
+import os
 
 
 def find_indigo():
@@ -130,7 +131,7 @@ class IndigoDevice(bpy.types.PropertyGroup):
         cls.platform = bpy.props.StringProperty(name="Platform")
         cls.device = bpy.props.StringProperty(name="Device")
         cls.vendor = bpy.props.StringProperty(name="Vendor")
-        cls.use = bpy.props.BoolProperty(name="Use", default=True)
+        cls.use = bpy.props.BoolProperty(name="Use", default=False)
 
 properties = [
     {
@@ -552,7 +553,24 @@ properties = [
 
 ##########
 # compute devices
-        
+default_devices = []
+def load_default_devices():
+    # previously saved devices are considered new defaults
+    import re, os
+    from .. core.util import getSettingsPath
+    settings_file = getSettingsPath()
+    
+    global default_devices
+    
+    try:
+        from xml.etree import ElementTree as ET
+        root = ET.parse(settings_file)
+        devices = root.find('selected_opencl_devices').findall('device')
+        default_devices = [(d.find('device_name').text, d.find('vendor_name').text) for d in devices]
+        print("Loaded default devices:", default_devices)
+    except Exception:
+        print('Loading default computing devices from settings.xml failed')
+load_default_devices()
         
 device_list = []
 device_list_updated = False
@@ -560,7 +578,7 @@ def get_render_devices(refresh=False):
     global device_list
     global device_list_updated
     if refresh:
-        import subprocess, os
+        import subprocess
         from .. core.util import getConsolePath
         
         indigo_path = getConsolePath()
@@ -596,7 +614,7 @@ def get_render_devices(refresh=False):
                     if l.startswith("device_name"):
                         device_name = l.split(": ")[1]
                 
-                # device ids - ids are used to differentiate devices with the same name. Distinct devices have the same id.
+                # devices ids differentiate devices with the same name. Dis
                 did = '{} {}'.format(device_name, platform_vendor)
                 if device_counters.keys().isdisjoint([did]):
                     device_counters[did] = 0
@@ -606,7 +624,7 @@ def get_render_devices(refresh=False):
                 
                 device_list.append((platform_name, device_name, platform_vendor, device_id))
             
-        print('\n********\n', device_list, '\n*******')
+        #print('\n********\n', device_list, '\n*******')
         return device_list
     else:
         return device_list
@@ -622,10 +640,14 @@ from . import register_properties_dict
 class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
     properties = properties
     
-    get_render_devices(True)
-    
     def refresh_device_collection(self):
         devices = device_list[:]
+        first_refresh = False
+        if len(devices) and len(self.render_devices) == 0:
+            # self.render_devices refreshed for the first time. Use default_devices to activate suitable entries
+            first_refresh = True
+        
+        previously_active = [d for d in self.render_devices if d.use]
         # remove obsolete entries
         k = 0
         while k < len(self.render_devices):
@@ -633,7 +655,7 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
             
             for i, dl in enumerate(devices):
                 found = False
-                if [d.platform, d.device, d.vendor, d.id] == dl:
+                if (d.platform, d.device, d.vendor, d.id) == dl:
                     del devices[i]
                     found = True
                     break
@@ -641,12 +663,9 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
                 self.render_devices.remove(k)
                 k -= 1
                     
-            '''
-            if [d.platform, d.device, d.id] not in device_list:
-                print(k, [d.platform, d.device, d.id], 'do kasacji')
+            if (d.platform, d.device, d.vendor, d.id) not in device_list:
                 self.render_devices.remove(k)
                 k -= 1
-            '''
             k += 1
         
         #add new entries    
@@ -656,6 +675,13 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
             device.device = d[1]
             device.vendor = d[2]
             device.id = d[3]
+            
+        if first_refresh:
+            for dd in default_devices:
+                for d in self.render_devices:
+                    if (d.device, d.vendor) == dd and not d.use:
+                        d.use = True
+            
         
     
     # xml_builder members

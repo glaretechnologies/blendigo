@@ -101,11 +101,10 @@ class IndigoRenderEngineSettings(bpy.types.Panel):
         row.prop(indigo_engine, 'console_output', text="Print to console")
         
         ##
-        from .. properties.render_settings import get_render_devices, IndigoDevice
+        from .. properties.render_settings import IndigoDevice
         
         col = col.column(align=True)
         col.label("Render Devices:")
-        #indigo_engine.refresh_device_collection()
         for d in indigo_engine.render_devices:
             col.prop(d, 'use', text=d.platform+' '+d.device, toggle=True)
         col.operator('indigo.refresh_computing_devices')

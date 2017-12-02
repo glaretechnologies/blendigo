@@ -78,7 +78,6 @@ def register():
     from . properties.tonemapping import Indigo_Tonemapping_Properties
     bpy.types.Camera.indigo_tonemapping = bpy.props.PointerProperty(name="Indigo Tonemapping Properties", type = Indigo_Tonemapping_Properties)
     
-    
     print("Registered {} with {} modules".format(bl_info["name"], len(modules)))
 
 def unregister():

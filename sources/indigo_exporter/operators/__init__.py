@@ -559,60 +559,61 @@ class _Impl_OT_indigo(_Impl_operator):
             
             #------------------------------------------------------------------------------
             # Computing devices
-            from .. core.util import getSettingsPath
-            settings_file = os.path.join(getSettingsPath(), 'settings.xml')
+            if len(master_scene.indigo_engine.render_devices):
+                from .. core.util import getSettingsPath
+                settings_file = getSettingsPath()
 
-            outermark = \
-            """<selected_opencl_devices>
-            {}
-            </selected_opencl_devices>"""
+                outermark = \
+                """<selected_opencl_devices>
+                {}
+                </selected_opencl_devices>"""
+                            
+                devicemark = \
+                """<device>
+                        <device_name><![CDATA[{}]]></device_name>
+                        <vendor_name><![CDATA[{}]]></vendor_name>
+                        <id>{}</id>
+                    </device>"""
+                devices = ''
+                for d in bpy.context.scene.indigo_engine.render_devices:
+                    if d.use:
+                        devices += devicemark.format(d.device, d.vendor, d.id)
+                selected_devices_xml = outermark.format(devices)
                         
-            devicemark = \
-            """<device>
-                    <device_name><![CDATA[{}]]></device_name>
-                    <vendor_name><![CDATA[{}]]></vendor_name>
-                    <id>{}</id>
-                </device>"""
-            devices = ''
-            for d in bpy.context.scene.indigo_engine.render_devices:
-                if d.use:
-                    devices += devicemark.format(d.device, d.vendor, d.id)
-            selected_devices_xml = outermark.format(devices)
+                if os.path.exists(settings_file):
+                    # settings file exists
+                    with open(settings_file, 'r') as f:
+                        xml_string = f.read()
                     
-            if os.path.exists(settings_file):
-                # settings file exists
-                with open(settings_file, 'r') as f:
-                    xml_string = f.read()
-                
-                import re
-                pattern = r'<settings>.*</settings>'
-                if re.search(pattern, xml_string, re.DOTALL | re.IGNORECASE):
-                    # <settings> tag exists (file seems to be correct)
-                    pattern = r'<selected_opencl_devices>.*</selected_opencl_devices>'
+                    import re
+                    pattern = r'<settings>.*</settings>'
                     if re.search(pattern, xml_string, re.DOTALL | re.IGNORECASE):
-                        # computing devices already exists        
-                        xml_string = re.sub(pattern, selected_devices_xml, xml_string, flags=re.DOTALL | re.IGNORECASE)
+                        # <settings> tag exists (file seems to be correct)
+                        pattern = r'<selected_opencl_devices>.*</selected_opencl_devices>'
+                        if re.search(pattern, xml_string, re.DOTALL | re.IGNORECASE):
+                            # computing devices already exists        
+                            xml_string = re.sub(pattern, selected_devices_xml, xml_string, flags=re.DOTALL | re.IGNORECASE)
+                        else:
+                            # computing devices does not exists yet
+                            xml_string = re.sub(r'</settings>', selected_devices_xml+"</settings>", xml_string, flags=re.DOTALL | re.IGNORECASE)
                     else:
-                        # computing devices does not exists yet
-                        xml_string = re.sub(r'</settings>', selected_devices_xml+"</settings>", xml_string, flags=re.DOTALL | re.IGNORECASE)
+                        # settings tag does not exist. create new body
+                        xml_string =\
+                """<?xml version="1.0" encoding="utf-8"?>
+                <settings>
+                    {}
+                </settings>""".format(selected_devices_xml)
+
                 else:
-                    # settings tag does not exist. create new body
+                    # create new file
                     xml_string =\
-            """<?xml version="1.0" encoding="utf-8"?>
-            <settings>
-                {}
-            </settings>""".format(selected_devices_xml)
+                """<?xml version="1.0" encoding="utf-8"?>
+                <settings>
+                    {}
+                </settings>""".format(selected_devices_xml)
 
-            else:
-                # create new file
-                xml_string =\
-            """<?xml version="1.0" encoding="utf-8"?>
-            <settings>
-                {}
-            </settings>""".format(selected_devices_xml)
-
-            with open(settings_file, 'w') as f:
-                f.write(xml_string)
+                with open(settings_file, 'w') as f:
+                    f.write(xml_string)
             
             #------------------------------------------------------------------------------
             # Print stats
