@@ -581,7 +581,7 @@ def get_render_devices(refresh=False):
         import subprocess
         from .. core.util import getConsolePath
         
-        indigo_path = getConsolePath()
+        indigo_path = getConsolePath(bpy.context.scene)
         if not os.path.exists(indigo_path):
             print('Wrong Indigo path')
             return device_list
