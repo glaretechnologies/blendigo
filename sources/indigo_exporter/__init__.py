@@ -19,12 +19,11 @@ bl_info = {
     "name": "Blendigo - Indigo Exporter",
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
-    "version": (4, 0, 7),
+    "version": (4, 0, 8),
     "blender": (2, 79, 0),
     "location": "View3D",
-    "warning": "This addon is still in development.",
     "wiki_url": "",
-    "category": "Object" }
+    "category": "Render" }
 
 
 import bpy
