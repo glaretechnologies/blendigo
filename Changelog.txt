@@ -1,3 +1,26 @@
+4.0.7
+--------
+* Added export of computing devices
+
+4.0.6
+--------
+* Added Filmic to tonemapping types, Emission Sampling Multiplier
+* Bugfixes
+
+4.0.5
+--------
+* Null Material, Fast SSS Material
+
+4.0.4
+--------
+* Bugfix (camera exposure, phong's nk data)
+* Added roughness maps for Phong and Glossy Transparent
+
+4.0.3
+--------
+* Rearranged GUI
+* Roughness supported for some materials (instead of exponent), clamping and max contribution, depth pass, foreground alpha
+
 3.8.25.1
 --------
 * Fixed instancing (thanks to Marcin for his contribution!)
