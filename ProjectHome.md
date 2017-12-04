@@ -1,0 +1,1 @@
+Open-source Blender exporter for Indigo Renderer (www.indigorenderer.com), written in Python.
