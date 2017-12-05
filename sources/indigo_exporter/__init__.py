@@ -20,7 +20,7 @@ bl_info = {
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
     "version": (4, 0, 8),
-    "blender": (2, 79, 0),
+    "blender": (2, 78, 0),
     "location": "View3D",
     "wiki_url": "",
     "category": "Render" }
