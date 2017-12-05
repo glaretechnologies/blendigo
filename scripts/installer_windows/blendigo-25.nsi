@@ -37,26 +37,26 @@ LangString MUI_TEXT_INSTALLING_SUBTITLE ${LANG_ENGLISH} "Version ${BLENDIGO_VERS
 !define MUI_HEADERIMAGE_UNBITMAP "indigo_logo_150_57.bmp"
 !define MUI_HEADERIMAGE_UNBITMAP_NOSTRETCH
 
-!define MUI_BGCOLOR "333333"
-!define MUI_HEADER_TRANSPARENT_TEXT
-!define MUI_LICENSEPAGE_BGCOLOR  "FFFFFF 333333"
-!define MUI_INSTFILESPAGE_COLORS "FFFFFF 333333"
+;!define MUI_BGCOLOR "FFFFFF"
+;!define MUI_HEADER_TRANSPARENT_TEXT
+;!define MUI_LICENSEPAGE_BGCOLOR  "000000 FFFFFF"
+;!define MUI_INSTFILESPAGE_COLORS "000000 FFFFFF"
 
 ; These functions are called prior to the page macros below
-Function "changeWelcomeTextColor"
-	FindWindow $1 "#32770" "" $HWNDPARENT
-	GetDlgItem $2 $1 1201
-	SetCtlColors $2 0xFFFFFF 0x333333
-	GetDlgItem $2 $1 1202
-	SetCtlColors $2 0xFFFFFF 0x333333
-FunctionEnd
+;Function "changeWelcomeTextColor"
+;	FindWindow $1 "#32770" "" $HWNDPARENT
+;	GetDlgItem $2 $1 1201
+;	SetCtlColors $2 0x000000 0xFFFFFF
+;	GetDlgItem $2 $1 1202
+;	SetCtlColors $2 0x000000 0xFFFFFF
+;FunctionEnd
 
-Function "changeTitleColor"
-	GetDlgItem $r3 $HWNDPARENT 1037
-	SetCtlColors $r3 0xFFFFFF 0x333333
-	GetDlgItem $r3 $HWNDPARENT 1038
-	SetCtlColors $r3 0xFFFFFF 0x333333
-FunctionEnd
+;Function "changeTitleColor"
+;	GetDlgItem $r3 $HWNDPARENT 1037
+;	SetCtlColors $r3 0x000000 0xFFFFFF
+;	GetDlgItem $r3 $HWNDPARENT 1038
+;	SetCtlColors $r3 0x000000 0xFFFFFF
+;FunctionEnd
 
 ; Installer behaviour
 !define MUI_ABORTWARNING
@@ -139,12 +139,12 @@ FunctionEnd
 ;--------------------------------
 
 ; Modern style pages
-!define MUI_PAGE_CUSTOMFUNCTION_SHOW "changeWelcomeTextColor"
+;!define MUI_PAGE_CUSTOMFUNCTION_SHOW "changeWelcomeTextColor"
 !insertmacro MUI_PAGE_WELCOME
 
 ; Language setting has to be after welcome page otherwise the welcome image doesn't show
 !insertmacro MUI_LANGUAGE "English"
-!define MUI_PAGE_CUSTOMFUNCTION_PRE "changeTitleColor"
+;!define MUI_PAGE_CUSTOMFUNCTION_PRE "changeTitleColor"
 !insertmacro MUI_PAGE_LICENSE "License.rtf"
 Page custom DetectInstallPath
 !insertmacro MUI_PAGE_DIRECTORY
