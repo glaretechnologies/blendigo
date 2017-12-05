@@ -37,7 +37,12 @@ if __name__ == '__main__':
 		sys.path.append(addon_path)
 		os.environ['BLENDIGO_RELEASE'] = 'TRUE'
 		
-		from indigo import bl_info
+		# Import blender module init.py to get version.
+		# Since it depends on pby, we loat the script and execute it,
+		# ignoring all errors, to get the bl_info obj.
+		try:
+			exec(open("../sources/indigo_exporter/__init__.py").read())
+		except ImportError: pass
 		
 		TAG			= '.'.join(['%i'%i for i in bl_info['version']])
 		BL_VERSION	= '.'.join(['%i'%i for i in bl_info['blender']])

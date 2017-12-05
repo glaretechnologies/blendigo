@@ -89,6 +89,18 @@ RequestExecutionLevel admin
 ;--------------------------------
 
 Function DetectInstallPath
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.79" 0 AppData2_78
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.79\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.79"
+		Return
+		
+	AppData2_78:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.78" 0 AppData2_72
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.78\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.78"
+		Return
+		
+	AppData2_72:
 	IfFileExists "$APPDATA\Blender Foundation\Blender\2.72" 0 AppData2_71
 		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.72\scripts\addons"
 		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.72"
@@ -146,10 +158,10 @@ Page custom DetectInstallPath
 ; The stuff to install
 Section "" ;No components page, name is not important
 	; Set output path to the installation directory.
-	SetOutPath $INSTDIR\scripts\addons\indigo
+	SetOutPath $INSTDIR\scripts\addons\indigo_exporter
 
 	; Put files there recursively
-	File /r ..\..\sources\indigo\*.py
+	File /r ..\..\sources\indigo_exporter\*.py
 
 	; Write the uninstall keys for Windows
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo" "DisplayName" "Blendigo"
@@ -167,8 +179,8 @@ Section "Uninstall"
 
 	; Remove files and uninstaller
 	Delete $INSTALL_DIR\scripts\addons\Blendigo_uninstall.exe
-	rmdir /r $INSTALL_DIR\scripts\addons\indigo
-	rmdir $INSTALL_DIR\scripts\addons\indigo
+	rmdir /r $INSTALL_DIR\scripts\addons\indigo_exporter
+	rmdir $INSTALL_DIR\scripts\addons\indigo_exporter
 
 	; Remove registry keys
 	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo"
