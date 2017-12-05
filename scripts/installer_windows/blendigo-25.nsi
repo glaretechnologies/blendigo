@@ -74,7 +74,7 @@ FunctionEnd
 !define MUI_LICENSEPAGE_RADIOBUTTONS
 
 ; Directory page
-!define MUI_DIRECTORYPAGE_TEXT_TOP "Choose the Blendigo installation directory.$\n$\nNote: Must be the directory of the version you intend to install for, e.g. .../Blender/2.72 ."
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Choose the Blendigo installation directory.$\n$\nNote: Must be the directory of the version you intend to install for, e.g. .../Blender/2.79 ."
 
 ; Installation page
 !define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "Blendigo ${BLENDIGO_VERSION} for Blender Installation Complete"
