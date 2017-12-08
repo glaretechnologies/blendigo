@@ -1,4 +1,4 @@
-import bpy
+import bpy, os
 from extensions_framework import util as efutil
 
 from .. core.util import get_worldscale
