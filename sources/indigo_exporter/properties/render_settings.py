@@ -653,19 +653,18 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
         while k < len(self.render_devices):
             d = self.render_devices[k]
             
+            found = False
             for i, dl in enumerate(devices):
                 found = False
                 if (d.platform, d.device, d.vendor, d.id) == dl:
                     del devices[i]
                     found = True
                     break
+                
             if not found:
                 self.render_devices.remove(k)
                 k -= 1
-                    
-            if (d.platform, d.device, d.vendor, d.id) not in device_list:
-                self.render_devices.remove(k)
-                k -= 1
+
             k += 1
             k = max(k, 0)
         

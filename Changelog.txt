@@ -1,3 +1,11 @@
+4.0.9
+--------
+* Bugfix: camera filepaths, refreshing computing devices
+
+4.0.8
+--------
+* Bugfix
+
 4.0.7
 --------
 * Added export of computing devices
