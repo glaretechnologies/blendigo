@@ -1,3 +1,7 @@
+4.0.10
+--------
+* Bugfix: Export IGMesh
+
 4.0.9
 --------
 * Bugfix: camera filepaths, refreshing computing devices

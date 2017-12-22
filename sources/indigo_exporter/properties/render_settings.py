@@ -666,7 +666,6 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
                 k -= 1
 
             k += 1
-            k = max(k, 0)
         
         #add new entries    
         for d in devices:
