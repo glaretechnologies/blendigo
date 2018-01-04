@@ -63,7 +63,7 @@ class IndigoUICamera(bpy.types.Panel):
             
 class IndigoUITonemapping(bpy.types.Panel):
     bl_idname = "view3d.indigo_ui_tonemapping"
-    bl_label = "Indigo Camera"
+    bl_label = "Indigo Tonemapping"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "data"

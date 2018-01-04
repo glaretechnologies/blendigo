@@ -67,7 +67,7 @@ class _Impl_OT_igmesh(_Impl_operator):
             indigo_log('Cannot find mesh data in context', message_type='ERROR')
             return {'CANCELLED'}
         
-        mesh = obj.to_mesh(self.scene, True, 'RENDER')
+        mesh = obj.to_mesh(context.scene, True, 'RENDER')
         igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh, debug=False)
         bpy.data.meshes.remove(mesh)
         

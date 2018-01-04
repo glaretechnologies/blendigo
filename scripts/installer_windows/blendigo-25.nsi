@@ -37,26 +37,26 @@ LangString MUI_TEXT_INSTALLING_SUBTITLE ${LANG_ENGLISH} "Version ${BLENDIGO_VERS
 !define MUI_HEADERIMAGE_UNBITMAP "indigo_logo_150_57.bmp"
 !define MUI_HEADERIMAGE_UNBITMAP_NOSTRETCH
 
-!define MUI_BGCOLOR "333333"
-!define MUI_HEADER_TRANSPARENT_TEXT
-!define MUI_LICENSEPAGE_BGCOLOR  "FFFFFF 333333"
-!define MUI_INSTFILESPAGE_COLORS "FFFFFF 333333"
+;!define MUI_BGCOLOR "FFFFFF"
+;!define MUI_HEADER_TRANSPARENT_TEXT
+;!define MUI_LICENSEPAGE_BGCOLOR  "000000 FFFFFF"
+;!define MUI_INSTFILESPAGE_COLORS "000000 FFFFFF"
 
 ; These functions are called prior to the page macros below
-Function "changeWelcomeTextColor"
-	FindWindow $1 "#32770" "" $HWNDPARENT
-	GetDlgItem $2 $1 1201
-	SetCtlColors $2 0xFFFFFF 0x333333
-	GetDlgItem $2 $1 1202
-	SetCtlColors $2 0xFFFFFF 0x333333
-FunctionEnd
+;Function "changeWelcomeTextColor"
+;	FindWindow $1 "#32770" "" $HWNDPARENT
+;	GetDlgItem $2 $1 1201
+;	SetCtlColors $2 0x000000 0xFFFFFF
+;	GetDlgItem $2 $1 1202
+;	SetCtlColors $2 0x000000 0xFFFFFF
+;FunctionEnd
 
-Function "changeTitleColor"
-	GetDlgItem $r3 $HWNDPARENT 1037
-	SetCtlColors $r3 0xFFFFFF 0x333333
-	GetDlgItem $r3 $HWNDPARENT 1038
-	SetCtlColors $r3 0xFFFFFF 0x333333
-FunctionEnd
+;Function "changeTitleColor"
+;	GetDlgItem $r3 $HWNDPARENT 1037
+;	SetCtlColors $r3 0x000000 0xFFFFFF
+;	GetDlgItem $r3 $HWNDPARENT 1038
+;	SetCtlColors $r3 0x000000 0xFFFFFF
+;FunctionEnd
 
 ; Installer behaviour
 !define MUI_ABORTWARNING
@@ -74,7 +74,7 @@ FunctionEnd
 !define MUI_LICENSEPAGE_RADIOBUTTONS
 
 ; Directory page
-!define MUI_DIRECTORYPAGE_TEXT_TOP "Choose the Blendigo installation directory.$\n$\nNote: Must be the directory of the version you intend to install for, e.g. .../Blender/2.72 ."
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Choose the Blendigo installation directory.$\n$\nNote: Must be the directory of the version you intend to install for, e.g. .../Blender/2.79 ."
 
 ; Installation page
 !define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "Blendigo ${BLENDIGO_VERSION} for Blender Installation Complete"
@@ -89,6 +89,18 @@ RequestExecutionLevel admin
 ;--------------------------------
 
 Function DetectInstallPath
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.79" 0 AppData2_78
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.79\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.79"
+		Return
+		
+	AppData2_78:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.78" 0 AppData2_72
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.78\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.78"
+		Return
+		
+	AppData2_72:
 	IfFileExists "$APPDATA\Blender Foundation\Blender\2.72" 0 AppData2_71
 		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.72\scripts\addons"
 		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.72"
@@ -127,12 +139,12 @@ FunctionEnd
 ;--------------------------------
 
 ; Modern style pages
-!define MUI_PAGE_CUSTOMFUNCTION_SHOW "changeWelcomeTextColor"
+;!define MUI_PAGE_CUSTOMFUNCTION_SHOW "changeWelcomeTextColor"
 !insertmacro MUI_PAGE_WELCOME
 
 ; Language setting has to be after welcome page otherwise the welcome image doesn't show
 !insertmacro MUI_LANGUAGE "English"
-!define MUI_PAGE_CUSTOMFUNCTION_PRE "changeTitleColor"
+;!define MUI_PAGE_CUSTOMFUNCTION_PRE "changeTitleColor"
 !insertmacro MUI_PAGE_LICENSE "License.rtf"
 Page custom DetectInstallPath
 !insertmacro MUI_PAGE_DIRECTORY
@@ -146,10 +158,10 @@ Page custom DetectInstallPath
 ; The stuff to install
 Section "" ;No components page, name is not important
 	; Set output path to the installation directory.
-	SetOutPath $INSTDIR\scripts\addons\indigo
+	SetOutPath $INSTDIR\scripts\addons\indigo_exporter
 
 	; Put files there recursively
-	File /r ..\..\sources\indigo\*.py
+	File /r ..\..\sources\indigo_exporter\*.py
 
 	; Write the uninstall keys for Windows
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo" "DisplayName" "Blendigo"
@@ -167,8 +179,8 @@ Section "Uninstall"
 
 	; Remove files and uninstaller
 	Delete $INSTALL_DIR\scripts\addons\Blendigo_uninstall.exe
-	rmdir /r $INSTALL_DIR\scripts\addons\indigo
-	rmdir $INSTALL_DIR\scripts\addons\indigo
+	rmdir /r $INSTALL_DIR\scripts\addons\indigo_exporter
+	rmdir $INSTALL_DIR\scripts\addons\indigo_exporter
 
 	; Remove registry keys
 	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Blendigo"
