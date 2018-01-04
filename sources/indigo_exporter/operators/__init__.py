@@ -515,22 +515,20 @@ class _Impl_OT_indigo(_Impl_operator):
             # We write object instances to a separate file
             oc = 0
             scene_data_xml = ET.Element('scenedata')
-            for ck, cis in geometry_exporter.ExportedObjects.items():
-                for ci in cis:
-                    obj_type = ci[0]
+            for ck, ci in geometry_exporter.ExportedObjects.items():
+                obj_type = ci[0]
+                
+                if obj_type == 'OBJECT':
+                    obj = ci[1]
+                    mesh_name = ci[2]
+                    obj_matrices = ci[3]
+                    scene = ci[4]
                     
-                    if obj_type == 'OBJECT':
-                        obj = ci[1]
-                        mesh_name = ci[2]
-                        obj_matrices = ci[3]
-                        scene = ci[4]
-                        
-                        xml = geometry.model_object(scene).build_xml_element(obj, mesh_name, obj_matrices)
-                    else:
-                        xml = ci[1]
-                        
-                    scene_data_xml.append(xml)
-                    oc += 1
+                    xml = geometry.model_object(scene).build_xml_element(obj, mesh_name, obj_matrices)
+                else:
+                    xml = ci[1]
+                scene_data_xml.append(xml)
+                oc += 1
             
             objects_file_name = '%s/objects.igs' % (
                 frame_dir
