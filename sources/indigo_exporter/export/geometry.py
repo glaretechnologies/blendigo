@@ -436,20 +436,16 @@ class GeometryExporter(SceneIterator):
         if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition))
         # If this object was instanced by a DupliObject, hash the DupliObject's persistent_id
         if dupli_ob != None:
-            key = hash((obj, particle_system, dupli_ob.persistent_id[0]))
+            key = hash((obj, particle_system, dupli_ob.persistent_id[0], dupli_ob.id_data))
         else:
             key = hash(obj)
-            
-        mesh_name = mesh_definition[0]
         
-        # If the model (object) was already exported, add to instance list
-        emodels = self.ExportedObjects.get(key)
-        if emodels != None:
-            if emodels[0][0] == 'OBJECT':
-                obj_matrices = [(self.normalised_time, matrix)]
-                model_definition = ('OBJECT', obj, mesh_name, obj_matrices, self.scene)
-                emodels.append(model_definition)
-            
+        # If the model (object) was already exported, only update the keyframe list.
+        emodel = self.ExportedObjects.get(key)
+        if emodel != None:
+            if emodel[0] == 'OBJECT':
+                # Append to list of (time, matrix) tuples.
+                emodel[3].append((self.normalised_time, matrix))
             return
 
         # Special handling for section planes:  If object has the section_plane attribute set, then export it as a section plane.
@@ -458,7 +454,7 @@ class GeometryExporter(SceneIterator):
 
             model_definition = ('SECTION', xml)
 
-            self.ExportedObjects[key] = [model_definition]
+            self.ExportedObjects[key] = model_definition
             self.object_id += 1
             return
 
@@ -468,10 +464,11 @@ class GeometryExporter(SceneIterator):
 
             model_definition = ('SPHERE', xml)
 
-            self.ExportedObjects[key] = [model_definition]
+            self.ExportedObjects[key] = model_definition
             self.object_id += 1
             return
 
+        mesh_name = mesh_definition[0]
         
         # Special handling for exit portals
         if obj.type == 'MESH' and obj.data.indigo_mesh.exit_portal:
@@ -479,7 +476,7 @@ class GeometryExporter(SceneIterator):
             
             model_definition = ('PORTAL', xml)
 
-            self.ExportedObjects[key] = [model_definition]
+            self.ExportedObjects[key] = model_definition
             self.object_id += 1
             return
             
@@ -488,5 +485,5 @@ class GeometryExporter(SceneIterator):
 
         model_definition = ('OBJECT', obj, mesh_name, obj_matrices, self.scene)
 
-        self.ExportedObjects[key] = [model_definition]
+        self.ExportedObjects[key] = model_definition
         self.object_id += 1
