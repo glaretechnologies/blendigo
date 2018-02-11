@@ -72,7 +72,16 @@ class IndigoUILampHemi(bpy.types.Panel):
         col.prop(indigo_lamp, 'type')
         if indigo_lamp.type == 'background':
             col.prop(indigo_lamp, 'env_bg_SP_type')
-            col.prop(indigo_lamp, 'env_bg_SP_rgb')
+            if indigo_lamp.env_bg_SP_type == 'rgb':
+                col.prop(indigo_lamp, 'env_bg_SP_rgb')
+            if indigo_lamp.env_bg_SP_type == 'blackbody':
+                row = col.row(align=True)
+                row.prop(indigo_lamp, 'env_bg_SP_blackbody_temp')
+                row.prop(indigo_lamp, 'env_bg_SP_blackbody_gain')
+            if indigo_lamp.env_bg_SP_type == 'uniform':
+                row = col.row(align=True)
+                row.prop(indigo_lamp, 'env_bg_SP_uniform_val')
+                row.prop(indigo_lamp, 'env_bg_SP_uniform_exp')
             col.prop_search(indigo_lamp, 'layer', context.scene.indigo_lightlayers, 'lightlayers')
         if indigo_lamp.type == 'env_map':
             col.prop(indigo_lamp, 'env_map_path')
