@@ -124,6 +124,7 @@ def indigo_visible(scene, obj, is_dupli=False):
         ov |= lv
     
     pv = True # parent visible
+    '''
     if not is_dupli:
         p = obj.parent
         while p != None:
@@ -131,6 +132,7 @@ def indigo_visible(scene, obj, is_dupli=False):
                 pv = False
                 break
             p = p.parent
+    '''
     
     return (ov or is_dupli) and not obj.hide_render and pv
 

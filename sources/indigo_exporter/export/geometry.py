@@ -333,8 +333,9 @@ class GeometryExporter(SceneIterator):
 
         ### Hash Vertex coords ###
         vertices = []
-        for v in mesh.vertices:
-            vertices.append(v.co)
+        if mesh:
+            for v in mesh.vertices:
+                vertices.append(v.co)
 
         self.add_vec3_list_hash(hash, vertices)
 
@@ -353,8 +354,10 @@ class GeometryExporter(SceneIterator):
                 self.total_mesh_export_time += time.time() - start_time
                 return exported_mesh
         
-            # Create mesh with applied modifiers
-            mesh = obj.to_mesh(self.scene, True, 'RENDER')
+            mesh = None
+            if not obj.data.indigo_mesh.valid_proxy():
+                # Create mesh with applied modifiers
+                mesh = obj.to_mesh(self.scene, True, 'RENDER')
 
             # Compute a hash over the mesh data (vertex positions, material names etc..)
             mesh_hash = self.meshHash(obj, mesh)
@@ -369,7 +372,7 @@ class GeometryExporter(SceneIterator):
                 # Important! If an object is matched to a mesh on disk, add to ExportedMeshes.
                 # Otherwise the mesh checksum will be computed over and over again.
                 self.ExportedMeshes[obj] = exported_mesh
-                bpy.data.meshes.remove(mesh)
+                if mesh: bpy.data.meshes.remove(mesh)
                 self.total_mesh_export_time += time.time() - start_time
                 return exported_mesh
 
@@ -400,7 +403,7 @@ class GeometryExporter(SceneIterator):
                 used_mat_indices = range(len(obj.material_slots))
 
             # Remove mesh.
-            bpy.data.meshes.remove(mesh)
+            if mesh: bpy.data.meshes.remove(mesh)
             
             # Export materials used by this mesh
             if len(obj.material_slots) > 0:

@@ -1,3 +1,8 @@
+4.0.13
+--------
+* Object visibility is not inheritable (same as Blender's default)
+* Major speed-up of export of objects with proxy parameter
+
 4.0.12
 --------
 * Bugfix: Hemi light color type parameters (uniform, blackbody)
