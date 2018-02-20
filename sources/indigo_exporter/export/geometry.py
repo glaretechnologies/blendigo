@@ -336,6 +336,8 @@ class GeometryExporter(SceneIterator):
         if mesh:
             for v in mesh.vertices:
                 vertices.append(v.co)
+        else:
+            hash.update(obj.data.indigo_mesh.mesh_path.encode(encoding='UTF-8'))
 
         self.add_vec3_list_hash(hash, vertices)
 

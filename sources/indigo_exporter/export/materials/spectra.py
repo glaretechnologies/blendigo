@@ -16,11 +16,12 @@ def blackbody(temp, gain):
         }
     }
 
-def rgb(rgb, gamma=[1.0]):        # TODO: verify correct gamma value
+def rgb(rgb, gamma=[1.0], gain=[1.0]):        # TODO: verify correct gamma value
     return {
         'rgb': {
             'rgb': rgb,
-            'gamma': gamma
+            'gamma': gamma,
+            'gain': gain
         }
     }
     

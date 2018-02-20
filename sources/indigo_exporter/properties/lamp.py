@@ -166,6 +166,15 @@ class Indigo_Lamp_Hemi_Properties(bpy.types.PropertyGroup, export.xml_builder):
             'default': 0
         },
         {
+            'type': 'float',
+            'attr': 'env_bg_SP_rgb_gain_val',
+            'name': 'Gain',
+            'description': 'Gain value to apply to environment',
+            'min': 0.0,
+            'max': 10000.0,
+            'default': 1.0
+        },
+        {
             'type': 'int',
             'attr': 'env_map_width',
             'name': 'Width',
@@ -213,7 +222,7 @@ class Indigo_Lamp_Hemi_Properties(bpy.types.PropertyGroup, export.xml_builder):
     def get_background_spectrum(self):
         if self.env_bg_SP_type == 'rgb':
             from .. export.materials.spectra import rgb
-            return rgb([i for i in self.env_bg_SP_rgb])
+            return rgb([i for i in self.env_bg_SP_rgb], gain=[self.env_bg_SP_rgb_gain_val])
         elif self.env_bg_SP_type == 'uniform':
             from .. export.materials.spectra import uniform
             return uniform([
