@@ -46,10 +46,13 @@ if __name__ == '__main__':
 		
 		TAG			= '.'.join(['%i'%i for i in bl_info['version']])
 		BL_VERSION	= '.'.join(['%i'%i for i in bl_info['blender']])
-		
 		print("BL_VERSION: " + BL_VERSION);
 		
-		ZIP_NAME = "blendigo-%s.zip" % TAG
+		proc = subprocess.Popen('git log --pretty=format:%h -n 1 ..', stdout=subprocess.PIPE)
+		HASH, errs = proc.communicate()
+		print("HASH: " + HASH);
+		
+		ZIP_NAME = "blendigo-%s-%s.zip" % (TAG, HASH)
 		
 		cwd = os.getcwd()
 		
@@ -59,11 +62,12 @@ if __name__ == '__main__':
 		
 		# Make windows installer
 		os.environ['BLENDIGO_VERSION'] = TAG
+		os.environ['BLENDIGO_COMMIT_HASH'] = HASH
 
 		# Make a Blender version string string like "2.68"
 		# This controls where the installed indigo files go in the blender program files dir.
 		os.environ['BLENDER_VERSION'] = str(bl_info['blender'][0]) + "." + str(bl_info['blender'][1]) + str(bl_info['blender'][2])
-		INSTALLER_NAME = "blendigo-%s-installer.exe" % TAG
+		INSTALLER_NAME = "blendigo-%s-%s-installer.exe" % (TAG, HASH)
 
 		print("Making Windows installer ./installer_windows/" + INSTALLER_NAME + "...");
 
@@ -72,6 +76,7 @@ if __name__ == '__main__':
 		os.chdir(cwd)
 		del os.environ['BLENDIGO_VERSION']
 		del os.environ['BLENDER_VERSION']
+		del os.environ['BLENDIGO_COMMIT_HASH']
 
 		signProgram("Blendigo " + TAG, './installer_windows/' + INSTALLER_NAME)
 		

@@ -7,13 +7,14 @@
 
 ; Setup Blendigo parameters
 !define BLENDIGO_VERSION $%BLENDIGO_VERSION%
+!define BLENDIGO_COMMIT_HASH $%BLENDIGO_COMMIT_HASH%
 ;!define BLENDER_VERSION $%BLENDER_VERSION%
 
 ; The name of the installer
 Name "Blendigo ${BLENDIGO_VERSION} for Blender"
 
 ; The file to write
-OutFile "blendigo-${BLENDIGO_VERSION}-installer.exe"
+OutFile "blendigo-${BLENDIGO_VERSION}-${BLENDIGO_COMMIT_HASH}-installer.exe"
 
 ;--------------------------------
 ; New style GUI setup
