@@ -15,6 +15,8 @@ from .. export import (
 from .. export.igmesh import igmesh_writer
 from .. export.geometry import model_object
 
+from .. import eprofiler as ep
+
 class _Impl_operator(object):
     
     def __init__(self, **kwargs):
@@ -51,9 +53,6 @@ class _Impl_OT_igmesh(_Impl_operator):
     filepath = bpy.props.StringProperty(name="File Path", description="File path used for exporting the IGMESH file", maxlen= 1024, default= "")
     
     def execute(self, context):
-        #print("Selected: " + context.active_object.name)
-        #print("Filename: %s"%self.properties.filepath)
-        
         if not self.properties.filepath:
             indigo_log('Filename not set', message_type='ERROR')
             return {'CANCELLED'}
@@ -90,89 +89,6 @@ class EXPORT_OT_igmesh(_Impl_OT_igmesh, bpy.types.Operator):
 # add igmesh operator into file->export menu
 menu_func = lambda self, context: self.layout.operator("export.igmesh", text="Export Indigo Mesh...")
 bpy.types.INFO_MT_file_export.append(menu_func)
-
-class LightingChecker(SceneIterator):
-    progress_thread_action = "Checking"
-    
-    def __init__(self):        
-        self.valid_lighting = False
-        
-        self.ObjectsChecked = ExportCache("Objects")
-        self.LampsChecked = ExportCache("Lamps")
-        self.MaterialsChecked = ExportCache("Materials")
-        self.CheckedDuplis = ExportCache("Duplis")
-    
-    def isValid(self):
-        return self.valid_lighting
-    
-    def handleDuplis(self, obj, particle_system=None):
-        if self.CheckedDuplis.have(obj): return
-        self.CheckedDuplis.add(obj, obj)
-        
-        try:
-            obj.dupli_list_create(self.scene, 'RENDER')
-            if not obj.dupli_list:
-                raise Exception('cannot create dupli list for object %s' % obj.name)
-        except Exception as err:
-            indigo_log('%s'%err)
-            return
-        
-        for dupli_ob in obj.dupli_list:
-            if dupli_ob.object.type not in self.supported_mesh_types:
-                continue
-            if not indigo_visible(self.scene, dupli_ob.object, is_dupli=True):
-                continue
-            
-            self.handleMesh(dupli_ob.object)
-        
-        obj.dupli_list_clear()
-    
-    def handleMesh(self, obj):
-        if self.ObjectsChecked.have(obj): return
-        
-        emitting_object = False
-        
-        for ms in obj.material_slots:
-            if self.MaterialsChecked.have(ms.material): continue
-            self.MaterialsChecked.add(ms.material, ms.material)
-            
-            if ms.material == None: continue
-            if ms.material.indigo_material == None: continue
-            
-            iem = ms.material.indigo_material.indigo_material_emission
-            mat_test = iem.emission_enabled
-            if iem.emission_enabled:
-                mat_test &= self.check_spectrum(iem, 'emission')
-                if iem.emission_scale:
-                    mat_test &= (iem.emission_scale_value > 0.0)
-                else:
-                    mat_test &= (iem.emit_power > 0.0 and iem.emit_gain_val > 0.0)
-                mat_test &= self.scene.indigo_lightlayers.is_enabled(iem.emit_layer)
-                mat_test &= self.scene.indigo_lightlayers.gain_for_layer(iem.emit_layer) > 0.0
-            emitting_object |= mat_test
-        
-        self.ObjectsChecked.add(obj, obj)
-        self.valid_lighting |= emitting_object
-    
-    def handleLamp(self, obj):
-        if self.LampsChecked.have(obj): return
-        
-        self.valid_lighting |= obj.data.type in ('SUN', 'HEMI')
-        self.LampsChecked.add(obj, obj)
-        
-    def check_spectrum(self, obj, prefix):
-            valid_sp = False
-            sp_type = getattr(obj, '%s_SP_type' % prefix)
-            if sp_type == 'uniform':
-                valid_sp = getattr(obj, '%s_SP_uniform_val' % prefix) > 0.0
-            elif sp_type == 'rgb':
-                valid_sp = getattr(obj, '%s_SP_rgb' % prefix).v > 0.0
-            elif sp_type == 'blackbody':
-                valid_sp = getattr(obj, '%s_SP_blackbody_gain' % prefix) > 0.0
-            return valid_sp
-    
-    def canAbort(self):
-        return self.valid_lighting
     
 class _Impl_OT_indigo(_Impl_operator):
     '''Export an Indigo format scene (.igs)'''
@@ -192,11 +108,6 @@ class _Impl_OT_indigo(_Impl_operator):
         if not os.access(directory, os.W_OK):
             return False
         return True
-    
-    def check_lights(self, scene):
-        LC = LightingChecker()
-        LC.iterateScene(scene)
-        return LC.isValid()
    
     def check_medium(self, obj):
         pass
@@ -237,12 +148,7 @@ class _Impl_OT_indigo(_Impl_operator):
         return igs_filename
         
     # Exports a default background light if no light sources were found in the scene.
-    def export_default_background_light(self, export_scenes):
-        have_illumination = False
-        for ex_scene in export_scenes:
-            if ex_scene is None: continue
-            have_illumination |= self.check_lights(ex_scene)
-            
+    def export_default_background_light(self, have_illumination):
         #------------------------------------------------------------------------------
         # If there is no illumination in the scene, just add in a uniform environment light
         if not have_illumination:
@@ -311,9 +217,6 @@ class _Impl_OT_indigo(_Impl_operator):
             # Start with render settings, this also creates the root <scene>
             self.scene_xml = master_scene.indigo_engine.build_xml_element(master_scene)
             
-            # Export background light if no light exists.
-            self.export_default_background_light(export_scenes)
-            
             #------------------------------------------------------------------------------
             # Tonemapping
             self.export_tonemapping(master_scene)
@@ -366,7 +269,11 @@ class _Impl_OT_indigo(_Impl_operator):
                 if self.verbose: indigo_log('Processing frame: %i time: %f'%(cur_frame, normalised_time))
                 
                 geometry_exporter.normalised_time = normalised_time
-                bpy.context.scene.frame_set(cur_frame, 0.0)
+                
+                if master_scene.indigo_engine.motionblur:
+                    bpy.context.scene.frame_set(cur_frame, 0.0) # waaay too slow for many objects (probably dupli_list gets recreated). Obligatory for motion blur.
+                else:
+                    bpy.context.scene.frame_current = cur_frame # is it enough?
 
                 # Add Camera matrix.
                 camera[1].append((normalised_time, camera[0].matrix_world.copy()))
@@ -377,13 +284,15 @@ class _Impl_OT_indigo(_Impl_operator):
                     if self.verbose: indigo_log('Processing objects for scene %s' % ex_scene.name)
                     geometry_exporter.iterateScene(ex_scene)
             
+            # Export background light if no light exists.
+            self.export_default_background_light(geometry_exporter.isLightingValid())
+
             #------------------------------------------------------------------------------
             # Export camera
             if self.verbose: indigo_log('Exporting camera')
             self.scene_xml.append(
                 camera[0].data.indigo_camera.build_xml_element(master_scene, camera[1])
             )
-            
             #------------------------------------------------------------------------------
             # Export light layers
             from .. export.light_layer import light_layer_xml
@@ -393,16 +302,19 @@ class _Impl_OT_indigo(_Impl_operator):
             # however, the re-indexing at material export time is non-trivial for
             # now and probably not worth it.
             #light_layer_count = 0
+            xml_render_settings = self.scene_xml.find('renderer_settings')
             for ex_scene in export_scenes:
                 if ex_scene is None: continue
                 
                 # Light layer names
-                for layer_name, idx in ex_scene.indigo_lightlayers.enumerate().items():
+                lls = ex_scene.indigo_lightlayers.enumerate()
+                
+                for layer_name, idx in sorted(lls.items(), key=lambda x: x[1]):
                     if self.verbose: indigo_log('Light layer %i: %s' % (idx, layer_name))
-                    self.scene_xml.append(
+                    xml_render_settings.append(
                         light_layer_xml().build_xml_element(ex_scene, idx, layer_name)
                     )
-                    # light_layer_count += 1
+                
             
             if self.verbose: indigo_log('Exporting lamps')
             
@@ -533,7 +445,6 @@ class _Impl_OT_indigo(_Impl_operator):
             objects_file_name = '%s/objects.igs' % (
                 frame_dir
             )
-            
             objects_file = open(objects_file_name, 'wb')
             ET.ElementTree(element=scene_data_xml).write(objects_file, encoding='utf-8')
             objects_file.close()

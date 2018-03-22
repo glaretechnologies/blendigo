@@ -205,11 +205,11 @@ class EmissionChannelMaterial(object):
     #['diffuse', 'phong', 'specular']
     def EmissionChannel(self):
         epg = self.material_group.indigo_material_emission
-        if epg.emission_enabled and self.scene.indigo_lightlayers.is_enabled(epg.emit_layer):
+        if epg.emission_enabled:
             ems = self.get_channel(epg, 'emission', 'emission')
             ems['base_emission'] = {
                 'constant': uniform([
-                    self.scene.indigo_lightlayers.gain_for_layer(epg.emit_layer) * epg.emit_power * epg.emit_gain_val * (10**epg.emit_gain_exp)
+                    epg.emit_power * epg.emit_gain_val * (10**epg.emit_gain_exp)
                 ]),
             }
             

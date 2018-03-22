@@ -1,3 +1,8 @@
+4.0.14
+--------
+* Particle export optimisation
+* Particle display mode will not affect render (same as Blender's default)
+
 4.0.13
 --------
 * Object visibility is not inheritable (same as Blender's default)

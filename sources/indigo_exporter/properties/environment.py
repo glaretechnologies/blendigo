@@ -31,15 +31,6 @@ from . import register_properties_dict
 class Indigo_Lightlayer_Data_Properties(bpy.types.PropertyGroup, export.xml_builder):
     properties = lightlayer_data_properties
     
-''' # needs to be put somewhere else
-    {
-        'type': 'operator',
-        'attr': 'op_lg_add',
-        'operator': 'indigo.lightlayer_add',
-        'text': 'Add',
-        'icon': 'ZOOMIN',
-    },
-'''
 lightlayers_properties = [
     {
         'type': 'collection',
@@ -72,6 +63,17 @@ lightlayers_properties = [
     }
 ]
 
+def is_layer_empty(layer):
+    for mat in bpy.data.materials:
+        if mat.indigo_material.indigo_material_emission.emit_layer == layer.name:
+            return False
+    
+    for lamp in bpy.data.lamps:
+        if  layer.name in (lamp.indigo_lamp_sun.sunlayer, lamp.indigo_lamp_sun.skylayer, lamp.indigo_lamp_hemi.layer):
+            return False
+        
+    return True
+
 @register_properties_dict
 class Indigo_Lightlayers_Properties(bpy.types.PropertyGroup):
     properties = lightlayers_properties
@@ -86,7 +88,7 @@ class Indigo_Lightlayers_Properties(bpy.types.PropertyGroup):
         if name != '' and name in self.lightlayers:
             return self.lightlayers[name].lg_enabled
         return True
-    
+        
     def enumerate(self):
         en = {
             'default': 0,
@@ -94,8 +96,9 @@ class Indigo_Lightlayers_Properties(bpy.types.PropertyGroup):
         if not self.ignore:
             idx = 1
             for name, lyr in self.lightlayers.items():
-                if lyr.lg_enabled:
-                    en[name] = idx
-                    idx += 1
+                if is_layer_empty(lyr):
+                    continue
+                en[name] = idx
+                idx += 1
         return en
     

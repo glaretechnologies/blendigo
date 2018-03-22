@@ -19,7 +19,7 @@ from .. export import ( indigo_log,
                             exportutil
                             )
 from .. export.igmesh import igmesh_writer
-
+from . import ExportCache
 
 class model_base(xml_builder):
     element_type = 'model'
@@ -183,7 +183,60 @@ class SpherePrimitive(xml_builder):
         )
         return xml
 
-
+class LightingChecker:
+    def __init__(self):        
+        self.valid_lighting = False
+        
+        self.ObjectsChecked = ExportCache("Objects")
+        self.LampsChecked = ExportCache("Lamps")
+        self.MaterialsChecked = ExportCache("Materials")
+        self.CheckedDuplis = ExportCache("Duplis")
+    
+    def handleMesh(self, obj):
+        if self.valid_lighting or self.ObjectsChecked.have(obj): return
+        
+        emitting_object = False
+        
+        for ms in obj.material_slots:
+            if self.MaterialsChecked.have(ms.material): continue
+            self.MaterialsChecked.add(ms.material, ms.material)
+            
+            if ms.material == None: continue
+            if ms.material.indigo_material == None: continue
+            
+            iem = ms.material.indigo_material.indigo_material_emission
+            mat_test = iem.emission_enabled
+            if iem.emission_enabled:
+                mat_test &= self.check_spectrum(iem, 'emission')
+                if iem.emission_scale:
+                    mat_test &= (iem.emission_scale_value > 0.0)
+                else:
+                    mat_test &= (iem.emit_power > 0.0 and iem.emit_gain_val > 0.0)
+                mat_test &= self.scene.indigo_lightlayers.is_enabled(iem.emit_layer)
+                mat_test &= self.scene.indigo_lightlayers.gain_for_layer(iem.emit_layer) > 0.0
+            emitting_object |= mat_test
+        
+        self.ObjectsChecked.add(obj, obj)
+        self.valid_lighting |= emitting_object
+    
+    def handleLamp(self, obj):
+        if self.valid_lighting or self.LampsChecked.have(obj): return
+        
+        self.valid_lighting |= obj.data.type in ('SUN', 'HEMI')
+        self.LampsChecked.add(obj, obj)
+        
+    def check_spectrum(self, obj, prefix):
+            valid_sp = False
+            sp_type = getattr(obj, '%s_SP_type' % prefix)
+            if sp_type == 'uniform':
+                valid_sp = getattr(obj, '%s_SP_uniform_val' % prefix) > 0.0
+            elif sp_type == 'rgb':
+                valid_sp = getattr(obj, '%s_SP_rgb' % prefix).v > 0.0
+            elif sp_type == 'blackbody':
+                valid_sp = getattr(obj, '%s_SP_blackbody_gain' % prefix) > 0.0
+            return valid_sp
+    
+    
 class GeometryExporter(SceneIterator):
     # Cache
     ExportedMaterials = None
@@ -217,15 +270,33 @@ class GeometryExporter(SceneIterator):
         self.MeshesOnDisk = {}
         
         self.mesh_uses_shading_normals = {} # Map from exported_mesh_name to boolean
+        
+        # Lighting
+        self.lc = LightingChecker()
+    
+    def isLightingValid(self):
+        return self.lc.valid_lighting
 
     def handleDuplis(self, obj, particle_system=None):
         try:
-            #if obj in self.ExportedDuplis:
-            #    indigo_log('Duplis for object %s already exported'%obj)
-            #    return
+            if obj in self.ExportedDuplis:
+                indigo_log('Duplis for object %s already exported'%obj)
+                return
 
             try:
+                old_draw_method = None
+                if particle_system and particle_system.settings.draw_method != 'RENDER':
+                    # Switch viewport draw method to allow creating dupli list (viewport draw method should not affect rendering/exporting)
+                    old_draw_method = particle_system.settings.draw_method
+                    particle_system.settings.draw_method = 'RENDER'
+                    bpy.context.scene.update()
+                    
                 obj.dupli_list_create(self.scene, 'RENDER')
+                
+                if old_draw_method:
+                    # Reset draw method
+                    particle_system.settings.draw_method = old_draw_method
+                    
                 if not obj.dupli_list:
                     raise Exception('cannot create dupli list for object %s' % obj.name)
             except Exception as err:
@@ -241,6 +312,9 @@ class GeometryExporter(SceneIterator):
                     continue
                 if not indigo_visible(self.scene, dupli_ob.object, is_dupli=True):
                     continue
+                
+                #Lighting
+                self.lc.handleMesh(dupli_ob.object)
 
                 do = dupli_ob.object
                 dm = dupli_ob.matrix.copy()
@@ -274,6 +348,8 @@ class GeometryExporter(SceneIterator):
 
     def handleLamp(self, obj):
         if OBJECT_ANALYSIS: indigo_log(' -> handleLamp: %s' % obj)
+        #Lighting
+        self.lc.handleLamp(obj)
 
         if obj.data.type == 'AREA':
             pass
