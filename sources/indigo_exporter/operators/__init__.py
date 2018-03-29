@@ -384,7 +384,7 @@ class _Impl_OT_indigo(_Impl_operator):
                 # check for unused medium	
             basic_medium = ET.fromstring("""
                                 <medium>
-                                   <uid>10200137</uid>
+                                   <uid>4294967294</uid>
 		                             <name>basic</name>
 			                           <precedence>10</precedence>
 			                             <basic>

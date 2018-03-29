@@ -312,6 +312,8 @@ class GeometryExporter(SceneIterator):
                     continue
                 if not indigo_visible(self.scene, dupli_ob.object, is_dupli=True):
                     continue
+                if hasattr(dupli_ob.object.data, 'polygons') and not dupli_ob.object.data.polygons and not dupli_ob.object.data.indigo_mesh.valid_proxy():
+                    continue
                 
                 #Lighting
                 self.lc.handleMesh(dupli_ob.object)

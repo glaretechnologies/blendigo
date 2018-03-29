@@ -1,7 +1,13 @@
+4.0.15
+--------
+* Bugfix: Incorrect export of basic medium (happens when exporting vast amount of objects)
+* Bugfix: Incorrect handling of empty meshes in dupli group
+
 4.0.14
 --------
 * Particle export optimisation
 * Particle display mode will not affect render (same as Blender's default)
+* Fixed lightlayer toggle and gain
 
 4.0.13
 --------
