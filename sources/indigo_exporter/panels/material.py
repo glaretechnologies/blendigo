@@ -551,52 +551,7 @@ class indigo_ui_material_displacement(material_subpanel, bpy.types.Panel):
             elif indigo_material_displacement.displacement_type == 'shader':
                 col.prop(indigo_material_displacement, 'displacement_SH_text', text="Shader Text")
 
-#legacy
-'''
-class indigo_ui_material_exponent(material_subpanel, bpy.types.Panel):
-    bl_label = 'Material Exponent Map'
-    
-    @classmethod
-    def poll(cls, context):
-        return super().poll(context) and context.object.active_material.indigo_material.type in PROPERTY_GROUP_USAGE['exponent']
 
-    def draw_header(self, context):
-        self.layout.prop(context.object.active_material.indigo_material.indigo_material_exponent, "exponent_enabled", text="")
-    
-    def draw(self, context):
-        indigo_material = context.object.active_material.indigo_material
-        indigo_material_exponent = indigo_material.indigo_material_exponent
-        
-        layout = self.layout
-        if indigo_material_exponent.exponent_enabled:
-            col = self.layout.column()
-            col.prop(indigo_material_exponent, 'exponent_type')
-            if indigo_material_exponent.exponent_type == 'texture':
-                col = self.layout.column()
-                col.prop_search(indigo_material_exponent, 'exponent_TX_texture', context.object.active_material, 'texture_slots')
-                
-                col = self.layout.column()
-                col.prop(indigo_material_exponent, 'exponent_TX_A')
-                col.enabled = indigo_material_exponent.exponent_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_exponent, 'exponent_TX_B')
-                col.enabled = indigo_material_exponent.exponent_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_exponent, 'exponent_TX_C')
-                col.enabled = indigo_material_exponent.exponent_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop_search(indigo_material_exponent, 'exponent_TX_uvset', context.object.data, 'uv_textures')
-
-                row = self.layout.row()
-                row.prop(indigo_material_exponent, 'exponent_TX_abc_from_tex')
-                row.prop(indigo_material_exponent, 'exponent_TX_smooth')
-            elif indigo_material_exponent.exponent_type == 'shader':
-                col.prop(indigo_material_exponent, 'exponent_SH_text', text="Shader Text")
-'''
-# new
 class indigo_ui_material_roughness(material_subpanel, bpy.types.Panel):
     bl_label = 'Material Roughness Map'
     
@@ -867,6 +822,7 @@ class indigo_ui_material_medium(material_subpanel, bpy.types.Panel):
                 
                 col.prop(current_med, 'sss')
                 if current_med.sss:
+                    col.prop(current_med, 'fast_sss')
                     col.prop(current_med, 'sss_scatter_SP_type')
                     if current_med.sss_scatter_SP_type == 'rgb':
                         row = col.row()
@@ -876,6 +832,7 @@ class indigo_ui_material_medium(material_subpanel, bpy.types.Panel):
                         row = col.row(align=True)
                         row.prop(current_med, 'sss_scatter_SP_uniform_val')
                         row.prop(current_med, 'sss_scatter_SP_uniform_exp')
+                    col.separator()
                         
                     col.prop(current_med, 'sss_phase_function')
                     if current_med.sss_phase_function == 'hg':

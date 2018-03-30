@@ -22,51 +22,6 @@ from . import register_properties_dict
     
 @register_properties_dict
 class Indigo_Material_Medium_Data_Properties(bpy.types.PropertyGroup):
-    visibility = {
-        'medium_type':    { },
-        'medium_ior':            { 'medium_type': 'basic' },
-        'medium_cauchy_b':        { 'medium_type': 'basic' },
-
-        'medium_basic_type':    { 'medium_type': 'basic' },
-        'medium_haemoglobin':    { 'medium_type': 'dermis' },
-        'medium_melanin':        { 'medium_type': 'epidermis' },
-        'medium_eumelanin':        { 'medium_type': 'epidermis' },
-        'medium_turbidity':        { 'medium_type': 'atmosphere' },
-        'medium_posx':        { 'medium_type': 'atmosphere' },
-        'medium_posy':        { 'medium_type': 'atmosphere' },
-        'medium_posz':        { 'medium_type': 'atmosphere' },
-        'sss':  { 'medium_type': 'basic' },
-        'sss_scatter_type'    :    { 'sss': True },
-        'sss_phase_function':    { 'sss': True },
-        'sss_phase_hg_type':    { 'sss': True, 'sss_phase_function': 'hg' },
-    }     
-
-    enabled = {
-        'sss': {'medium_type': 'basic'},
-        }
-    Med_SSS_Scatter_vis = deepcopy(Med_SSS_Scatter.visibility)
-    
-    for k,v in Med_SSS_Scatter_vis.items():
-        v.update({ 'sss': True })
-    
-    visibility.update( Med_SSS_Scatter_vis )
-    
-    Med_SSS_Phase_vis = deepcopy(Med_SSS_Phase.visibility)
-    
-    for k,v in Med_SSS_Phase_vis.items():
-        v.update({ 'sss': True, 'sss_phase_function': 'hg' })
-    
-    visibility.update( Med_SSS_Phase_vis )
-    
-    Med_Medium_Basic_vis = deepcopy(Med_Medium_Basic.visibility)
-    
-    for k,v in Med_Medium_Basic_vis.items():
-        v.update({ 'medium_type': 'basic' })
-    
-    visibility.update( Med_Medium_Basic_vis )
-    
-    ###
-    
     properties = [
         {
             'type': 'string',
@@ -95,14 +50,21 @@ class Indigo_Material_Medium_Data_Properties(bpy.types.PropertyGroup):
               #  ('atmosphere', 'Atmosphere', 'atmosphere'),
             ]
         },
-           {
+        {
             'type': 'bool',
             'attr': 'sss',
             'name': 'Subsurface scattering',
             'description': 'SSS',
             'default': False,
         },
-                {
+        {
+            'type': 'bool',
+            'attr': 'fast_sss',
+            'name': 'Fast SSS',
+            'description': 'Enable fast SSS',
+            'default': False,
+        },
+        {
             'type': 'enum',
             'attr': 'sss_phase_function',
             'name': 'Phase Function',
