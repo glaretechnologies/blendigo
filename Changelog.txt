@@ -1,3 +1,8 @@
+4.0.16
+--------
+* RGB/XYZ/Blackbody color choosing added to lighlayers
+* Added Fast SSS option to internal medium
+
 4.0.15
 --------
 * Bugfix: Incorrect export of basic medium (happens when exporting vast amount of objects)

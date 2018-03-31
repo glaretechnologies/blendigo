@@ -27,7 +27,8 @@ class medium_xml(xml_builder):
         if self.medium_data.medium_type == 'basic':
             fmt[self.medium_data.medium_type] = {
                 'ior': [self.medium_data.medium_ior],
-                'cauchy_b_coeff': [self.medium_data.medium_cauchy_b]
+                'cauchy_b_coeff': [self.medium_data.medium_cauchy_b],
+                'fast_sss': [str(self.medium_data.fast_sss).lower()],
             }
             if self.medium_data.medium_type_SP_type == 'rgb':
                 fmt[self.medium_data.medium_type]['absorption_coefficient_spectrum'] = rgb([(1.0-i)*self.medium_data.medium_type_SP_rgb_gain for i in self.medium_data.medium_type_SP_rgb])

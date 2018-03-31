@@ -14,15 +14,83 @@ lightlayer_data_properties = [
         'name': ''
     },
     {
+        'type': 'enum',
+        'attr': 'lightlayer_SP_type',
+        'name': 'Colour Type',
+        'description': 'Colour Type',
+        'default': 'rgb',
+        'expand': True,
+        'items': [
+            ('rgb', 'RGB', 'rgb'),
+            ('blackbody', 'Blackbody', 'blackbody'),
+            ('xyz', 'XYZ', 'xyz'),
+        ]
+    },
+    {
+        'type': 'float_vector',
+        'attr': 'lightlayer_SP_rgb',
+        'name': 'RGB Colour',
+        'description': 'RGB Colour',
+        'default': (1,1,1),
+        'min': 0.0,
+        'soft_min': 0.0,
+        'max': 1.0,
+        'soft_max': 1.0,
+        'subtype': 'COLOR',
+        'precision': 5,
+    },
+    {
         'type': 'float',
-        'attr': 'gain',
+        'attr': 'lightlayer_SP_rgb_gain',
+        'name': 'Brightness',
+        'description': 'Overall brightness for this light layer',
+        'min': 0.0,
+        'soft_min': 0.0,
+        'default': 1.0,
+        'precision': 4
+    },
+    {
+        'type': 'float_vector',
+        'attr': 'lightlayer_SP_xyz',
+        'name': 'XYZ Colour',
+        'description': 'XYZ Colour',
+        'default': (1,1,1),
+        'min': 0.0,
+        'soft_min': 0.0,
+        'max': 1.0,
+        'soft_max': 1.0,
+        'precision': 5,
+    },
+    {
+        'type': 'float',
+        'attr': 'lightlayer_SP_xyz_gain',
         'name': 'Gain',
         'description': 'Overall gain for this light layer',
         'min': 0.0,
         'soft_min': 0.0,
         'default': 1.0,
         'precision': 4
-    }
+    },
+    {
+        'type': 'float',
+        'attr': 'lightlayer_blackbody_temp',
+        'name': 'Temperature',
+        'description': 'Temperature',
+        'min': 1000.0,
+        'max': 10000.0,
+        'default': 6500.0,
+        'step': 100
+    },
+    {
+        'type': 'float',
+        'attr': 'lightlayer_blackbody_gain',
+        'name': 'Gain',
+        'description': 'Overall gain for this light layer',
+        'min': 0.0,
+        'soft_min': 0.0,
+        'default': 1.0,
+        'precision': 4
+    },
 ]
 
 from .. import export
@@ -60,7 +128,85 @@ lightlayers_properties = [
         'min': 0.0,
         'soft_min': 0.0,
         'precision': 4
-    }
+    },
+    {
+        'type': 'enum',
+        'attr': 'default_SP_type',
+        'name': 'Colour Type',
+        'description': 'Colour Type',
+        'default': 'rgb',
+        'expand': True,
+        'items': [
+            ('rgb', 'RGB', 'rgb'),
+            ('blackbody', 'Blackbody', 'blackbody'),
+            ('xyz', 'XYZ', 'xyz'),
+        ]
+    },
+    {
+        'type': 'float_vector',
+        'attr': 'default_SP_rgb',
+        'name': 'RGB Colour',
+        'description': 'RGB Colour',
+        'default': (1,1,1),
+        'min': 0.0,
+        'soft_min': 0.0,
+        'max': 1.0,
+        'soft_max': 1.0,
+        'subtype': 'COLOR',
+        'precision': 5,
+    },
+    {
+        'type': 'float',
+        'attr': 'default_SP_rgb_gain',
+        'name': 'Brightness',
+        'description': 'Overall brightness for this light layer',
+        'min': 0.0,
+        'soft_min': 0.0,
+        'default': 1.0,
+        'precision': 4
+    },
+    {
+        'type': 'float_vector',
+        'attr': 'default_SP_xyz',
+        'name': 'XYZ Colour',
+        'description': 'XYZ Colour',
+        'default': (1,1,1),
+        'min': 0.0,
+        'soft_min': 0.0,
+        'max': 1.0,
+        'soft_max': 1.0,
+        'precision': 5,
+    },
+    {
+        'type': 'float',
+        'attr': 'default_SP_xyz_gain',
+        'name': 'Gain',
+        'description': 'Overall gain for this light layer',
+        'min': 0.0,
+        'soft_min': 0.0,
+        'default': 1.0,
+        'precision': 4
+    },
+    {
+        'type': 'float',
+        'attr': 'default_blackbody_temp',
+        'name': 'Temperature',
+        'description': 'Temperature',
+        'min': 1000.0,
+        'max': 10000.0,
+        'default': 6500.0,
+        'step': 100
+    },
+    {
+        'type': 'float',
+        'attr': 'default_blackbody_gain',
+        'name': 'Gain',
+        'description': 'Overall gain for this light layer',
+        'min': 0.0,
+        'soft_min': 0.0,
+        'default': 1.0,
+        'precision': 4
+    },
 ]
 
 def is_layer_empty(layer):
