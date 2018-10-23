@@ -50,58 +50,32 @@ def set_render_mode(self, context):
         self.bidir = True
         self.metro = False
         self.foreground_alpha = False
-        self.material_id = False
         self.gpu = False
         self.shadow = False
-        self.depth_pass = False
     if self.render_mode == 'bidir_mlt':
         self.bidir = True
         self.metro = True
         self.foreground_alpha = False
-        self.material_id = False
         self.gpu = False
         self.shadow = False
-        self.depth_pass = False
     if self.render_mode == 'path_cpu':
         self.bidir = False
         self.metro = False
         self.foreground_alpha = False
-        self.material_id = False
         self.gpu = False
         self.shadow = False
-        self.depth_pass = False
     if self.render_mode == 'path_gpu':
         self.bidir = False
         self.metro = False
         self.foreground_alpha = False
-        self.material_id = False
         self.gpu = True
         self.shadow = False
-        self.depth_pass = False
-    if self.render_mode == 'material_id':
-        self.bidir = False
-        self.metro = False
-        self.foreground_alpha = False
-        self.material_id = True
-        self.gpu = False
-        self.shadow = False
-        self.depth_pass = False
     if self.render_mode == 'shadow':
         self.bidir = False
         self.metro = False
         self.foreground_alpha = False
-        self.material_id = False
         self.gpu = False
         self.shadow = True
-        self.depth_pass = False
-    if self.render_mode == 'depth':
-        self.bidir = False
-        self.metro = False
-        self.foreground_alpha = False
-        self.material_id = False
-        self.gpu = False
-        self.shadow = False
-        self.depth_pass = True
 
 def set_filter_preset(self, context):
     if self.filter_preset == 'default':
@@ -193,8 +167,6 @@ properties = [
             ('bidir_mlt', 'BiDir MLT (CPU)', 'Bidirectional Path Tracing with Metropolis Light Transport on the CPU'),
             ('path_cpu', 'Path (CPU)', 'Path Tracing on the CPU'),
             ('path_gpu', 'Path (GPU)', 'GPU accelerated Path Tracing'),
-            ('material_id', 'Material ID', 'Render materials as unique flat colours for compositing'),
-            ('depth', 'Depth Pass', 'A greyscale image corresponding to camera depth values is generated, used for post-processing'),
             ('shadow', 'Shadow Pass', 'Render shadow pass for compositing'),
             ('custom', 'Custom', 'Choose your own settings')
         ],
@@ -215,20 +187,6 @@ properties = [
         'attr': 'alpha_mask',
         'name': 'Alpha Mask',
         'description': 'Enable Alpha Mask Rendering',
-        'default': False,
-    },
-    {
-        'type': 'bool',
-        'attr': 'depth_pass',
-        'name': 'Depth Pass',
-        'description': 'Enable Depth Image Rendering',
-        'default': False,
-    },
-    {
-        'type': 'bool',
-        'attr': 'material_id',
-        'name': 'Material ID',
-        'description': 'Enable Material ID Rendering',
         'default': False,
     },
     {
@@ -549,6 +507,115 @@ properties = [
         'name': 'Render Devices',
         'ptype': IndigoDevice,
     },
+    {
+        'type': 'bool',
+        'attr': 'channel_direct_lighting',
+        'name': 'Diffuse Direct Lighting',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_indirect_lighting',
+        'name': 'Diffuse Indirect Lighting',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_specular_reflection_lighting',
+        'name': 'Specular Reflection Lighting',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_refraction_lighting',
+        'name': 'Refraction Lighting',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_transmission_lighting',
+        'name': 'Transmission Lighting',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_emission_lighting',
+        'name': 'Emission',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_participating_media_lighting',
+        'name': 'Participating Media',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_sss_lighting',
+        'name': 'Sub-Surface Scattering',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_normals',
+        'name': 'Normals',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_normals_pre_bump',
+        'name': 'Normals Pre-Bump',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_depth',
+        'name': 'Depth',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_position',
+        'name': 'Position',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_material_id',
+        'name': 'Material ID',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_object_id',
+        'name': 'Object ID',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_alpha',
+        'name': 'Alpha',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_material_mask',
+        'name': 'Material Masks',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_object_mask',
+        'name': 'Object Masks',
+        'default': False,
+    },
+    {
+        'type': 'bool',
+        'attr': 'save_render_channels_exr',
+        'name': 'Render Channels EXR',
+        'description': 'Save render channels in EXR format',
+        'default': False
+    },
 ]
 
 ##########
@@ -708,6 +775,7 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
                 'save_untonemapped_exr': 'save_exr_utm',
                 'save_tonemapped_exr': 'save_exr_tm',
                 'save_igi': 'save_igi',
+                'save_render_channels_exr': 'save_render_channels_exr',
                 'image_save_period': 'period_save',
                 'halt_time': 'halttime',
                 'halt_samples_per_pixel': 'haltspp',
@@ -721,14 +789,30 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
                 'vignetting': [str(scene.camera.data.indigo_camera.vignetting).lower()],
                 'post_process_diffraction': [str(scene.camera.data.indigo_camera.ad_post).lower()],
                 'render_foreground_alpha': 'foreground_alpha',
-                'depth_pass': 'depth_pass',
                 'max_contribution': 'max_contribution',
                 'clamp_contributions': 'clamp_contributions',
                 
-                'material_id_tracer': 'material_id',
                 'shadow_pass': 'shadow',
 
-                'gpu': 'gpu'
+                'gpu': 'gpu',
+                
+                'normals_channel': 'channel_normals',
+                'normals_pre_bump_channel': 'channel_normals_pre_bump',
+                'position_channel': 'channel_depth',
+                'depth_channel': 'channel_position',
+                'material_id_channel': 'channel_material_id',
+                'object_id_channel': 'channel_object_id',
+                'foreground_channel': 'channel_alpha',
+                'material_masks': 'channel_material_mask',
+                'object_masks': 'channel_object_mask',
+                'direct_lighting_channel': 'channel_direct_lighting',
+                'indirect_lighting_channel': 'channel_indirect_lighting',
+                'specular_reflection_lighting_channel': 'channel_specular_reflection_lighting',
+                'refraction_lighting_channel': 'channel_refraction_lighting',
+                'transmission_lighting_channel': 'channel_transmission_lighting',
+                'emission_lighting_channel': 'channel_emission_lighting',
+                'participating_media_lighting_channel': 'channel_participating_media_lighting',
+                'sss_lighting_channel': 'channel_sss_lighting',
             },
         }
 

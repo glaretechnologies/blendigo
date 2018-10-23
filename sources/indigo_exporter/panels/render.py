@@ -30,8 +30,6 @@ class IndigoRenderEngineSettings(bpy.types.Panel):
             sc.prop(indigo_engine, 'metro')
             
             sc = row.column()
-            sc.prop(indigo_engine, 'depth_pass')
-            sc.prop(indigo_engine, 'material_id')
             sc.prop(indigo_engine, 'shadow')
             
         col.separator()
@@ -127,6 +125,46 @@ class RefreshComputingDevices(bpy.types.Operator):
         
             
         
+
+class IndigoRenderRenderChannels(bpy.types.Panel):
+    bl_idname = "view3d.indigo_render_render_channels"
+    bl_label = "Render Channels"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "render"
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene.render.engine == BL_IDNAME
+    
+    def draw(self, context):
+        indigo_engine = context.scene.indigo_engine
+        layout = self.layout
+        
+        sub = layout.column()
+        row = sub.row()
+        
+        sc = row.column()
+        sc.prop(indigo_engine, 'channel_normals')
+        sc.prop(indigo_engine, 'channel_normals_pre_bump')
+        sc.prop(indigo_engine, 'channel_depth')
+        sc.prop(indigo_engine, 'channel_position')
+        sc.prop(indigo_engine, 'channel_material_id')
+        sc.prop(indigo_engine, 'channel_object_id')
+        sc.prop(indigo_engine, 'channel_alpha')
+        sc.prop(indigo_engine, 'channel_material_mask')
+        sc.prop(indigo_engine, 'channel_object_mask')
+        
+        sc = row.column()
+        sc.prop(indigo_engine, 'channel_direct_lighting')
+        sc.prop(indigo_engine, 'channel_indirect_lighting')
+        sc.prop(indigo_engine, 'channel_specular_reflection_lighting')
+        sc.prop(indigo_engine, 'channel_refraction_lighting')
+        sc.prop(indigo_engine, 'channel_transmission_lighting')
+        sc.prop(indigo_engine, 'channel_emission_lighting')
+        sc.prop(indigo_engine, 'channel_participating_media_lighting')
+        sc.prop(indigo_engine, 'channel_sss_lighting')
+
         
 class IndigoRenderExportSettings(bpy.types.Panel):
     bl_idname = "view3d.indigo_render_export_settings"
@@ -162,6 +200,7 @@ class IndigoRenderExportSettings(bpy.types.Panel):
         sc.prop(indigo_engine, 'save_exr_utm')
         sc.prop(indigo_engine, 'save_exr_tm')
         sc.prop(indigo_engine, 'save_igi')
+        sc.prop(indigo_engine, 'save_render_channels_exr')
         
         sc = row.column()
         sc.prop(indigo_engine, 'ov_watermark')
