@@ -1,5 +1,5 @@
 import collections, xml.etree.cElementTree as ET, time, os
-from extensions_framework import log, util as efutil
+from ..extensions_framework import log, util as efutil
 
 REPORTER = None
 PRINT_CONSOLE = efutil.find_config_value('indigo', 'defaults', 'console_output', False)

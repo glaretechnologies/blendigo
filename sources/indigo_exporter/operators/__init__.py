@@ -5,7 +5,7 @@ import xml.dom.minidom as MD
 
 import bpy            #@UnresolvedImport
 
-from extensions_framework import util as efutil
+from ..extensions_framework import util as efutil
 
 from .. import export
 from .. export import (
@@ -381,25 +381,28 @@ class _Impl_OT_indigo(_Impl_operator):
                     )
                 indigo_log('Exporting Medium: %s ' % (medium_name))         
                 # TODO: 
-                # check for unused medium	
+                # check for unused medium
+                # 4294967292 = 1 mesh + 1 material
+                # 10200137
             basic_medium = ET.fromstring("""
                                 <medium>
-                                   <uid>4294967294</uid>
-		                             <name>basic</name>
-			                           <precedence>10</precedence>
-			                             <basic>
-				                           <ior>1.5</ior>
-				                           <cauchy_b_coeff>0</cauchy_b_coeff>
-				                           <max_extinction_coeff>1</max_extinction_coeff>
-				                           <absorption_coefficient>
-					                         <constant>
-						                      <uniform>
-							                   <value>0</value>
-						                      </uniform>
-					                         </constant>
-				                           </absorption_coefficient>
-			                             </basic>
-	                            </medium>   
+                                   <uid>10200137</uid>
+                                   <name>basic</name>
+                                   <precedence>10</precedence>
+                                   <basic>
+                                      <ior>1.5</ior>
+                                      <cauchy_b_coeff>0</cauchy_b_coeff>
+                                      <max_extinction_coeff>1</max_extinction_coeff>
+                                      <fast_sss>false</fast_sss>
+                                      <absorption_coefficient>
+                                         <constant>
+                                            <uniform>
+                                               <value>0</value>
+                                            </uniform>
+                                         </constant>
+                                      </absorption_coefficient>
+                                   </basic>
+                                </medium>   
                          """)
             
             self.scene_xml.append(basic_medium)

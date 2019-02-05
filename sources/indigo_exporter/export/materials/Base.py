@@ -2,7 +2,7 @@ import os
 
 import bpy            #@UnresolvedImport
 
-from extensions_framework import util as efutil
+from ...extensions_framework import util as efutil
 
 from .. import xml_builder, xml_cdata
 from .. materials.spectra import blackbody, rgb, uniform

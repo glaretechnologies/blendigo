@@ -5,9 +5,9 @@ import bpy        #@UnresolvedImport
 import bl_ui
 import xml.etree.cElementTree as ET
 
-from extensions_framework import util as efutil
+from ..extensions_framework import util as efutil
 #from extensions_framework.ui import property_group_renderer
-from extensions_framework.validate import Logic_OR as LOR, Logic_AND as LAND 
+from ..extensions_framework.validate import Logic_OR as LOR, Logic_AND as LAND 
 
 #from indigo import IndigoAddon
 from .. core.util import getResourcesPath 

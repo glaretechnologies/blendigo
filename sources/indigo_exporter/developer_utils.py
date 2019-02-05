@@ -27,13 +27,21 @@ def setup_addon_modules(path, package_name, reload):
     def import_submodules(names):
         modules = []
         for name in names:
-            modules.append(importlib.import_module("." + name, package_name))
+            try:
+                modules.append(importlib.import_module("." + name, package_name))
+            except Exception as e:
+                print("Error:", name, e)
+                continue
         return modules
 
     def reload_modules(modules):
         modules.sort(key = lambda module: getattr(module, "__reload_order_index__", 0))
         for module in modules:
-            importlib.reload(module)
+            try:
+                importlib.reload(module)
+            except Exception as e:
+                print("Error2:", module, e)
+                continue
 
     names = get_submodule_names()
     modules = import_submodules(names)

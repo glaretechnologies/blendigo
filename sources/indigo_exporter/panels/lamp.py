@@ -74,8 +74,7 @@ class IndigoUILampHemi(bpy.types.Panel):
             col.prop(indigo_lamp, 'env_bg_SP_type')
             if indigo_lamp.env_bg_SP_type == 'rgb':
                 col.prop(indigo_lamp, 'env_bg_SP_rgb')
-                #row = col.row(align=True)
-                #row.prop(indigo_lamp, 'env_bg_SP_rgb_gain_val')
+                col.prop(indigo_lamp, 'env_bg_SP_rgb_gain_val')
             if indigo_lamp.env_bg_SP_type == 'blackbody':
                 row = col.row(align=True)
                 row.prop(indigo_lamp, 'env_bg_SP_blackbody_temp')

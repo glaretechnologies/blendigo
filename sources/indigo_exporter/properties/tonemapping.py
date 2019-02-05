@@ -1,7 +1,7 @@
 import bpy
 import os
 
-from extensions_framework import util as efutil
+from .. extensions_framework import util as efutil
 
 from .. core.util import getResourcesPath
 from .. export import xml_builder, indigo_log

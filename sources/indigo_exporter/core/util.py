@@ -1,6 +1,6 @@
 import getpass, os, platform, re, subprocess, sys
 
-from extensions_framework.util import filesystem_path
+from ..extensions_framework.util import filesystem_path
 
 class PlatformInformation(object):
     '''
@@ -136,3 +136,22 @@ def getAddonDir():
     script_file = os.path.realpath(__file__)
     dir = os.path.dirname(script_file)
     return dir.split(os.path.sep)[-2]
+
+
+class Borg(object):
+    _shared_state = {}
+
+    def __new__(cls, *args, **kwargs):
+        obj = super().__new__(cls, *args, **kwargs)
+        obj.__dict__ = cls._shared_state
+        return obj
+    
+class Counter(Borg):
+    counter = 0
+    def __init__(self):
+        pass
+    
+    def getNewId(self):
+        self.counter += 1
+        return self.counter
+    

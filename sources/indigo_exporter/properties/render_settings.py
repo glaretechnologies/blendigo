@@ -1,7 +1,7 @@
 import bpy
 from bpy.app.handlers import persistent
 from .. core.util import getInstallPath, getAddonDir
-from extensions_framework.util import find_config_value, write_config_value
+from ..extensions_framework.util import find_config_value, write_config_value
 
 from .. import export, bl_info
 from .. core.util import PlatformInformation, getInstallPath
@@ -464,7 +464,7 @@ properties = [
         'soft_min': 1,
         'max': 10000000,
         'soft_max': 10000000,
-    },
+    },    
     {
         'type': 'enum',
         'attr': 'network_mode',
@@ -795,7 +795,7 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
                 'shadow_pass': 'shadow',
 
                 'gpu': 'gpu',
-                
+
                 'normals_channel': 'channel_normals',
                 'normals_pre_bump_channel': 'channel_normals_pre_bump',
                 'position_channel': 'channel_depth',

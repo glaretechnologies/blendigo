@@ -854,4 +854,3 @@ class indigo_ui_material_medium(material_subpanel, bpy.types.Panel):
                 row = col.row(align=True)
                 row.prop(current_med, 'medium_melanin', slider=True)
                 row.prop(current_med, 'medium_eumelanin', slider=True)
-            
