@@ -28,8 +28,8 @@ class SpecularMaterial(
         # medium check <-> name
         if (len(medium_name) == 0) or  (medium_index == -1):
             medium_name = "basic"
-            medium_index = 10190137
-            #medium_index = 4294957292
+            #medium_index = 10190137
+            medium_index = -1
                      
         else:
             medium_name = medium_name + '_medium'
@@ -39,7 +39,6 @@ class SpecularMaterial(
             'backface_emit': [str(self.material_group.indigo_material_emission.backface_emit).lower()],
             'emission_sampling_factor': [self.material_group.indigo_material_emission.em_sampling_mult],
             element_name: {
-                #'internal_medium_name': [ medium_name ],
                 'internal_medium_uid': [ +medium_index + 10000 ]
             }
         }

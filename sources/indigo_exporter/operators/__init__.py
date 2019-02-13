@@ -386,7 +386,7 @@ class _Impl_OT_indigo(_Impl_operator):
                 # 10200137
             basic_medium = ET.fromstring("""
                                 <medium>
-                                   <uid>10200137</uid>
+                                   <uid>9999</uid>
                                    <name>basic</name>
                                    <precedence>10</precedence>
                                    <basic>
