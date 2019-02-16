@@ -361,7 +361,7 @@ class GeometryExporter(SceneIterator):
 
     def handleMesh(self, obj):
         if OBJECT_ANALYSIS: indigo_log(' -> handleMesh: %s' % obj)
-
+        self.lc.handleMesh(obj)
         self.exportModelElements(
             obj,
             self.buildMesh(obj),
