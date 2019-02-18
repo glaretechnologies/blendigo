@@ -278,9 +278,6 @@ class GeometryExporter(SceneIterator):
 
     def handleDuplis(self, obj, particle_system=None):
         try:
-            if obj in self.ExportedDuplis:
-                indigo_log('Duplis for object %s already exported'%obj)
-                return
 
             try:
                 old_draw_method = None

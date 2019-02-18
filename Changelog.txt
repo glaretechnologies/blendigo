@@ -1,3 +1,9 @@
+4.2.2
+--------
+* Compatible with latest 2.79 builds
+* Autoupdater
+* Bugfixes: dupli lights, dupli light/lightlayer, exr export, uid bug, always default background bug 
+
 4.0.16
 --------
 * RGB/XYZ/Blackbody color choosing added to lighlayers
