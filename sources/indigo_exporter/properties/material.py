@@ -21,7 +21,7 @@ from .. export.materials.medium      import  medium_xml
 from .. export.materials.External    import ExternalMaterial
 from .. export.materials.Null    import NullMaterial
 from .. export.materials.FastSSS    import FastSSSMaterial
-from .. export import ( indigo_log )
+# from .. export import ( indigo_log )
 
 from .. import export
 from . import register_properties_dict
@@ -1415,17 +1415,13 @@ def get_material_filename_from_external_mat(self, blender_material):
                 ex_str += ' "%s"' % blender_material.name
             raise Exception(ex_str)
         
-        #self.material_name = igm_name
-        
-        if 'material_name' in self.alert:
-            del self.alert['material_name']
+        self.material_name = igm_name # ??? seems to work both in stills and animations - MZ
             
         return igm_name
         
         # self.is_valid = True
     except Exception as err:
         #print('%s' % err)
-        self.alert['material_name'] = True
         # self.material_name = '%s' % err
         # self.is_valid = False
         raise err

@@ -16,10 +16,10 @@ Created by Marcin Zielinski, Doug Hammond, Thomas Ludwig, Nicholas Chapman, Yves
 '''
 
 bl_info = {
-    "name": "Blendigo - Indigo Exporter Dev",
+    "name": "Blendigo - Indigo Exporter",
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
-    "version": (4, 2, 1),
+    "version": (4, 2, 2),
     "blender": (2, 78, 0),
     "location": "View3D",
     "wiki_url": "",
@@ -112,7 +112,7 @@ def register():
     # so that users can revert back to a working version
     addon_updater_ops.register(bl_info)
     from .addon_updater import Updater as updater
-    updater.user = "StyriamMZ"
+    updater.user = "glaretechnologies"
     updater.repo = "blendigo"
     updater.addon = "blendigo"
     # updater.include_branche_list = ["master", "dev"]
