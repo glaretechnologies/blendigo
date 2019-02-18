@@ -5,9 +5,9 @@ import bpy        #@UnresolvedImport
 import bl_ui
 import xml.etree.cElementTree as ET
 
-from extensions_framework import util as efutil
+from ..extensions_framework import util as efutil
 #from extensions_framework.ui import property_group_renderer
-from extensions_framework.validate import Logic_OR as LOR, Logic_AND as LAND 
+from ..extensions_framework.validate import Logic_OR as LOR, Logic_AND as LAND 
 
 #from indigo import IndigoAddon
 from .. core.util import getResourcesPath 
@@ -21,7 +21,7 @@ from .. export.materials.medium      import  medium_xml
 from .. export.materials.External    import ExternalMaterial
 from .. export.materials.Null    import NullMaterial
 from .. export.materials.FastSSS    import FastSSSMaterial
-from .. export import ( indigo_log )
+# from .. export import ( indigo_log )
 
 from .. import export
 from . import register_properties_dict
@@ -99,8 +99,6 @@ class Spectrum(object):
         if self.opts['tabulated']:
             self.types.append( ('tabulated', 'Regular tabulated', 'tabulated') )
         
-        self.controls = self.get_controls()
-        self.visibility = self.get_visibility()
         self.properties = self.get_properties()
     
     def set_master_colour(self, s, c):
@@ -193,55 +191,6 @@ class Spectrum(object):
         
         return p
     
-    def get_visibility(self):
-        d = {
-            self.name + '_type':                { self.channel_name + '_type': 'spectrum' },
-        }
-        if self.opts['rgb']:
-            d.update({
-                self.name + '_rgb':                { self.channel_name + '_type': 'spectrum', self.name + '_type': 'rgb' },
-            })
-        if self.opts['rgbgain']:
-            d.update({
-                self.name + '_rgb_gain':        { self.channel_name + '_type': 'spectrum', self.name + '_type': 'rgb' },
-            })
-        if self.opts['uniform']:
-            d.update({
-                self.name + '_uniform_val':        { self.channel_name + '_type': 'spectrum', self.name + '_type': 'uniform' },
-                self.name + '_uniform_exp':        { self.channel_name + '_type': 'spectrum', self.name + '_type': 'uniform' },
-            })
-        if self.opts['peak']:
-            d.update({
-            })
-        if self.opts['blackbody']:
-            d.update({
-                self.name + '_blackbody_temp':    { self.channel_name + '_type': 'spectrum', self.name + '_type': 'blackbody' },
-                self.name + '_blackbody_gain':    { self.channel_name + '_type': 'spectrum', self.name + '_type': 'blackbody' },
-            })
-        if self.opts['tabulated']:
-            d.update({
-            })
-        
-        return d
-    
-    def get_controls(self):
-        c = [ self.name + '_type' ] if len(self.types) > 1 else []
-        
-        if self.opts['rgb']:
-            c += [ self.name + '_rgb' ]
-            if self.opts['rgbgain']:
-                c += [ self.name + '_rgb_gain' ]
-        if self.opts['uniform']:
-            c += [[
-                self.name + '_uniform_val', self.name + '_uniform_exp'
-            ]]
-        if self.opts['blackbody']:
-            c += [[
-                self.name + '_blackbody_temp', self.name + '_blackbody_gain'
-            ]]
-        
-        return c
-    
 class Shader(object):
     
     #channel_name = None
@@ -258,19 +207,7 @@ class Shader(object):
         defaults.update(opts)
         self.opts = defaults
         
-        self.controls = self.get_controls()
-        self.visibility = self.get_visibility()
         self.properties = self.get_properties()
-    
-    def get_controls(self):
-        return [
-            self.name + '_sht',
-        ]
-    
-    def get_visibility(self):
-        return {
-            self.name+'_sht':    { self.channel_name+'_type': 'shader' },
-        }
     
     def get_properties(self):
         return [
@@ -307,36 +244,7 @@ class Texture(object):
         defaults.update(opts)
         self.opts = defaults
         
-        self.controls = self.get_controls()
-        self.enabled = self.get_enabled()
-        self.visibility = self.get_visibility()
         self.properties = self.get_properties()
-    
-    def get_controls(self):
-        return [
-            self.name + '_texture_chooser',
-            self.name+'_A', self.name+'_B', self.name+'_C',
-            self.name + '_uvset_list',
-            [self.name+'_abc_from_tex', self.name+'_smooth'],
-        ]
-    
-    def get_enabled(self):
-        return {
-            self.name+'_A':    { self.name+'_abc_from_tex': False },
-            self.name+'_B':    { self.name+'_abc_from_tex': False },
-            self.name+'_C':    { self.name+'_abc_from_tex': False },
-        }
-    
-    def get_visibility(self):
-        return {
-            self.name+'_texture_chooser':    { self.channel_name+'_type': 'texture' },
-            self.name+'_abc_from_tex':        { self.channel_name+'_type': 'texture' },
-            self.name+'_smooth':            { self.channel_name+'_type': 'texture' },
-            self.name+'_uvset_list':        { self.channel_name+'_type': 'texture' },
-            self.name+'_A':                    { self.channel_name+'_type': 'texture' },
-            self.name+'_B':                    { self.channel_name+'_type': 'texture' },
-            self.name+'_C':                    { self.channel_name+'_type': 'texture' },
-        }
     
     def get_properties(self):
         return [
@@ -495,15 +403,6 @@ class Indigo_Texture_Properties(bpy.types.PropertyGroup):
     
 class MaterialChannel(object):
     
-    #controls = None
-    #enabled = None
-    #visibility = None
-    #properties = None
-    
-    #spectrum = None
-    #texture = None
-    #shader = None
-    
     def __init__(self, name, **opts):
         
         self.name = name
@@ -552,9 +451,6 @@ class MaterialChannel(object):
         else:
             self.shader = None
                   
-        self.controls = self.get_controls()
-        self.enabled = self.get_enabled()
-        self.visibility = self.get_visibility()
         self.properties = self.get_properties()
     
     def get_properties(self):
@@ -600,78 +496,6 @@ class MaterialChannel(object):
             
         return p
     
-    def get_controls(self):
-        c = []
-        if self.opts['switch']:
-            c += [
-#                [self.name+'_label', self.name+'_enabled'],
-            ]
-        
-        c += [ self.name+'_type' ] if len(self.types) > 1 else []
-        
-        if self.spectrum is not None:
-            c += self.spectrum.controls
-            
-        #if self.constant is not None:
-        #    c += self.constant.controls
-        
-        if self.texture is not None:
-            c += self.texture.controls
-            
-        if self.shader is not None:
-            c += self.shader.controls
-        
-        return c
-    
-    def get_enabled(self):
-        d= {}
-        
-        if self.texture is not None:
-            td = deepcopy(self.texture.enabled)
-            #if self.opts['switch']:
-            #    for v in td.values():
-            #        v.update({self.name+'_enabled': True})
-            d.update(td)
-        
-        return d
-    
-    def get_visibility(self):
-        if self.opts['switch']:
-            d = {
-                self.name+'_type':    { self.name+'_enabled': True },
-            }
-        else:
-            d = {}
-        
-        if self.spectrum is not None:
-            sd = deepcopy(self.spectrum.visibility)
-            if self.opts['switch']:
-                for v in sd.values():
-                    v.update({self.name+'_enabled': True})
-            d.update(sd)
-            
-        #if self.constant is not None:
-        #    sd = deepcopy(self.constant.visibility)
-        #    if self.opts['switch']:
-        #        for v in sd.values():
-        #            v.update({self.name+'_enabled': True})
-        #    d.update(sd)
-        
-        if self.texture is not None:
-            td = deepcopy(self.texture.visibility)
-            if self.opts['switch']:
-                for v in td.values():
-                    v.update({self.name+'_enabled': True})
-            d.update(td)
-        
-        if self.shader is not None:
-            td = deepcopy(self.shader.visibility)
-            if self.opts['switch']:
-                for v in td.values():
-                    v.update({self.name+'_enabled': True})
-            d.update(td)
-        
-        return d
 
 
 class indigo_material_feature(bpy.types.PropertyGroup):#just a label for now
@@ -698,7 +522,6 @@ def EmissionLightLayerParameter():
     ]
 @register_properties_dict
 class indigo_material_emission(indigo_material_feature):
-    enabled = Cha_Emit.enabled
     
     properties = Cha_Emit.properties + \
         EmissionLightLayerParameter() + \
@@ -811,9 +634,6 @@ class indigo_material_emission(indigo_material_feature):
 Cha_Colour = MaterialChannel('colour', spectrum=True, texture=True, shader=True, switch=False, master_colour=True)
 @register_properties_dict
 class indigo_material_colour(indigo_material_feature):
-    controls    = Cha_Colour.controls
-    visibility    = Cha_Colour.visibility
-    enabled        = Cha_Colour.enabled
     properties    = Cha_Colour.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -822,10 +642,6 @@ class indigo_material_colour(indigo_material_feature):
 Cha_Bump = MaterialChannel('bumpmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Bump Map')
 @register_properties_dict
 class indigo_material_bumpmap(indigo_material_feature):
-    
-    controls    = Cha_Bump.controls
-    visibility    = Cha_Bump.visibility
-    enabled        = Cha_Bump.enabled
     properties    = Cha_Bump.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -834,10 +650,6 @@ class indigo_material_bumpmap(indigo_material_feature):
 Cha_Normal = MaterialChannel('normalmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Normal Map')
 @register_properties_dict
 class indigo_material_normalmap(indigo_material_feature):
-    
-    controls    = Cha_Normal.controls
-    visibility    = Cha_Normal.visibility
-    enabled        = Cha_Normal.enabled
     properties    = Cha_Normal.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -846,10 +658,6 @@ class indigo_material_normalmap(indigo_material_feature):
 Cha_Disp = MaterialChannel('displacement', spectrum=False, texture=True,  shader=True,  switch=True, label='Displacement Map')
 @register_properties_dict
 class indigo_material_displacement(indigo_material_feature):
-    
-    controls    = Cha_Disp.controls
-    visibility    = Cha_Disp.visibility
-    enabled        = Cha_Disp.enabled
     properties    = Cha_Disp.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -859,10 +667,6 @@ class indigo_material_displacement(indigo_material_feature):
 Cha_Exp = MaterialChannel('exponent', spectrum=False, texture=True,  shader=True,  switch=True, label='Exponent Map')
 @register_properties_dict
 class indigo_material_exponent(indigo_material_feature):
-    
-    controls    = Cha_Exp.controls
-    visibility    = Cha_Exp.visibility
-    enabled        = Cha_Exp.enabled
     properties    = Cha_Exp.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -871,10 +675,6 @@ class indigo_material_exponent(indigo_material_feature):
 Cha_Rough = MaterialChannel('roughness', spectrum=False, texture=True,  shader=True,  switch=True, label='Roughness Map')
 @register_properties_dict
 class indigo_material_roughness(indigo_material_feature):
-    
-    #controls    = Cha_Rough.controls
-    #visibility    = Cha_Rough.visibility
-    enabled        = Cha_Rough.enabled
     properties    = Cha_Rough.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -883,10 +683,6 @@ class indigo_material_roughness(indigo_material_feature):
 Cha_Fres = MaterialChannel('fresnel_scale', spectrum=False, texture=True,  shader=True,  switch=True, label='Fresnel Scale Map')
 @register_properties_dict
 class indigo_material_fresnel_scale(indigo_material_feature):
-    
-    controls    = Cha_Fres.controls
-    visibility    = Cha_Fres.visibility
-    enabled        = Cha_Fres.enabled
     properties    = Cha_Fres.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -895,10 +691,6 @@ class indigo_material_fresnel_scale(indigo_material_feature):
 Cha_BlendMap  = MaterialChannel('blendmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Blend Map')
 @register_properties_dict
 class indigo_material_blendmap(indigo_material_feature):
-    
-    controls    = Cha_BlendMap.controls
-    visibility    = Cha_BlendMap.visibility
-    enabled        = Cha_BlendMap.enabled
     properties    = Cha_BlendMap.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -907,10 +699,6 @@ class indigo_material_blendmap(indigo_material_feature):
 Cha_Transmittance  = MaterialChannel('transmittance', spectrum=True, texture=True,  shader=True,  switch=False, spectrum_types={'rgb':True, 'uniform':True, 'rgb_default':(0.5,0.5,0.5)}, label='Transmittance')
 @register_properties_dict
 class indigo_material_transmittance(indigo_material_feature):
-    
-    controls    = Cha_Transmittance.controls
-    visibility    = Cha_Transmittance.visibility
-    enabled        = Cha_Transmittance.enabled
     properties    = Cha_Transmittance.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -919,10 +707,6 @@ class indigo_material_transmittance(indigo_material_feature):
 Cha_Absorption  = MaterialChannel('absorption', spectrum=True, texture=True,  shader=True,  switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True, 'rgb_default':(0.0,0.0,0.0)}, label='Absorption')
 @register_properties_dict
 class indigo_material_absorption(indigo_material_feature):
-    
-    controls    = Cha_Absorption.controls
-    visibility    = Cha_Absorption.visibility
-    enabled        = Cha_Absorption.enabled
     properties    = Cha_Absorption.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -931,10 +715,6 @@ class indigo_material_absorption(indigo_material_feature):
 Cha_AbsorptionLayer  = MaterialChannel('absorption_layer', spectrum=True, texture=True,  shader=True,  switch=True, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True, 'blackbody': True, 'rgb_default':(0.0,0.0,0.0)}, label='Absorption Layer')
 @register_properties_dict
 class indigo_material_absorption_layer(indigo_material_feature):
-    
-    controls    = Cha_AbsorptionLayer.controls
-    visibility    = Cha_AbsorptionLayer.visibility
-    enabled        = Cha_AbsorptionLayer.enabled
     properties    = Cha_AbsorptionLayer.properties
     
     def get_output(self, obj, indigo_material, blender_material, scene):
@@ -955,25 +735,6 @@ def setRoughness(self, value):
 @register_properties_dict
 class indigo_material_specular(indigo_material_feature):
     #roughness = bpy.props.FloatProperty(description='Roughness', get=getRoughness)#, set=setRoughness)
-    
-    controls = [
-        'type',
-        'exponent',
-        [ 'transparent', 'arch_glass', 'single_face'],
-        'medium_chooser',
-    ]
-    
-    visibility = {
-        'transparent':            { 'type':'specular'},
-        'exponent':                { 'type': 'glossy_transparent' },
-        'single_face':             {'type': 'specular'}, 
-        'arch_glass':            { 'type':'specular'},
-        'medium_chooser':            { },
-    }
-
-    enabled = {
-        'single_face':            LAND([{'arch_glass': True}, {'type': 'specular'}, ]),
-    }
 
     properties = [
         {
@@ -1096,16 +857,6 @@ class indigo_material_diffuse(indigo_material_feature):
     
     channel_name = 'albedo'
     
-    controls = [
-        'transmitter',
-        'sigma',
-        'shadow_catcher'
-    ]
-    
-    visibility = {
-        'sigma': { 'transmitter': False }
-    }
-    
     properties = [
         {
             'type': 'bool',
@@ -1161,24 +912,6 @@ def find_nkdata(self, context):
 class indigo_material_phong(indigo_material_feature):
     
     channel_name = 'diffuse_albedo'
-    
-    controls = [
-        'specular_reflectivity',
-        'exponent',
-        'fresnel_scale',
-        
-        'nk_data_type',
-        'nk_data_preset',
-        'nk_data_file',
-        
-        'ior'
-    ]
-    
-    visibility = {
-        'ior':                { 'nk_data_type': 'none' },
-        'nk_data_preset':    { 'nk_data_type': 'preset' },
-        'nk_data_file':        { 'nk_data_type': 'file' },
-    }
     
     properties = [
         {
@@ -1282,18 +1015,6 @@ class indigo_material_phong(indigo_material_feature):
 @register_properties_dict
 class indigo_material_coating(indigo_material_feature):
     
-    controls = [
-        'interference',
-        'thickness',
-        'roughness',
-        'fresnel_scale',
-        'ior',
-        'substrate_material'
-    ]
-    
-    visibility = {
-    }
-    
     properties = [
         {
             'type': 'float',
@@ -1381,20 +1102,6 @@ class indigo_material_coating(indigo_material_feature):
         
 @register_properties_dict
 class indigo_material_doublesidedthin(indigo_material_feature):
-    
-    controls = [
-        'front_roughness',
-        'back_roughness',
-        'r_f',
-        'front_fresnel_scale',
-        'back_fresnel_scale',
-        'ior',
-        'front_material',
-        'back_material'
-    ]
-    
-    visibility = {
-    }
     
     properties = [
         {
@@ -1517,20 +1224,6 @@ class indigo_material_doublesidedthin(indigo_material_feature):
 
 @register_properties_dict
 class indigo_material_blended(indigo_material_feature):
-    
-    controls = [
-        'step',
-        [0.8, 'a', 'a_null'],
-        [0.8, 'b', 'b_null'],
-        'factor',
-    ]
-    
-    visibility = {}
-    
-    enabled = {
-        'a': { 'a_null': False },
-        'b': { 'b_null': False }
-    }
     
     properties = [
         {
@@ -1722,36 +1415,19 @@ def get_material_filename_from_external_mat(self, blender_material):
                 ex_str += ' "%s"' % blender_material.name
             raise Exception(ex_str)
         
-        #self.material_name = igm_name
-        
-        if 'material_name' in self.alert:
-            del self.alert['material_name']
+        self.material_name = igm_name # ??? seems to work both in stills and animations - MZ
             
         return igm_name
         
         # self.is_valid = True
     except Exception as err:
         #print('%s' % err)
-        self.alert['material_name'] = True
         # self.material_name = '%s' % err
         # self.is_valid = False
         raise err
 
 @register_properties_dict
 class indigo_material_external(indigo_material_feature):
-    
-    controls = [
-        'filename',
-        'material_name'
-    ]
-    
-    visibility = {}
-    
-    alert = {}
-    
-    enabled = {
-        'material_name': False
-    }
     
     properties = [
         {

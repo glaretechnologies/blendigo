@@ -1,5 +1,3 @@
-from extensions_framework import util as efutil
-
 from .. materials.Base import AlbedoChannelMaterial, EmissionChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, AbsorptionChannelMaterial, MaterialBase
 
 class CoatingMaterial(

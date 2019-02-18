@@ -4,9 +4,6 @@ from copy import deepcopy
 import bpy        #@UnresolvedImport
 import xml.etree.cElementTree as ET
 
-from extensions_framework import util as efutil
-from extensions_framework.validate import Logic_OR as LOR, Logic_AND as LAND
-
 #from indigo import IndigoAddon
 from . material import MaterialChannel
 

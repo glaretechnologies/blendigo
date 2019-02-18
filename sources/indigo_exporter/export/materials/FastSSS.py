@@ -1,5 +1,4 @@
 import bpy
-from extensions_framework import util as efutil
 from .. materials.Base        import AlbedoChannelMaterial, BumpChannelMaterial, NormalChannelMaterial, DisplacementChannelMaterial, RoughnessChannelMaterial, FresnelScaleChannelMaterial, EmissionChannelMaterial, MaterialBase
 
 class FastSSSMaterial(
@@ -25,7 +24,8 @@ class FastSSSMaterial(
         # medium check <-> name
         if (len(medium_name) == 0) or  (medium_index == -1):
             medium_name = "basic"
-            medium_index = 4294957294
+            #medium_index = 10190137
+            medium_index = -1
                      
         else:
             medium_name = medium_name + '_medium'

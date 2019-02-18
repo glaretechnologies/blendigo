@@ -9,7 +9,7 @@ import math
 import hashlib
 import array
 
-from extensions_framework import util as efutil
+from ..extensions_framework import util as efutil
 
 from .. core.util import get_worldscale
 from .. export import ( indigo_log,
@@ -184,17 +184,17 @@ class SpherePrimitive(xml_builder):
         return xml
 
 class LightingChecker:
-    def __init__(self):        
+    def __init__(self, geometry_exporter):        
         self.valid_lighting = False
         
         self.ObjectsChecked = ExportCache("Objects")
         self.LampsChecked = ExportCache("Lamps")
         self.MaterialsChecked = ExportCache("Materials")
         self.CheckedDuplis = ExportCache("Duplis")
+        self.geometry_exporter = geometry_exporter
     
     def handleMesh(self, obj):
         if self.valid_lighting or self.ObjectsChecked.have(obj): return
-        
         emitting_object = False
         
         for ms in obj.material_slots:
@@ -203,7 +203,7 @@ class LightingChecker:
             
             if ms.material == None: continue
             if ms.material.indigo_material == None: continue
-            
+
             iem = ms.material.indigo_material.indigo_material_emission
             mat_test = iem.emission_enabled
             if iem.emission_enabled:
@@ -212,10 +212,9 @@ class LightingChecker:
                     mat_test &= (iem.emission_scale_value > 0.0)
                 else:
                     mat_test &= (iem.emit_power > 0.0 and iem.emit_gain_val > 0.0)
-                mat_test &= self.scene.indigo_lightlayers.is_enabled(iem.emit_layer)
-                mat_test &= self.scene.indigo_lightlayers.gain_for_layer(iem.emit_layer) > 0.0
+                mat_test &= self.geometry_exporter.scene.indigo_lightlayers.is_enabled(iem.emit_layer)
             emitting_object |= mat_test
-        
+
         self.ObjectsChecked.add(obj, obj)
         self.valid_lighting |= emitting_object
     
@@ -272,16 +271,13 @@ class GeometryExporter(SceneIterator):
         self.mesh_uses_shading_normals = {} # Map from exported_mesh_name to boolean
         
         # Lighting
-        self.lc = LightingChecker()
+        self.lc = LightingChecker(self)
     
     def isLightingValid(self):
         return self.lc.valid_lighting
 
     def handleDuplis(self, obj, particle_system=None):
         try:
-            if obj in self.ExportedDuplis:
-                indigo_log('Duplis for object %s already exported'%obj)
-                return
 
             try:
                 old_draw_method = None
@@ -362,7 +358,7 @@ class GeometryExporter(SceneIterator):
 
     def handleMesh(self, obj):
         if OBJECT_ANALYSIS: indigo_log(' -> handleMesh: %s' % obj)
-
+        self.lc.handleMesh(obj)
         self.exportModelElements(
             obj,
             self.buildMesh(obj),

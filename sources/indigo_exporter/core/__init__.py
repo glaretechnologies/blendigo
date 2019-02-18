@@ -5,7 +5,7 @@ import os, subprocess, threading, time, sys, random
 import bpy, bl_ui            #@UnresolvedImport
 
 # EF Libs
-from extensions_framework import util as efutil
+from ..extensions_framework import util as efutil
 
 # Indigo Libs
 from .. import bl_info
@@ -256,6 +256,16 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
                         '-o',
                         image_out_path + '.png'
                     ]
+
+                # export exrs
+                if context.indigo_engine.save_exr_utm:
+                    indigo_args.extend(['-uexro', image_out_path + '_untonemapped.exr'])
+                if context.indigo_engine.save_exr_tm:
+                    indigo_args.extend(['-texro', image_out_path + '_tonemapped.exr'])
+                if context.indigo_engine.save_igi:
+                    indigo_args.extend(['-igio', image_out_path + '.igi'])
+                if context.indigo_engine.save_render_channels_exr:
+                    indigo_args.extend(['-channels', image_out_path + '_channels.exr'])
 
                 # Set master or working master command line args.
                 if context.indigo_engine.network_mode == 'master':

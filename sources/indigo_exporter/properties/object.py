@@ -1,8 +1,7 @@
 import bpy
 import os
 
-from extensions_framework.validate import Logic_Operator as OP
-from extensions_framework.util import path_relative_to_export, filesystem_path
+from .. extensions_framework.util import path_relative_to_export, filesystem_path
 
 from .. export import xml_builder
 

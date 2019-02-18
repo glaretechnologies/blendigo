@@ -224,12 +224,6 @@ def is_layer_empty(layer):
 class Indigo_Lightlayers_Properties(bpy.types.PropertyGroup):
     properties = lightlayers_properties
     
-    def gain_for_layer(self, name):
-        ll_gain = self.default_gain
-        if name in self.lightlayers:
-            ll_gain = self.lightlayers[name].gain
-        return ll_gain
-    
     def is_enabled(self, name):
         if name != '' and name in self.lightlayers:
             return self.lightlayers[name].lg_enabled
