@@ -1,8 +1,12 @@
+4.2.3
+--------
+* Bugfix: export of camera focus point
+
 4.2.2
 --------
 * Compatible with latest 2.79 builds
 * Autoupdater
-* Bugfixes: dupli lights, dupli light/lightlayer, exr export, uid bug, always default background bug 
+* Bugfixes: dupli lights, dupli light/lightlayer, exr export, uid bug, always default background bug, particle motion blur, external material
 
 4.0.16
 --------

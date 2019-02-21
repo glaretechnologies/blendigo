@@ -279,7 +279,7 @@ class Indigo_Camera_Properties(bpy.types.PropertyGroup, export.xml_builder):
             xml_format['focus_distance'] = [10.0]  # any non-zero value will do
         else:
             if scene.camera.data.dof_object is not None:
-                xml_format['focus_distance'] = [((scene.camera.location - scene.camera.data.dof_object.location).length*ws)]
+                xml_format['focus_distance'] = [((scene.camera.matrix_world.translation - scene.camera.data.dof_object.matrix_world.translation).length*ws)]
             elif scene.camera.data.dof_distance > 0:
                 xml_format['focus_distance'] = [scene.camera.data.dof_distance*ws]
             else: #autofocus
