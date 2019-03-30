@@ -264,8 +264,9 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
                     indigo_args.extend(['-texro', image_out_path + '_tonemapped.exr'])
                 if context.indigo_engine.save_igi:
                     if context.indigo_engine.igi_timestamp_filename:
-                        import datetime
-                        filename = image_out_path+" "+str(datetime.datetime.today().strftime('%y-%m-%d %H %M %S'))
+                        #import datetime
+                        #filename = image_out_path+" "+str(datetime.datetime.today().strftime('%y-%m-%d %H %M %S'))
+                        filename = image_out_path+" "+str(int(time.time()))
                     else:
                         filename = image_out_path
                     indigo_args.extend(['-igio', filename + '.igi'])
