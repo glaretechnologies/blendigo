@@ -44,7 +44,7 @@ if not options.blendigo_version:
 	terminate(-1)
 
 # Set up to use console rendering
-bpy.context.scene.render.engine = 'blendigo-%s' % options.blendigo_version
+bpy.context.scene.render.engine = 'indigo_renderer' #'blendigo-%s' % options.blendigo_version
 bpy.context.scene.indigo_engine.install_path = options.install_path
 bpy.context.scene.indigo_engine.use_console = True
 bpy.context.scene.indigo_engine.console_output = True

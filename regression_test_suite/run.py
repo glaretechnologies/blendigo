@@ -4,19 +4,19 @@
 import os, subprocess, shutil, time
 from pypng import png
 
-BLENDER_BINARY = r'C:\Program Files\Blender Foundation\Blender\blender.exe'
-INDIGO_PATH = r'C:\programming\indigo_installs\Indigo Renderer 3.4.4\\'
-
+BLENDER_BINARY = r'E:\Blender\blender-2.79b-windows64\blender.exe'
+INDIGO_PATH = r'D:\Program Files\Indigo Renderer\\'
+INDIGO_TEST_SUITE = r'E:\Blender\myaddons\blendigo_fork\regression_test_suite'
+print('\n\n\n***\n\n\n')
 def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
 	output_log = []
 	failure_count = 0
-	
-	regression_scenes  = sorted([f for f in os.listdir('./scenes/') if f.endswith('.blend')])
+	regression_scenes = sorted([f for f in os.listdir(os.path.join(INDIGO_TEST_SUITE, 'scenes')) if f.endswith('.blend')])
 	
 	if filter_list!=None:
 		regression_scenes = [s for s in filter(lambda x: x[:-6] in filter_list, regression_scenes)]
 	
-	regression_names   = [os.path.splitext(f)[0] for f in regression_scenes]
+	regression_names = [os.path.splitext(f)[0] for f in regression_scenes]
 	
 	# turn off verbose exporting
 	if 'B25_OBJECT_ANALYSIS' in os.environ.keys():
@@ -29,14 +29,14 @@ def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
 	
 	for i in range(len(regression_scenes)):
 		test_start = time.time()
-		scene  = './scenes/%s' % regression_scenes[i]
+		scene  = os.path.join(INDIGO_TEST_SUITE, 'scenes', '%s' % regression_scenes[i])
 		name   = regression_names[i]
 		
 		print(test_sep)
 		print('Test: %s' % name)
 		
 		# clean the output location
-		output_path = os.path.realpath('./outputs/%s/' % name)
+		output_path = os.path.join(INDIGO_TEST_SUITE, 'outputs', '%s' % name)
 		try:
 			shutil.rmtree(output_path)
 		except: pass
@@ -45,7 +45,7 @@ def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
 			# run blender
 			args = [BLENDER_BINARY, '-noaudio']
 			args.extend(['-b',scene])
-			args.extend(['-P', 'scene_script.py'])
+			args.extend(['-P', os.path.join(INDIGO_TEST_SUITE, 'scene_script.py')])
 			args.append('--')
 			args.append('--output-path=%s' % output_path)
 			args.append('--install-path=%s' % INDIGO_PATH)
@@ -57,18 +57,20 @@ def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
 			if exit_code < 0:
 				raise Exception('process error!')
 			
-			tst_file_name = './outputs/%s/%s.png' % (name, name)
+			#tst_file_name = os.path.join(INDIGO_TEST_SUITE, 'outputs', '%s/%s.png' % (name, name))
+			tst_file_name = [f for f in os.listdir(os.path.join(INDIGO_TEST_SUITE, 'outputs')) if f.startswith(name) and f.endswith('.png')].pop()
+			tst_file_path = os.path.join(INDIGO_TEST_SUITE, 'outputs', tst_file_name)
 			
-			if not os.path.exists(tst_file_name):
+			if not os.path.exists(tst_file_path):
 				raise Exception('no output image!')
 				
 			# perform image analysis!
 			
-			ref_file = png.Reader('./references/%s.png' % name)
-			tst_file = png.Reader(tst_file_name)
+			ref_file = png.Reader(os.path.join(INDIGO_TEST_SUITE, 'references', '%s.png' % name))
+			tst_file = png.Reader(tst_file_path)
 			
-			ref_data = ref_file.asRGB()
-			tst_data = tst_file.asRGB()
+			ref_data = ref_file.asRGBA()
+			tst_data = tst_file.asRGBA()
 			
 			if ref_data[0]!=tst_data[0] or ref_data[1]!=tst_data[1]:
 				raise Exception('output images size mismatch!')
@@ -118,11 +120,12 @@ if __name__ == "__main__":
 	if len(sys.argv) > 1:
 		filter_list = sys.argv[1:]
 	
-	addon_path = os.path.realpath( os.getcwd()+r'\..\sources')
+	#addon_path = os.path.realpath( os.getcwd()+r'\..\sources')
+	addon_path = os.path.join(INDIGO_TEST_SUITE, '..', 'sources')
 	sys.path.append(addon_path)
 	os.environ['BLENDIGO_RELEASE'] = 'TRUE'
 	
-	from indigo import bl_info
+	from indigo_exporter import bl_info
 	TAG = '.'.join(['%i'%i for i in bl_info['version']])
 	
 	del os.environ['BLENDIGO_RELEASE']
