@@ -1,5 +1,5 @@
 '''
-Created by Marcin Zielinski, Doug Hammond, Thomas Ludwig, Nicholas Chapman, Yves Colle
+Created by Styriam Sp. z. o.o., Marcin Zielinski, Doug Hammond, Thomas Ludwig, Nicholas Chapman, Yves Colle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
