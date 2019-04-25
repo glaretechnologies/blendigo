@@ -1,0 +1,355 @@
+
+<html>
+<head>
+<title>
+    Blendigo Test Suite Report
+</title>
+<style>
+    body{
+        width: 1000px;
+        margin: auto;
+    }
+    .container{
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 20px;
+    }
+    .container.faulty-True{
+        background-color: orangered;
+    }
+    .caption{
+        width: 100%;
+    }
+    .left{
+        float: left;
+    }
+    .right{
+        float: right;
+    }
+    .hide{
+        display: none;
+    }
+</style>
+</head>
+<body>
+<div>
+<label><input id="check" type="checkbox" checked onclick="
+if(this.checked){
+    for(const val of document.getElementsByClassName('faulty-False'))
+        val.classList.remove('hide');
+}else{
+    for(const val of document.getElementsByClassName('faulty-False'))
+        val.classList.add('hide');
+}
+">Passed</label>
+
+<label><input id="check" type="checkbox" checked onclick="
+if(this.checked){
+    for(const val of document.getElementsByClassName('faulty-True'))
+        val.classList.remove('hide');
+}else{
+    for(const val of document.getElementsByClassName('faulty-True'))
+        val.classList.add('hide');
+}
+">Faulty</label>
+</div>
+
+<div class="container faulty-False">
+    <div class="caption">
+        <span class="left">ParticleSystem_01</span>
+        <span class="right">6.55 sec MSE = 0.3136  </span>
+    </div>
+    <img src="../references/ParticleSystem_01.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ParticleSystem_010050.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">BackgroundSet</span>
+        <span class="right">11.23 sec MSE = 191.8756  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/BackgroundSet.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\BackgroundSet0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">SpherePrimitive</span>
+        <span class="right">5.67 sec FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\SpherePrimitive.png'</span>
+    </div>
+    <img src="../references/SpherePrimitive.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\SpherePrimitive0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">ComplexUVMap</span>
+        <span class="right">8.91 sec MSE = 144.6221  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/ComplexUVMap.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ComplexUVMap0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">RelativeTexturePath</span>
+        <span class="right">7.67 sec MSE = 711.3541  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/RelativeTexturePath.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\RelativeTexturePath0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">EXREnvironment</span>
+        <span class="right">6.42 sec MSE = 34399.9509  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/EXREnvironment.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\EXREnvironment0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">CurveObject</span>
+        <span class="right">7.61 sec MSE = 15.2734  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/CurveObject.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\CurveObject0001.png">
+</div>
+
+
+<div class="container faulty-False">
+    <div class="caption">
+        <span class="left">ParticleSystem_02</span>
+        <span class="right">6.58 sec MSE = 0.3037  </span>
+    </div>
+    <img src="../references/ParticleSystem_02.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ParticleSystem_020050.png">
+</div>
+
+
+<div class="container faulty-False">
+    <div class="caption">
+        <span class="left">TriangleMesh</span>
+        <span class="right">6.19 sec MSE = 0.3702  </span>
+    </div>
+    <img src="../references/TriangleMesh.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\TriangleMesh0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">MotionBlur</span>
+        <span class="right">8.00 sec MSE = 997.5788  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/MotionBlur.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\MotionBlur0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">InvisibleToCameraObject</span>
+        <span class="right">6.03 sec FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\InvisibleToCameraObject.png'</span>
+    </div>
+    <img src="../references/InvisibleToCameraObject.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\InvisibleToCameraObject0001.png">
+</div>
+
+
+<div class="container faulty-False">
+    <div class="caption">
+        <span class="left">ParticleSystem_04</span>
+        <span class="right">6.15 sec MSE = 0.3228  </span>
+    </div>
+    <img src="../references/ParticleSystem_04.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ParticleSystem_040050.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">ExternalMaterial</span>
+        <span class="right">8.40 sec FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\ExternalMaterial.png'</span>
+    </div>
+    <img src="../references/ExternalMaterial.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ExternalMaterial0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">ISL_01</span>
+        <span class="right">7.84 sec MSE = 1229.6985  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/ISL_01.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ISL_010001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">Animation</span>
+        <span class="right">6.07 sec FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\Animation.png'</span>
+    </div>
+    <img src="../references/Animation.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\Animation0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">CoatingMaterial</span>
+        <span class="right">6.66 sec FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\CoatingMaterial.png'</span>
+    </div>
+    <img src="../references/CoatingMaterial.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\CoatingMaterial0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">ShadowCatcher</span>
+        <span class="right">6.79 sec FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\ShadowCatcher.png'</span>
+    </div>
+    <img src="../references/ShadowCatcher.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ShadowCatcher0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">SunAndEnvMap</span>
+        <span class="right">8.78 sec MSE = 902.7100  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/SunAndEnvMap.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\SunAndEnvMap0020.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">TexturedEmission</span>
+        <span class="right">6.94 sec MSE = 8.2856  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/TexturedEmission.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\TexturedEmission0001.png">
+</div>
+
+
+<div class="container faulty-False">
+    <div class="caption">
+        <span class="left">ParticleSystem_03</span>
+        <span class="right">6.42 sec MSE = 0.3060  </span>
+    </div>
+    <img src="../references/ParticleSystem_03.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ParticleSystem_030050.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">ParentObjectTransforms</span>
+        <span class="right">7.19 sec MSE = 58.3567  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/ParentObjectTransforms.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ParentObjectTransforms0000.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">DoubleSidedThin</span>
+        <span class="right">4.19 sec FAILED: pop from empty list</span>
+    </div>
+    <img src="../references/DoubleSidedThin.png"><img src="not_found.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">PackedImage</span>
+        <span class="right">7.74 sec MSE = 710.9809  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/PackedImage.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\PackedImage0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">AbsoluteTexturePath</span>
+        <span class="right">7.60 sec MSE = 5862.5700  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/AbsoluteTexturePath.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\AbsoluteTexturePath0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">NestedGroups</span>
+        <span class="right">7.72 sec MSE = 30.9715  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/NestedGroups.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\NestedGroups0016.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">MultipleUVSets</span>
+        <span class="right">7.14 sec MSE = 197.3299  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/MultipleUVSets.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\MultipleUVSets0001.png">
+</div>
+
+
+<div class="container faulty-False">
+    <div class="caption">
+        <span class="left">HighSubdiv</span>
+        <span class="right">6.68 sec MSE = 0.3694  </span>
+    </div>
+    <img src="../references/HighSubdiv.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\HighSubdiv0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">LinkedBackgroundSet</span>
+        <span class="right">11.22 sec MSE = 191.8660  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/LinkedBackgroundSet.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\LinkedBackgroundSet0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">ModifiedCurve</span>
+        <span class="right">6.55 sec MSE = 127.8373  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/ModifiedCurve.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\ModifiedCurve0000.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">FindCRF</span>
+        <span class="right">7.51 sec MSE = 38767.2035  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/FindCRF.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\FindCRF0001.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">InstanceMaterials</span>
+        <span class="right">7.19 sec MSE = 55.8192  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/InstanceMaterials.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\InstanceMaterials0000.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">EmittingParticles</span>
+        <span class="right">7.36 sec MSE = 45989.7692  ****** HIGH VALUE ******</span>
+    </div>
+    <img src="../references/EmittingParticles.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\EmittingParticles0019.png">
+</div>
+
+
+<div class="container faulty-True">
+    <div class="caption">
+        <span class="left">dupligroup-error</span>
+        <span class="right">6.10 sec FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\dupligroup-error.png'</span>
+    </div>
+    <img src="../references/dupligroup-error.png"><img src="E:\Blender\myaddons\blendigo_fork\regression_test_suite\outputs\dupligroup-error0001.png">
+</div>
+
+</body>
+</html>
