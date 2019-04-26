@@ -4,40 +4,41 @@ All Tests complete!
 
 Test                           Time         Result
 ********************************************************************************
-AbsoluteTexturePath            7.60 sec     MSE = 5862.5700  ****** HIGH VALUE ******
-Animation                      6.07 sec     FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\Animation.png'
-BackgroundSet                  11.23 sec    MSE = 191.8756  ****** HIGH VALUE ******
-CoatingMaterial                6.66 sec     FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\CoatingMaterial.png'
-ComplexUVMap                   8.91 sec     MSE = 144.6221  ****** HIGH VALUE ******
-CurveObject                    7.61 sec     MSE = 15.2734  ****** HIGH VALUE ******
-DoubleSidedThin                4.19 sec     FAILED: pop from empty list
-EXREnvironment                 6.42 sec     MSE = 34399.9509  ****** HIGH VALUE ******
-EmittingParticles              7.36 sec     MSE = 45989.7692  ****** HIGH VALUE ******
-ExternalMaterial               8.40 sec     FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\ExternalMaterial.png'
-FindCRF                        7.51 sec     MSE = 38767.2035  ****** HIGH VALUE ******
-HighSubdiv                     6.68 sec     MSE = 0.3694  
-ISL_01                         7.84 sec     MSE = 1229.6985  ****** HIGH VALUE ******
-InstanceMaterials              7.19 sec     MSE = 55.8192  ****** HIGH VALUE ******
-InvisibleToCameraObject        6.03 sec     FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\InvisibleToCameraObject.png'
-LinkedBackgroundSet            11.22 sec    MSE = 191.8660  ****** HIGH VALUE ******
-ModifiedCurve                  6.55 sec     MSE = 127.8373  ****** HIGH VALUE ******
-MotionBlur                     8.00 sec     MSE = 997.5788  ****** HIGH VALUE ******
-MultipleUVSets                 7.14 sec     MSE = 197.3299  ****** HIGH VALUE ******
-NestedGroups                   7.72 sec     MSE = 30.9715  ****** HIGH VALUE ******
-PackedImage                    7.74 sec     MSE = 710.9809  ****** HIGH VALUE ******
-ParentObjectTransforms         7.19 sec     MSE = 58.3567  ****** HIGH VALUE ******
-ParticleSystem_01              6.55 sec     MSE = 0.3136  
-ParticleSystem_02              6.58 sec     MSE = 0.3037  
-ParticleSystem_03              6.42 sec     MSE = 0.3060  
-ParticleSystem_04              6.15 sec     MSE = 0.3228  
-RelativeTexturePath            7.67 sec     MSE = 711.3541  ****** HIGH VALUE ******
-ShadowCatcher                  6.79 sec     FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\ShadowCatcher.png'
-SpherePrimitive                5.67 sec     FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\SpherePrimitive.png'
-SunAndEnvMap                   8.78 sec     MSE = 902.7100  ****** HIGH VALUE ******
-TexturedEmission               6.94 sec     MSE = 8.2856  ****** HIGH VALUE ******
-TriangleMesh                   6.19 sec     MSE = 0.3702  
-dupligroup-error               6.10 sec     FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_fork\\regression_test_suite\\references\\dupligroup-error.png'
+AbsoluteTexturePath            7.72 sec     MSE = 0.8054  OK
+Animation                      6.24 sec     MSE = 0.0000  OK
+BackgroundSet                  11.43 sec    MSE = 191.8756  ****** HIGH VALUE ******
+CoatingMaterial                7.01 sec     MSE = 0.0000  OK
+ComplexUVMap                   9.10 sec     MSE = 0.0000  OK
+CurveObject                    7.97 sec     MSE = 0.0000  OK
+DoubleSidedThin                9.79 sec     MSE = 0.0001  OK
+EXREnvironment                 6.50 sec     MSE = 0.0000  OK
+EmittingParticles              7.55 sec     MSE = 0.0000  OK
+ExternalMaterial               8.73 sec     MSE = 0.0001  OK
+FindCRF                        7.58 sec     MSE = 38767.3247  ****** HIGH VALUE ******
+HighSubdiv                     6.92 sec     MSE = 0.3694  OK
+ISL_01                         7.89 sec     MSE = 0.0003  OK
+InstanceMaterials              7.27 sec     MSE = 0.0000  OK
+InvisibleToCameraObject        6.15 sec     MSE = 0.0000  OK
+LinkedBackgroundSet            11.26 sec    MSE = 191.8660  ****** HIGH VALUE ******
+ModifiedCurve                  6.59 sec     MSE = 0.0000  OK
+MotionBlur                     8.93 sec     MSE = 0.0002  OK
+MultipleUVSets                 7.26 sec     MSE = 0.0678  OK
+NestedGroups                   7.81 sec     MSE = 0.0000  OK
+PackedImage                    7.74 sec     MSE = 0.0003  OK
+ParentObjectTransforms         7.33 sec     MSE = 0.0204  OK
+ParticleSystem_01              6.65 sec     MSE = 0.3136  OK
+ParticleSystem_02              6.78 sec     MSE = 0.3037  OK
+ParticleSystem_03              6.45 sec     MSE = 0.3060  OK
+ParticleSystem_04              6.19 sec     MSE = 0.3228  OK
+RelativeTexturePath            7.80 sec     MSE = 0.0003  OK
+ShadowCatcher                  13.47 sec    MSE = 2.0581  ****** HIGH VALUE ******
+SpherePrimitive                11.48 sec    MSE = 0.0264  OK
+SunAndEnvMap                   8.94 sec     MSE = 0.0000  OK
+TexturedEmission               7.13 sec     MSE = 0.0000  OK
+TriangleMesh                   6.60 sec     MSE = 0.3947  OK
+dupligroup-error               6.58 sec     MSE = 0.0000  OK
 ********************************************************************************
 
 
-Failures: 27
+Failures: 4
+Blendigo Version: 4.2.4

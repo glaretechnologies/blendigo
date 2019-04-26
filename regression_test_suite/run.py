@@ -9,22 +9,16 @@ INDIGO_TEST_SUITE = r'E:\Blender\myaddons\blendigo_fork\regression_test_suite'
 import os, subprocess, shutil, time, glob
 from pypng import png
 
-
-# BLENDER_BINARY = r'E:\Blender\blender-2.79b-windows64\blender.exe'
-# INDIGO_PATH = r'D:\Program Files\Indigo Renderer\\'
-# INDIGO_TEST_SUITE = r'E:\Blender\myaddons\blendigo_fork\regression_test_suite'
-
 import bpy
 from indigo_exporter.core import getConsolePath
 BLENDER_BINARY = os.path.join(bpy.utils.script_paths()[0].split(os.sep)[0]+os.sep, *bpy.utils.script_paths()[0].split(os.sep)[1:-3], 'blender.exe')
 INDIGO_PATH = os.path.split(getConsolePath())[0]
 
-print('\n\n\n***\n\n\n')
 def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
     output_log = []
     failure_count = 0
     regression_scenes = sorted([f for f in os.listdir(os.path.join(INDIGO_TEST_SUITE, 'scenes')) if f.endswith('.blend')])
-    if filter_list!=None:
+    if filter_list!=None and len(filter_list):
         regression_scenes = [s for s in filter(lambda x: x[:-6] in filter_list, regression_scenes)]
     regression_names = [os.path.splitext(f)[0] for f in regression_scenes]
     
@@ -100,7 +94,7 @@ def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
                 MSE_msg = '****** HIGH VALUE ******'
                 failure_count += 1
             else:
-                MSE_msg = ''
+                MSE_msg = 'OK'
                 
             test_results[name] = 'MSE = %0.4f  %s' % (MSE, MSE_msg)
         
@@ -157,9 +151,13 @@ html_template="""
     .hide{{
         display: none;
     }}
+    label{{
+        margin: 1rem;
+    }}
 </style>
 </head>
 <body>
+<span>Blendigo Version: {ver}</span>
 <div>
 <label><input id="check" type="checkbox" checked onclick="
 if(this.checked){{
@@ -202,9 +200,10 @@ if __name__ == "__main__":
     # Skip argv prior to and including '--'
     filter_list = None
     parse_args = sys.argv[sys.argv.index('--')+1:]
-    if len(parse_args) > 1:
+    if len(parse_args) > 0:
         INDIGO_TEST_SUITE = parse_args[0].split('=')[1]
         filter_list = parse_args[1:]
+        print(filter_list)
     
     addon_path = os.path.join(INDIGO_TEST_SUITE, '..', 'sources')
     sys.path.append(addon_path)
@@ -215,6 +214,7 @@ if __name__ == "__main__":
     
     del os.environ['BLENDIGO_RELEASE']
     
+    print('\n\n\n* Test Started *\n\n\n')
     log_lines, failure_count, test_results, test_times = regression_test(filter_list, TAG)
         
     with open(os.path.join(INDIGO_TEST_SUITE, 'outputs','results.txt'), 'w') as file:
@@ -222,6 +222,7 @@ if __name__ == "__main__":
             print(log_line)
             file.write('\n'+log_line)
         file.write('\n'*2 + '\nFailures: '+str(failure_count))
+        file.write('\nBlendigo Version: '+TAG)
         
         
     with open(os.path.join(INDIGO_TEST_SUITE, 'outputs','report.html'), 'w') as file:
@@ -231,7 +232,11 @@ if __name__ == "__main__":
             gr = glob.glob(os.path.join(INDIGO_TEST_SUITE, 'outputs', test_name+"*.png"))
             out_file = gr[0] if len(gr) else 'not_found.png'
             
-            pairs.append(pair_template.format(test_name=test_name, reference_file=reference_file, out_file=out_file, test_result='%0.2f sec'%test_times[test_name]+' '+test_results[test_name], faulty=str('HIGH VALUE' in test_results[test_name] or 'FAILED' in test_results[test_name])))
-
-        file.write(html_template.format(pairs='\n'.join(pairs)))
-            
+            pairs.append(pair_template.format(
+                test_name=test_name,
+                reference_file=reference_file,
+                out_file=out_file,
+                test_result='%0.2f sec'%test_times[test_name]+' '+test_results[test_name],
+                faulty=str('HIGH VALUE' in test_results[test_name] or 'FAILED' in test_results[test_name]),
+                ))
+        file.write(html_template.format(pairs='\n'.join(pairs), ver=TAG))

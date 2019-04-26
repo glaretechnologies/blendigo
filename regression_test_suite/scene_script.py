@@ -49,7 +49,11 @@ bpy.context.scene.indigo_engine.install_path = options.install_path
 bpy.context.scene.indigo_engine.use_console = True
 bpy.context.scene.indigo_engine.console_output = True
 bpy.context.scene.indigo_engine.skip_version_check = True
-bpy.context.scene.indigo_engine.render_mode = 'path_gpu'
+
+# don't switch to gpu in incompatible scenes 
+if not bpy.context.scene.indigo_engine.render_mode in ('custom', 'shadow'):
+	# speed up testing with gpu
+	bpy.context.scene.indigo_engine.render_mode = 'path_gpu'
 
 # Set up halt condition and behaviour
 bpy.context.scene.indigo_engine.halttime = -1
