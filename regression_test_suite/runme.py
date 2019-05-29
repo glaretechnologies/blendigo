@@ -3,9 +3,24 @@
 #
 # INFO:
 # Run this script in command line to start testing suite. report.html and results.txt will be created in outputs directory
+# Copy pypng to blender's python/lib
 
 BLENDER_BINARY = r'E:\Blender\blender-2.79b-windows64\blender.exe'
-filter_scenes = []
+filter_scenes = [
+"DupliGroup_Instances",
+"Focus_CurveAnim",
+"motion_blur_particles_simple",
+"ies_dupli",
+"proxy",
+"glossy_roughness_transparent_nk",
+"null_fastsss",
+"motion_blur_dupli_instances",
+"lightlayers",
+"light_color",
+"hemi_uniform",
+"hemi_rgb",
+"hemi_blackbody",
+]
 
 import os, subprocess
 

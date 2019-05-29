@@ -3,3 +3,4 @@ __pycache__/
 !/regression_test_suite/outputs/*.png
 !/regression_test_suite/outputs/*.txt
 !/regression_test_suite/outputs/*.html
+*.blend1

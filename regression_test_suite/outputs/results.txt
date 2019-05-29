@@ -4,41 +4,35 @@ All Tests complete!
 
 Test                           Time         Result
 ********************************************************************************
-AbsoluteTexturePath            7.72 sec     MSE = 0.8054  OK
-Animation                      6.24 sec     MSE = 0.0000  OK
-BackgroundSet                  11.43 sec    MSE = 191.8756  ****** HIGH VALUE ******
-CoatingMaterial                7.01 sec     MSE = 0.0000  OK
-ComplexUVMap                   9.10 sec     MSE = 0.0000  OK
-CurveObject                    7.97 sec     MSE = 0.0000  OK
-DoubleSidedThin                9.79 sec     MSE = 0.0001  OK
-EXREnvironment                 6.50 sec     MSE = 0.0000  OK
-EmittingParticles              7.55 sec     MSE = 0.0000  OK
-ExternalMaterial               8.73 sec     MSE = 0.0001  OK
-FindCRF                        7.58 sec     MSE = 38767.3247  ****** HIGH VALUE ******
-HighSubdiv                     6.92 sec     MSE = 0.3694  OK
-ISL_01                         7.89 sec     MSE = 0.0003  OK
-InstanceMaterials              7.27 sec     MSE = 0.0000  OK
-InvisibleToCameraObject        6.15 sec     MSE = 0.0000  OK
-LinkedBackgroundSet            11.26 sec    MSE = 191.8660  ****** HIGH VALUE ******
-ModifiedCurve                  6.59 sec     MSE = 0.0000  OK
-MotionBlur                     8.93 sec     MSE = 0.0002  OK
-MultipleUVSets                 7.26 sec     MSE = 0.0678  OK
-NestedGroups                   7.81 sec     MSE = 0.0000  OK
-PackedImage                    7.74 sec     MSE = 0.0003  OK
-ParentObjectTransforms         7.33 sec     MSE = 0.0204  OK
-ParticleSystem_01              6.65 sec     MSE = 0.3136  OK
-ParticleSystem_02              6.78 sec     MSE = 0.3037  OK
-ParticleSystem_03              6.45 sec     MSE = 0.3060  OK
-ParticleSystem_04              6.19 sec     MSE = 0.3228  OK
-RelativeTexturePath            7.80 sec     MSE = 0.0003  OK
-ShadowCatcher                  13.47 sec    MSE = 2.0581  ****** HIGH VALUE ******
-SpherePrimitive                11.48 sec    MSE = 0.0264  OK
-SunAndEnvMap                   8.94 sec     MSE = 0.0000  OK
-TexturedEmission               7.13 sec     MSE = 0.0000  OK
-TriangleMesh                   6.60 sec     MSE = 0.3947  OK
-dupligroup-error               6.58 sec     MSE = 0.0000  OK
+DupliGroup_Instances           7.63 sec     MSE = 0.0590  OK
+Focus_CurveAnim                8.40 sec     MSE = 0.0000  OK
+glossy_roughness_transparent_nk 11.70 sec    MSE = 305.8682  ****** HIGH VALUE ******
+hemi_blackbody                 7.31 sec     MSE = 0.0000  OK
+hemi_rgb                       7.20 sec     MSE = 0.0000  OK
+hemi_uniform                   7.16 sec     MSE = 0.0549  OK
+ies_dupli                      6.68 sec     MSE = 0.0000  OK
+light_color                    7.16 sec     MSE = 0.0684  OK
+lightlayers                    8.42 sec     MSE = 0.0000  OK
+motion_blur_dupli_instances    4.17 sec     FAILED: pop from empty list
+motion_blur_particles_simple   8.21 sec     MSE = 2.6421  ****** HIGH VALUE ******
+null_fastsss                   7.33 sec     MSE = 0.0000  OK
+proxy                          7.13 sec     MSE = 0.0000  OK
 ********************************************************************************
 
 
-Failures: 4
+Failures: 3
+All Tests complete!
+
+********************************************************************************
+multifile0189.png              OK
+multifile0189_\d+\.igi         FAILED
+multifile0189_channels.exr     OK
+multifile0189_tonemapped.exr   OK
+multifile0189_untonemapped.exr OK
+multifile0190.png              OK
+multifile0190_\d+\.igi         FAILED
+multifile0190_channels.exr     OK
+multifile0190_tonemapped.exr   OK
+multifile0190_untonemapped.exr OK
+********************************************************************************
 Blendigo Version: 4.2.4
