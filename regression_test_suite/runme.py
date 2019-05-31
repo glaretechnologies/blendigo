@@ -7,20 +7,60 @@
 
 BLENDER_BINARY = r'E:\Blender\blender-2.79b-windows64\blender.exe'
 filter_scenes = [
-"DupliGroup_Instances",
-"Focus_CurveAnim",
-"motion_blur_particles_simple",
-"ies_dupli",
-"proxy",
-"glossy_roughness_transparent_nk",
-"null_fastsss",
-"motion_blur_dupli_instances",
-"lightlayers",
-"light_color",
-"hemi_uniform",
-"hemi_rgb",
-"hemi_blackbody",
+# 'AbsoluteTexturePath',
+# 'Animation',
+# 'BackgroundSet',
+# 'CoatingMaterial',
+# 'ComplexUVMap',
+# 'CurveObject',
+# 'DoubleSidedThin',
+# 'DupliGroup_Instances',
+# 'EXREnvironment',
+# 'EmittingParticles',
+# 'ExternalMaterial',
+# 'FindCRF',
+# 'Focus_CurveAnim',
+# 'HighSubdiv',
+# 'ISL_01',
+# 'InstanceMaterials',
+# 'InvisibleToCameraObject',
+# 'LinkedBackgroundSet',
+# 'ModifiedCurve',
+# 'MotionBlur',
+# 'MultipleUVSets',
+# 'NestedGroups',
+# 'PackedImage',
+# 'ParentObjectTransforms',
+# 'ParticleSystem_01',
+# 'ParticleSystem_02',
+# 'ParticleSystem_03',
+# 'ParticleSystem_04',
+# 'RelativeTexturePath',
+# 'ShadowCatcher',
+# 'SpherePrimitive',
+# 'SunAndEnvMap',
+# 'TexturedEmission',
+# 'TriangleMesh',
+# 'dupligroup-error',
+# 'glossy_roughness_transparent_nk',
+# 'hemi_blackbody',
+# 'hemi_rgb',
+# 'hemi_uniform',
+# 'ies_dupli',
+# 'light_color',
+# 'lightlayers',
+# 'motion_blur_dupli_instances',
+# 'motion_blur_particles_simple',
+# 'null_fastsss',
+# 'proxy'
+# 'external_mat_ies_scale'
 ]
+
+filter_additional = [
+# "multifile_animation",
+]
+
+filter_scenes.extend(filter_additional)
 
 import os, subprocess
 

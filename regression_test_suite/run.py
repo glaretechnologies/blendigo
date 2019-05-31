@@ -206,7 +206,21 @@ textcase_template="""
 </div>
 """
 
-def additional_tests(BLENDIGO_VERSION='0.0.0'):
+def additional_tests():
+    test_dict = {
+        "multifile_animation": test_multifile_animation
+    }
+    output_log=[]
+    test_results={}
+    for t in test_dict.items():
+        if not filter_list or t[0] in filter_list:
+            output_log1, test_results1 = t[1]()
+            output_log.extend(output_log1)
+            test_results.update(test_results1)
+
+    return output_log, test_results
+
+def test_multifile_animation(BLENDIGO_VERSION='0.0.0'):
     # additional non-standardized tests
 
     # use one of the test scenes to check multi-file export options

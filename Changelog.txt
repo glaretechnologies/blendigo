@@ -1,3 +1,7 @@
+4.2.5
+--------
+* External material: exposed ies profile, emission scale
+
 4.2.4
 --------
 * Bugfix: Mac default paths, sorting nk data and camera tonemapping profiles

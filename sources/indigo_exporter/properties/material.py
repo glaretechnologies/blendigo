@@ -1334,7 +1334,7 @@ def try_file_decode(raw_bytes):
     
 def updated_event(self, context):
     try:
-        self.material_name = get_material_filename_from_external_mat(self, context)
+        self.material_name, self.emission_enabled = get_material_filename_and_emission_from_external_mat(self, context)
     except:
         pass
         
@@ -1356,8 +1356,20 @@ def get_material_name_from_IGM(igm_contents):
     except Exception as e:
         raise Exception('While parsing IGM file: ' + str(e))
 
+def is_material_emitting_from_IGM(igm_contents):
+    try:
+        root = ET.fromstring(igm_contents)
+        for material in root.findall('material'):
+            for elem in material:
+                if elem.find('base_emission'):
+                    return True
+                elif elem.find('emission'):
+                    return True
+        return False
+    except Exception as e:
+        raise Exception('While parsing IGM file: ' + str(e))
     
-def get_material_filename_from_external_mat(self, blender_material):
+def get_material_filename_and_emission_from_external_mat(self, blender_material):
     try:
         #NOTE: We can't set material_name etc.. here, or we get an error message about updating attributes when we render animations.
         # self.material_name = 'Checking...'
@@ -1418,7 +1430,8 @@ def get_material_filename_from_external_mat(self, blender_material):
         
         self.material_name = igm_name # ??? seems to work both in stills and animations - MZ
             
-        return igm_name
+        igm_emit = is_material_emitting_from_IGM(igm_data)
+        return igm_name, igm_emit
         
         # self.is_valid = True
     except Exception as err:
@@ -1451,6 +1464,68 @@ class indigo_material_external(indigo_material_feature):
             'attr': 'is_valid',
             'default': False
         },
+        # ies profile (exports with geometry)
+        {
+            'type': 'bool',
+            'attr': 'emit_ies',
+            'name': 'IES Profile',
+            'description': 'IES Profile',
+            'default': False,
+        },
+        {
+            'type': 'string',
+            'subtype': 'FILE_PATH',
+            'attr': 'emit_ies_path',
+            'name': ' IES Path',
+            'description': ' IES Path',
+            'default': '',
+        },
+        {
+            'type': 'bool',
+            'attr': 'emission_enabled',
+            'default': False
+        },
+        # emission scale (exports with geometry)
+        {
+            'type': 'bool',
+            'attr': 'emission_scale',
+            'name': 'Emission scale',
+            'description': 'Emission scale',
+            'default': False,
+        },
+        {
+            'type': 'enum',
+            'attr': 'emission_scale_measure',
+            'name': 'Unit',
+            'description': 'Units for emission scale',
+            'default': 'luminous_flux',
+            'items': [
+                ('luminous_flux', 'lm', 'Luminous flux'),
+                ('luminous_intensity', 'cd', 'Luminous intensity (lm/sr)'),
+                ('luminance', 'nits', 'Luminance (lm/sr/m/m)'),
+                ('luminous_emittance', 'lux', 'Luminous emittance (lm/m/m)')
+            ],
+        },
+        {
+            'type': 'float',
+            'attr': 'emission_scale_value',
+            'name': 'Value',
+            'description': 'Emission scale value',
+            'default': 1.0,
+            'min': 0.0,
+            'soft_min': 0.0,
+            'max': 10.0,
+            'soft_max': 10.0,
+        },
+        {
+            'type': 'int',
+            'attr': 'emission_scale_exp',
+            'name': '*10^',
+            'description': 'Emission scale exponent',
+            'default': 0,
+            'min': -30,
+            'max': 30
+        },
     ]
     
     # Returns list of XML elements or something like that.
@@ -1459,7 +1534,7 @@ class indigo_material_external(indigo_material_feature):
         try:
             # Check that we can extract the material name from the external material file.
             # Note that we don't actually do anything with the result, but it may throw an exception if it fails.
-            get_material_filename_from_external_mat(self, blender_material)
+            get_material_filename_and_emission_from_external_mat(self, blender_material)
             
             extmat_file = efutil.filesystem_path( self.filename )
             if not os.path.exists(extmat_file):

@@ -421,6 +421,19 @@ class indigo_ui_material_external(material_subpanel, bpy.types.Panel):
         col = col.column()
         col.prop(indigo_material_external, 'material_name')
         col.enabled = False
+        col = self.layout.column()
+        if indigo_material_external.emission_enabled:
+            col.prop(indigo_material_external, 'emit_ies')
+            if indigo_material_external.emit_ies:
+                col.prop(indigo_material_external, 'emit_ies_path')
+                        
+            col.separator()
+            col.prop(indigo_material_external, 'emission_scale')
+            if indigo_material_external.emission_scale:
+                row = col.row(align=True)
+                row.prop(indigo_material_external, 'emission_scale_value')
+                row.prop(indigo_material_external, 'emission_scale_exp')
+                col.prop(indigo_material_external, 'emission_scale_measure')
         
 class indigo_ui_material_bumpmap(material_subpanel, bpy.types.Panel):
     bl_label = 'Material Bump Map'
