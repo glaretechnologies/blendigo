@@ -1,0 +1,72 @@
+
+All Tests complete!
+
+
+Test                           Time         Result
+********************************************************************************
+AbsoluteTexturePath            8.92 sec     MSE = 0.0000  OK
+Animation                      6.24 sec     MSE = 0.0000  OK
+BackgroundSet                  11.26 sec    MSE = 191.8756  ****** HIGH VALUE ******
+CoatingMaterial                7.12 sec     MSE = 0.0000  OK
+ComplexUVMap                   8.91 sec     MSE = 0.0000  OK
+CurveObject                    7.63 sec     MSE = 0.0000  OK
+DoubleSidedThin                9.70 sec     MSE = 0.0001  OK
+DupliGroup_Instances           8.46 sec     MSE = 28.1117  ****** HIGH VALUE ******
+EXREnvironment                 6.40 sec     MSE = 0.0000  OK
+EmittingParticles              7.46 sec     MSE = 0.0000  OK
+ExternalMaterial               9.00 sec     MSE = 0.0000  OK
+FindCRF                        7.56 sec     MSE = 38767.3247  ****** HIGH VALUE ******
+Focus_CurveAnim                8.41 sec     MSE = 0.0000  OK
+HighSubdiv                     6.76 sec     MSE = 0.3694  OK
+ISL_01                         7.98 sec     MSE = 0.0005  OK
+InstanceMaterials              7.28 sec     MSE = 0.0182  OK
+InvisibleToCameraObject        6.10 sec     MSE = 0.0000  OK
+LinkedBackgroundSet            11.26 sec    MSE = 191.8660  ****** HIGH VALUE ******
+ModifiedCurve                  6.64 sec     MSE = 0.0000  OK
+MotionBlur                     8.83 sec     MSE = 0.0005  OK
+MultipleUVSets                 7.25 sec     MSE = 0.0000  OK
+NestedGroups                   7.87 sec     MSE = 0.0189  OK
+PackedImage                    7.76 sec     MSE = 0.0005  OK
+ParentObjectTransforms         7.21 sec     MSE = 0.0204  OK
+ParticleSystem_01              6.57 sec     MSE = 0.3136  OK
+ParticleSystem_02              6.63 sec     MSE = 0.3037  OK
+ParticleSystem_03              6.40 sec     MSE = 0.3060  OK
+ParticleSystem_04              6.11 sec     MSE = 0.3228  OK
+RelativeTexturePath            7.66 sec     MSE = 0.0004  OK
+ShadowCatcher                  13.23 sec    MSE = 1.6563  ****** HIGH VALUE ******
+SpherePrimitive                12.46 sec    MSE = 0.0239  OK
+SunAndEnvMap                   8.87 sec     MSE = 0.0000  OK
+TexturedEmission               6.94 sec     MSE = 0.0000  OK
+TriangleMesh                   6.14 sec     MSE = 0.3947  OK
+dupligroup-error               6.35 sec     MSE = 0.0000  OK
+external_mat_ies_scale         8.54 sec     FAILED: [Errno 2] No such file or directory: 'E:\\Blender\\myaddons\\blendigo_styriam\\regression_test_suite\\references\\external_mat_ies_scale.png'
+glossy_roughness_transparent_nk 11.77 sec    MSE = 0.0000  OK
+hemi_blackbody                 7.36 sec     MSE = 0.0533  OK
+hemi_rgb                       7.22 sec     MSE = 0.0555  OK
+hemi_uniform                   7.20 sec     MSE = 0.0000  OK
+ies_dupli                      6.68 sec     MSE = 0.0000  OK
+light_color                    7.09 sec     MSE = 0.0000  OK
+lightlayers                    8.43 sec     MSE = 0.0000  OK
+motion_blur_dupli_instances    4.19 sec     FAILED: pop from empty list
+motion_blur_particles_simple   7.53 sec     MSE = 1.8960  ****** HIGH VALUE ******
+null_fastsss                   7.38 sec     MSE = 0.0000  OK
+proxy                          7.12 sec     MSE = 0.0000  OK
+********************************************************************************
+
+
+Failures: 8
+All Tests complete!
+
+********************************************************************************
+multifile0189.png              OK
+multifile0189_\d+\.igi         FAILED
+multifile0189_channels.exr     OK
+multifile0189_tonemapped.exr   OK
+multifile0189_untonemapped.exr OK
+multifile0190.png              OK
+multifile0190_\d+\.igi         FAILED
+multifile0190_channels.exr     OK
+multifile0190_tonemapped.exr   OK
+multifile0190_untonemapped.exr OK
+********************************************************************************
+Blendigo Version: 4.2.5

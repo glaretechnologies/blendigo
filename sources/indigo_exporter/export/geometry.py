@@ -65,6 +65,17 @@ class model_object(model_base):
         for ms in obj.material_slots:
             mat = ms.material
             if mat == None: continue
+            
+            # external material ies profiles
+            if mat.indigo_material.type == 'external':
+                ie = mat.indigo_material.indigo_material_external
+                if ie.emission_enabled and ie.emit_ies:
+                    d['ies_profile'] = {
+                        'material_name': [ie.material_name],
+                        'path': [efutil.filesystem_path(ie.emit_ies_path)]
+                    }
+                continue
+
             ie = mat.indigo_material.indigo_material_emission
             if ie.emission_enabled and ie.emit_ies:
                 d['ies_profile'] = {
@@ -72,9 +83,22 @@ class model_object(model_base):
                     'path': [efutil.filesystem_path(ie.emit_ies_path)]
                 }
 
+
         for ms in obj.material_slots:
             mat = ms.material
             if mat == None: continue
+            
+            # external material emission scale
+            if mat.indigo_material.type == 'external':
+                ie = mat.indigo_material.indigo_material_external
+                if ie.emission_enabled and ie.emission_scale:
+                    d['emission_scale'] = {
+                        'material_name': [ie.material_name],
+                        'measure': [ie.emission_scale_measure],
+                        'value': [ie.emission_scale_value * 10**ie.emission_scale_exp]
+                    }
+                continue
+
             ie = mat.indigo_material.indigo_material_emission
             if ie.emission_enabled and ie.emission_scale:
                 d['emission_scale'] = {
@@ -82,6 +106,7 @@ class model_object(model_base):
                     'measure': [ie.emission_scale_measure],
                     'value': [ie.emission_scale_value * 10**ie.emission_scale_exp]
                 }
+
 
         if(obj.data != None and obj.data.indigo_mesh.invisible_to_camera):
             d['invisible_to_camera'] = ["true"]
@@ -204,6 +229,16 @@ class LightingChecker:
             if ms.material == None: continue
             if ms.material.indigo_material == None: continue
 
+            # external emission material
+            iex = ms.material.indigo_material.indigo_material_external
+            if ms.material.indigo_material.type == 'external' and iex.emission_enabled:
+                mat_test = iex.emission_enabled
+                if iex.emission_enabled:
+                    if iex.emission_scale:
+                        mat_test &= (iex.emission_scale_value > 0.0)
+                emitting_object |= mat_test
+                continue
+
             iem = ms.material.indigo_material.indigo_material_emission
             mat_test = iem.emission_enabled
             if iem.emission_enabled:
@@ -214,6 +249,7 @@ class LightingChecker:
                     mat_test &= (iem.emit_power > 0.0 and iem.emit_gain_val > 0.0)
                 mat_test &= self.geometry_exporter.scene.indigo_lightlayers.is_enabled(iem.emit_layer)
             emitting_object |= mat_test
+
 
         self.ObjectsChecked.add(obj, obj)
         self.valid_lighting |= emitting_object

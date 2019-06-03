@@ -1,5 +1,5 @@
 '''
-Created by Marcin Zielinski, Doug Hammond, Thomas Ludwig, Nicholas Chapman, Yves Colle
+Created by Styriam Sp. z. o.o., Marcin Zielinski, Doug Hammond, Thomas Ludwig, Nicholas Chapman, Yves Colle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ bl_info = {
     "name": "Blendigo - Indigo Exporter",
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
-    "version": (4, 2, 3),
+    "version": (4, 2, 5),
     "blender": (2, 78, 0),
     "location": "View3D",
     "wiki_url": "",

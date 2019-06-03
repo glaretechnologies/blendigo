@@ -47,7 +47,7 @@ def getInstallPath(scene=None):
         return "" # TODO
 
     if isMac():
-        return "/Applications/Indigo Renderer/Indigo.app" # Assumption
+        return "/Applications/Indigo Renderer/Indigo Renderer.app" # Assumption
 
     if isWindows():
         import winreg

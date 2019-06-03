@@ -21,6 +21,7 @@ def find_crfs(self, context):
         
         crfs = os.listdir(crf_path)
         crfs = [('data/camera_response_functions/' + crf, crf[:-4], crf[:-4]) for crf in crfs if crf != 'source.txt' and crf[0] != '.']
+        crfs.sort(key = lambda x: x[1].lower(), reverse = False)
         CRF_CACHE[crf_path] = crfs
         return crfs
     except:

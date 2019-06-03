@@ -166,6 +166,17 @@ class IndigoRenderExportSettings(bpy.types.Panel):
         sc.prop(indigo_engine, 'ov_watermark')
         sc.prop(indigo_engine, 'ov_info')
         sc.prop(indigo_engine, 'logging')
+
+
+        # sub-options
+
+        if indigo_engine.save_igi:
+            box = col.box()
+            sub = box.column()
+            row = sub.row()
+            
+            sc = row.column()
+            sc.prop(indigo_engine, 'igi_timestamp_filename')
         
 
 class IndigoRenderRenderChannels(bpy.types.Panel):

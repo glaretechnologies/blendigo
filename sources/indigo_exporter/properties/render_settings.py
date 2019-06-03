@@ -616,6 +616,13 @@ properties = [
         'description': 'Save render channels in EXR format',
         'default': False
     },
+    {
+        'type': 'bool',
+        'attr': 'igi_timestamp_filename',
+        'name': 'IGI Filename Timestamp',
+        'description': 'Add timestamp to the name of exported igi file',
+        'default': False
+    },
 ]
 
 ##########

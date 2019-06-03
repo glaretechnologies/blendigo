@@ -263,7 +263,14 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
                 if context.indigo_engine.save_exr_tm:
                     indigo_args.extend(['-texro', image_out_path + '_tonemapped.exr'])
                 if context.indigo_engine.save_igi:
-                    indigo_args.extend(['-igio', image_out_path + '.igi'])
+                    if context.indigo_engine.igi_timestamp_filename:
+                        #import datetime
+                        #filename = image_out_path+" "+str(datetime.datetime.today().strftime('%y-%m-%d %H %M %S'))
+                        filename = image_out_path+"_"+str(int(time.time()))
+                    else:
+                        filename = image_out_path
+                    indigo_args.extend(['-igio', filename + '.igi'])
+
                 if context.indigo_engine.save_render_channels_exr:
                     indigo_args.extend(['-channels', image_out_path + '_channels.exr'])
 
