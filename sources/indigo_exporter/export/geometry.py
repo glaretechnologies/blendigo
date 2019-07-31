@@ -466,10 +466,11 @@ class GeometryExporter(SceneIterator):
                 self.total_mesh_export_time += time.time() - start_time
                 return exported_mesh
         
-            mesh = None
-            if not obj.data.indigo_mesh.valid_proxy():
-                # Create mesh with applied modifiers
-                mesh = obj.to_mesh(self.scene, True, 'RENDER')
+            # mesh = None
+            # if not obj.data.indigo_mesh.valid_proxy():
+            #     # Create mesh with applied modifiers
+            #     mesh = obj.to_mesh()
+            mesh = obj.data # because obj comes from evaluated depsgraph
 
             # Compute a hash over the mesh data (vertex positions, material names etc..)
             mesh_hash = self.meshHash(obj, mesh)
@@ -484,7 +485,7 @@ class GeometryExporter(SceneIterator):
                 # Important! If an object is matched to a mesh on disk, add to ExportedMeshes.
                 # Otherwise the mesh checksum will be computed over and over again.
                 self.ExportedMeshes[obj] = exported_mesh
-                if mesh: bpy.data.meshes.remove(mesh)
+                if mesh: obj.to_mesh_clear()
                 self.total_mesh_export_time += time.time() - start_time
                 return exported_mesh
 
@@ -500,7 +501,7 @@ class GeometryExporter(SceneIterator):
                     # if skipping mesh write, parse faces to gather used mats
                     used_mat_indices = set()
                     num_smooth = 0
-                    for face in mesh.tessfaces:
+                    for face in mesh.polygons:
                         used_mat_indices.add(face.material_index)
                         if face.use_smooth:
                             num_smooth += 1
@@ -515,7 +516,7 @@ class GeometryExporter(SceneIterator):
                 used_mat_indices = range(len(obj.material_slots))
 
             # Remove mesh.
-            if mesh: bpy.data.meshes.remove(mesh)
+            if mesh: obj.to_mesh_clear()
             
             # Export materials used by this mesh
             if len(obj.material_slots) > 0:
@@ -548,7 +549,7 @@ class GeometryExporter(SceneIterator):
             return mesh_definition
 
     def exportModelElements(self, obj, mesh_definition, matrix, dupli_ob=None, particle_system=None):
-        if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition))
+        if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s' % (obj, mesh_definition))
         # If this object was instanced by a DupliObject, hash the DupliObject's persistent_id
         if dupli_ob != None:
             key = hash((obj, particle_system, dupli_ob.persistent_id[0], dupli_ob.id_data))

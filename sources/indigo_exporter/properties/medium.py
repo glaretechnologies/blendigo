@@ -16,8 +16,9 @@ Med_Medium_Basic = MaterialChannel('medium_type', spectrum=True, texture=False, 
 
 #from .. import export
 from . import register_properties_dict
-    
+from .. auto_load import force_register
 @register_properties_dict
+@force_register    
 class Indigo_Material_Medium_Data_Properties(bpy.types.PropertyGroup):
     properties = [
         {

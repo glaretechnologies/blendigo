@@ -1,8 +1,7 @@
 import bpy
 
 from .. core import BL_IDNAME
-class IndigoRenderEngineSettings(bpy.types.Panel):
-    bl_idname = "view3d.indigo_render_engine_settings"
+class INDIGO_PT_ui_render_engine_settings(bpy.types.Panel):
     bl_label = "Indigo Engine"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -19,7 +18,7 @@ class IndigoRenderEngineSettings(bpy.types.Panel):
         col.prop(indigo_engine, 'render_mode')
         
         if indigo_engine.render_mode == 'custom':
-            col.label("Custom Options:")
+            col.label(text="Custom Options:")
             box = col.box()
             sub = box.column()
             row = sub.row()
@@ -44,7 +43,7 @@ class IndigoRenderEngineSettings(bpy.types.Panel):
         sub.prop(indigo_engine, 'max_contribution')
         
         
-        col.label("Filter Settings:")
+        col.label(text="Filter Settings:")
         box = col.box()
         sub = box.column()
         sub.prop(indigo_engine, 'supersample')
@@ -69,7 +68,7 @@ class IndigoRenderEngineSettings(bpy.types.Panel):
         col = layout.column()
         col.separator()
         
-        col.label("Halt Settings:")
+        col.label(text="Halt Settings:")
         box = col.box()
         sub = box.column()
         sr = sub.row(align=True)
@@ -81,7 +80,7 @@ class IndigoRenderEngineSettings(bpy.types.Panel):
         col = layout.column()
         col.separator()
         
-        col.label("System Settings:")
+        col.label(text="System Settings:")
         box = col.box()
         sub = box.column()
         sr = sub.row()
@@ -102,12 +101,12 @@ class IndigoRenderEngineSettings(bpy.types.Panel):
         from .. properties.render_settings import IndigoDevice
         
         col = col.column(align=True)
-        col.label("Render Devices:")
+        col.label(text="Render Devices:")
         for d in indigo_engine.render_devices:
             col.prop(d, 'use', text=d.platform+' '+d.device, toggle=True)
         col.operator('indigo.refresh_computing_devices')
             
-class RefreshComputingDevices(bpy.types.Operator):
+class INDIGO_OT_refresh_computing_devices(bpy.types.Operator):
     bl_idname = "indigo.refresh_computing_devices"
     bl_label = "Refresh Computing Devices"
     bl_description = ""
@@ -126,8 +125,7 @@ class RefreshComputingDevices(bpy.types.Operator):
             
         
         
-class IndigoRenderExportSettings(bpy.types.Panel):
-    bl_idname = "view3d.indigo_render_export_settings"
+class INDIGO_PT_ui_render_export_settings(bpy.types.Panel):
     bl_label = "Export Settings"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -151,7 +149,7 @@ class IndigoRenderExportSettings(bpy.types.Panel):
         
         col.separator()
         
-        col.label("Output Settings:")
+        col.label(text="Output Settings:")
         box = col.box()
         sub = box.column()
         row = sub.row()
@@ -179,8 +177,7 @@ class IndigoRenderExportSettings(bpy.types.Panel):
             sc.prop(indigo_engine, 'igi_timestamp_filename')
         
 
-class IndigoRenderRenderChannels(bpy.types.Panel):
-    bl_idname = "view3d.indigo_render_render_channels"
+class INDIGO_PT_ui_render_render_channels(bpy.types.Panel):
     bl_label = "Render Channels"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'

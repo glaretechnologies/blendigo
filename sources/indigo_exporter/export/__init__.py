@@ -5,6 +5,7 @@ REPORTER = None
 PRINT_CONSOLE = efutil.find_config_value('indigo', 'defaults', 'console_output', False)
 
 OBJECT_ANALYSIS = os.getenv('B25_OBJECT_ANALYSIS', False)
+OBJECT_ANALYSIS = True
 
 def indigo_log(message, popup=False, message_type='INFO'):
     global REPORTER, PRINT_CONSOLE
@@ -113,17 +114,16 @@ class ExportCache(object):
             raise Exception('Item %s not found in %s!' % (ck, self.name))
     
     def get_all(self):
-        return self.cache_items.items();
+        return self.cache_items.items()
     
     def count(self):
         return len(self.cache_keys)
 
 def indigo_visible(scene, obj, is_dupli=False):
-    ov = False
-    for lv in [ol and sl for ol,sl in zip(obj.layers, scene.layers)]:
-        ov |= lv
+    # return (obj.visible_get() or is_dupli) and not obj.hide_render
     
-    return (ov or is_dupli) and not obj.hide_render
+    # all objects come from evaluated depsgraph (render context) so to my understanding they are visible
+    return not obj.hide_render
 
 class SceneIterator(object):
     progress_thread_action = "Exporting"
@@ -133,7 +133,7 @@ class SceneIterator(object):
         'CURVE',
         'SURFACE',
         'FONT',
-        'LAMP'
+        'LIGHT'
     ]
     
     scene = None
@@ -142,31 +142,43 @@ class SceneIterator(object):
     def canAbort(self):
         return self.abort
     
-    def iterateScene(self, scene):
-        self.scene = scene
+    def iterateScene(self, depsgraph):
+        self.scene = depsgraph.scene_eval
+
+        print('\nscene iterator\n')
+        # TODO: optimisations! 
+        for ob_inst in depsgraph.object_instances:
+            if ob_inst.is_instance:  # Real dupli instance
+                obj = ob_inst.instance_object
+                parent = ob_inst.parent
+                print('dupli:', obj, parent)
+            else:  # Usual object
+                obj = ob_inst.object
+                print('real', obj)
     
-        for obj in self.scene.objects:
             if self.canAbort(): break
             if OBJECT_ANALYSIS: indigo_log('Analysing object %s : %s' % (obj, obj.type))
                 
             try:
                 # Export only objects which are enabled for render (in the outliner) and visible on a render layer
-                if not indigo_visible(self.scene, obj):
+                if obj.is_instancer and not obj.show_instancer_for_render: # not indigo_visible(self.scene, obj):
                     raise UnexportableObjectException(' -> not visible')
                 
-                if obj.parent and obj.parent.is_duplicator:
+                if obj.parent and obj.parent.is_instancer:
                     raise UnexportableObjectException(' -> parent is duplicator')
                 
                 number_psystems = len(obj.particle_systems)
                 
-                if obj.is_duplicator and number_psystems < 1:
+                # TODO: number_psystems is always 0 because this is 'evaluated single object'
+                if obj.is_instancer and number_psystems < 1:
                     if OBJECT_ANALYSIS: indigo_log(' -> is duplicator without particle systems')
+                    print('--> dupli type:', obj.dupli_type)
                     if obj.dupli_type in ('FACES', 'GROUP', 'VERTS'):
                         self.handleDuplis(obj)
                     elif OBJECT_ANALYSIS: indigo_log(' -> Unsupported Dupli type: %s' % obj.dupli_type)
                 
                 # Some dupli types should hide the original
-                if obj.is_duplicator and obj.dupli_type in ('VERTS', 'FACES', 'GROUP'):
+                if obj.is_instancer and obj.dupli_type in ('VERTS', 'FACES', 'GROUP'):
                     export_original_object = False
                 else:
                     export_original_object = True
@@ -188,7 +200,7 @@ class SceneIterator(object):
                 if not obj.type in self.supported_mesh_types:
                     raise UnexportableObjectException('Unsupported object type')
                 
-                if obj.type == 'LAMP':
+                if obj.type == 'LIGHT':
                     self.handleLamp(obj)
                 elif obj.type in ('MESH', 'CURVE', 'SURFACE', 'FONT'):
                     self.handleMesh(obj)

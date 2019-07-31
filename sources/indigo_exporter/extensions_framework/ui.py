@@ -32,8 +32,8 @@ class EF_OT_msg(bpy.types.Operator):
     """An operator to show simple messages in the UI"""
     bl_idname = 'ef.msg'
     bl_label = 'Show UI Message'
-    msg_type = bpy.props.StringProperty(default='INFO')
-    msg_text = bpy.props.StringProperty(default='')
+    msg_type: bpy.props.StringProperty(default='INFO')
+    msg_text: bpy.props.StringProperty(default='')
     def execute(self, context):
         self.report({self.properties.msg_type}, self.properties.msg_text)
         return {'FINISHED'}

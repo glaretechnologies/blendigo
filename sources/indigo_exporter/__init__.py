@@ -19,8 +19,8 @@ bl_info = {
     "name": "Blendigo - Indigo Exporter",
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
-    "version": (4, 2, 5),
-    "blender": (2, 78, 0),
+    "version": (4, 3, 0),
+    "blender": (2, 80, 0),
     "location": "View3D",
     "wiki_url": "",
     "category": "Render" }
@@ -28,88 +28,20 @@ bl_info = {
 
 import bpy
 
-# updater ops import, all setup in this file
-from . import addon_updater_ops
-
-# demo bare-bones preferences
-class IndigoPreferences(bpy.types.AddonPreferences):
-    bl_idname = __package__
-
-    # addon updater preferences
-
-    auto_check_update = bpy.props.BoolProperty(
-        name="Auto-check for Update",
-        description="If enabled, auto-check for updates using an interval",
-        default=False,
-        )
-    updater_intrval_months = bpy.props.IntProperty(
-        name='Months',
-        description="Number of months between checking for updates",
-        default=0,
-        min=0
-        )
-    updater_intrval_days = bpy.props.IntProperty(
-        name='Days',
-        description="Number of days between checking for updates",
-        default=7,
-        min=0,
-        max=31
-        )
-    updater_intrval_hours = bpy.props.IntProperty(
-        name='Hours',
-        description="Number of hours between checking for updates",
-        default=0,
-        min=0,
-        max=23
-        )
-    updater_intrval_minutes = bpy.props.IntProperty(
-        name='Minutes',
-        description="Number of minutes between checking for updates",
-        default=0,
-        min=0,
-        max=59
-        )
-
-    def draw(self, context):
-        layout = self.layout
-        # col = layout.column() # works best if a column, or even just self.layout
-        mainrow = layout.row()
-        col = mainrow.column()
-
-        # updater draw function
-        # could also pass in col as third arg
-        addon_updater_ops.update_settings_ui(self, context)
-
-        # Alternate draw function, which is more condensed and can be
-        # placed within an existing draw function. Only contains:
-        #   1) check for update/update now buttons
-        #   2) toggle for auto-check (interval will be equal to what is set above)
-        # addon_updater_ops.update_settings_ui_condensed(self, context, col)
-
-        # Adding another column to help show the above condensed ui as one column
-        # col = mainrow.column()
-        # col.scale_y = 2
-        # col.operator("wm.url_open","Open webpage ").url=addon_updater_ops.updater.website
-
-# load and reload submodules
-##################################
-
-import importlib
-from . import developer_utils
-importlib.reload(developer_utils)
-modules = developer_utils.setup_addon_modules(__path__, __name__, "bpy" in locals())
-
-
-
 # register
 ##################################
 
-import traceback
+from . import auto_load
+
+auto_load.init(ignore=("addon_updater", "addon_updater_ops"), make_annotations=True)
 
 def register():
+    auto_load.register()
+
     # addon updater code and configurations
     # in case of broken version, try to register the updater first
     # so that users can revert back to a working version
+    from . import addon_updater_ops
     addon_updater_ops.register(bl_info)
     from .addon_updater import Updater as updater
     updater.user = "glaretechnologies"
@@ -118,8 +50,7 @@ def register():
     # updater.include_branche_list = ["master", "dev"]
     updater.subfolder_path = "sources/indigo_exporter/"
 
-    try: bpy.utils.register_module(__name__)
-    except: traceback.print_exc()
+    addon_updater_ops.check_for_update_background()
     
     from . properties.render_settings import Indigo_Engine_Properties
     bpy.types.Scene.indigo_engine = bpy.props.PointerProperty(name="Indigo Engine Properties", type = Indigo_Engine_Properties)
@@ -131,8 +62,8 @@ def register():
     bpy.types.Scene.indigo_lightlayers = bpy.props.PointerProperty(name="Indigo Lightlayers Properties", type = Indigo_Lightlayers_Properties)
     
     from . properties.lamp import Indigo_Lamp_Sun_Properties, Indigo_Lamp_Hemi_Properties
-    bpy.types.Lamp.indigo_lamp_sun = bpy.props.PointerProperty(name="Indigo Lamp Sun Properties", type = Indigo_Lamp_Sun_Properties)
-    bpy.types.Lamp.indigo_lamp_hemi = bpy.props.PointerProperty(name="Indigo Lamp Hemi Properties", type = Indigo_Lamp_Hemi_Properties)
+    bpy.types.Light.indigo_lamp_sun = bpy.props.PointerProperty(name="Indigo Lamp Sun Properties", type = Indigo_Lamp_Sun_Properties)
+    bpy.types.Light.indigo_lamp_hemi = bpy.props.PointerProperty(name="Indigo Lamp Hemi Properties", type = Indigo_Lamp_Hemi_Properties)
     
     from . properties.material import Indigo_Material_Properties, Indigo_Texture_Properties
     bpy.types.Material.indigo_material = bpy.props.PointerProperty(name="Indigo Material Properties", type = Indigo_Material_Properties)
@@ -150,11 +81,7 @@ def register():
     
     from . properties.tonemapping import Indigo_Tonemapping_Properties
     bpy.types.Camera.indigo_tonemapping = bpy.props.PointerProperty(name="Indigo Tonemapping Properties", type = Indigo_Tonemapping_Properties)
-    
-    print("Registered {} with {} modules".format(bl_info["name"], len(modules)))
 
 def unregister():
-    try: bpy.utils.unregister_module(__name__)
-    except: traceback.print_exc()
-
-    print("Unregistered {}".format(bl_info["name"]))
+    auto_load.unregister()
+    addon_updater_ops.unregister()

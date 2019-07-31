@@ -30,9 +30,7 @@ import os
 import json
 import zipfile
 import shutil
-import asyncio
 import threading
-import time
 import fnmatch
 from datetime import datetime, timedelta
 
@@ -107,7 +105,6 @@ class Singleton_updater(object):
 		self._source_zip = None
 		self._check_thread = None
 		self.skip_tag = None
-		self.select_link = None
 
 		# get from module data
 		self._addon = __package__.lower()
@@ -127,34 +124,17 @@ class Singleton_updater(object):
 		self.showpopups = True # used in UI to show or not show update popups
 		self.invalidupdater = False
 
+		# pre-assign basic select-link function
+		def select_link_function(self, tag):
+			return tag["zipball_url"]
+
+		self._select_link = select_link_function
+
 
 	# -------------------------------------------------------------------------
 	# Getters and setters
 	# -------------------------------------------------------------------------
 
-	@property
-	def engine(self):
-		return self._engine.name
-	@engine.setter
-	def engine(self, value):
-		if value.lower()=="github":
-			self._engine = GithubEngine()
-		elif value.lower()=="gitlab":
-			self._engine = GitlabEngine()
-		elif value.lower()=="bitbucket":
-			self._engine = BitbucketEngine()
-		else:
-			raise ValueError("Invalid engine selection")
-
-	@property
-	def private_token(self):
-		return self._engine.token
-	@private_token.setter
-	def private_token(self, value):
-		if value==None:
-			self._engine.token = None
-		else:
-			self._engine.token = str(value)
 
 	@property
 	def addon(self):
@@ -162,156 +142,6 @@ class Singleton_updater(object):
 	@addon.setter
 	def addon(self, value):
 		self._addon = str(value)
-
-	@property
-	def verbose(self):
-		return self._verbose
-	@verbose.setter
-	def verbose(self, value):
-		try:
-			self._verbose = bool(value)
-			if self._verbose == True:
-				print(self._addon+" updater verbose is enabled")
-		except:
-			raise ValueError("Verbose must be a boolean value")
-
-	@property
-	def include_branches(self):
-		return self._include_branches
-	@include_branches.setter
-	def include_branches(self, value):
-		try:
-			self._include_branches = bool(value)
-		except:
-			raise ValueError("include_branches must be a boolean value")
-
-	@property
-	def use_releases(self):
-		return self._use_releases
-	@use_releases.setter
-	def use_releases(self, value):
-		try:
-			self._use_releases = bool(value)
-		except:
-			raise ValueError("use_releases must be a boolean value")
-
-	@property
-	def include_branch_list(self):
-		return self._include_branch_list
-	@include_branch_list.setter
-	def include_branch_list(self, value):
-		try:
-			if value == None:
-				self._include_branch_list = ['master']
-			elif type(value) != type(['master']) or value==[]:
-				raise ValueError("include_branch_list should be a list of valid branches")
-			else:
-				self._include_branch_list = value
-		except:
-			raise ValueError("include_branch_list should be a list of valid branches")
-
-	@property
-	def overwrite_patterns(self):
-		return self._overwrite_patterns
-	@overwrite_patterns.setter
-	def overwrite_patterns(self, value):
-		if value == None:
-			self._overwrite_patterns = ["*.py","*.pyc"]
-		elif type(value) != type(['']):
-			raise ValueError("overwrite_patterns needs to be in a list format")
-		else:
-			self._overwrite_patterns = value
-
-	@property
-	def remove_pre_update_patterns(self):
-		return self._remove_pre_update_patterns
-	@remove_pre_update_patterns.setter
-	def remove_pre_update_patterns(self, value):
-		if value == None:
-			self._remove_pre_update_patterns = []
-		elif type(value) != type(['']):
-			raise ValueError("remove_pre_update_patterns needs to be in a list format")
-		else:
-			self._remove_pre_update_patterns = value
-
-	# not currently used
-	@property
-	def include_branch_autocheck(self):
-		return self._include_branch_autocheck
-	@include_branch_autocheck.setter
-	def include_branch_autocheck(self, value):
-		try:
-			self._include_branch_autocheck = bool(value)
-		except:
-			raise ValueError("include_branch_autocheck must be a boolean value")
-
-	@property
-	def manual_only(self):
-		return self._manual_only
-	@manual_only.setter
-	def manual_only(self, value):
-		try:
-			self._manual_only = bool(value)
-		except:
-			raise ValueError("manual_only must be a boolean value")
-
-	@property
-	def auto_reload_post_update(self):
-		return self._auto_reload_post_update
-	@auto_reload_post_update.setter
-	def auto_reload_post_update(self, value):
-		try:
-			self._auto_reload_post_update = bool(value)
-		except:
-			raise ValueError("Must be a boolean value")
-
-	@property
-	def fake_install(self):
-		return self._fake_install
-	@fake_install.setter
-	def fake_install(self, value):
-		if type(value) != type(False):
-			raise ValueError("fake_install must be a boolean value")
-		self._fake_install = bool(value)
-
-	@property
-	def user(self):
-		return self._user
-	@user.setter
-	def user(self, value):
-		try:
-			self._user = str(value)
-		except:
-			raise ValueError("User must be a string value")
-
-	@property
-	def json(self):
-		if self._json == {}:
-			self.set_updater_json()
-		return self._json
-
-	@property
-	def repo(self):
-		return self._repo
-	@repo.setter
-	def repo(self, value):
-		try:
-			self._repo = str(value)
-		except:
-			raise ValueError("User must be a string")
-
-	@property
-	def website(self):
-		return self._website
-	@website.setter
-	def website(self, value):
-		if self.check_is_url(value) == False:
-			raise ValueError("Not a valid URL: " + value)
-		self._website = value
-
-	@property
-	def async_checking(self):
-		return self._async_checking
 
 	@property
 	def api_url(self):
@@ -323,151 +153,18 @@ class Singleton_updater(object):
 		self._engine.api_url = value
 
 	@property
-	def stage_path(self):
-		return self._updater_path
-	@stage_path.setter
-	def stage_path(self, value):
-		if value == None:
-			if self._verbose: print("Aborting assigning stage_path, it's null")
-			return
-		elif value != None and not os.path.exists(value):
-			try:
-				os.makedirs(value)
-			except:
-				if self._verbose: print("Error trying to staging path")
-				return
-		self._updater_path = value
+	def async_checking(self):
+		return self._async_checking
 
 	@property
-	def tags(self):
-		if self._tags == []:
-			return []
-		tag_names = []
-		for tag in self._tags:
-			tag_names.append(tag["name"])
-		return tag_names
-
-	@property
-	def tag_latest(self):
-		if self._tag_latest == None:
-			return None
-		return self._tag_latest["name"]
-
-	@property
-	def latest_release(self):
-		if self._releases_latest == None:
-			return None
-		return self._latest_release
-
-	@property
-	def current_version(self):
-		return self._current_version
-
-	@property
-	def subfolder_path(self):
-		return self._subfolder_path
-
-	@subfolder_path.setter
-	def subfolder_path(self, value):
-		self._subfolder_path = value
-
-	@property
-	def update_ready(self):
-		return self._update_ready
-
-	@property
-	def update_version(self):
-		return self._update_version
-
-	@property
-	def update_link(self):
-		return self._update_link
-
-	@current_version.setter
-	def current_version(self, tuple_values):
-		if tuple_values==None:
-			self._current_version = None
-			return
-		elif type(tuple_values) is not tuple:
-			try:
-				tuple(tuple_values)
-			except:
-				raise ValueError(
-				"Not a tuple! current_version must be a tuple of integers")
-		for i in tuple_values:
-			if type(i) is not int:
-				raise ValueError(
-				"Not an integer! current_version must be a tuple of integers")
-		self._current_version = tuple(tuple_values)
-
-	def set_check_interval(self,enable=False,months=0,days=14,hours=0,minutes=0):
-		# enabled = False, default initially will not check against frequency
-		# if enabled, default is then 2 weeks
-
-		if type(enable) is not bool:
-			raise ValueError("Enable must be a boolean value")
-		if type(months) is not int:
-			raise ValueError("Months must be an integer value")
-		if type(days) is not int:
-			raise ValueError("Days must be an integer value")
-		if type(hours) is not int:
-			raise ValueError("Hours must be an integer value")
-		if type(minutes) is not int:
-			raise ValueError("Minutes must be an integer value")
-
-		if enable==False:
-			self._check_interval_enable = False
-		else:
-			self._check_interval_enable = True
-
-		self._check_interval_months = months
-		self._check_interval_days = days
-		self._check_interval_hours = hours
-		self._check_interval_minutes = minutes
-
-	@property
-	def check_interval(self):
-		return (self._check_interval_enable,
-				self._check_interval_months,
-				self._check_interval_days,
-				self._check_interval_hours,
-				self._check_interval_minutes)
-
-	@property
-	def error(self):
-		return self._error
-
-	@property
-	def error_msg(self):
-		return self._error_msg
-
-	@property
-	def version_min_update(self):
-		return self._version_min_update
-	@version_min_update.setter
-	def version_min_update(self, value):
-		if value == None:
-			self._version_min_update = None
-			return
-		if type(value) != type((1,2,3)):
-			raise ValueError("Version minimum must be a tuple")
-		else:
-			# potentially check entries are integers
-			self._version_min_update = value
-
-	@property
-	def version_max_update(self):
-		return self._version_max_update
-	@version_max_update.setter
-	def version_max_update(self, value):
-		if value == None:
-			self._version_max_update = None
-			return
-		if type(value) != type((1,2,3)):
-			raise ValueError("Version maximum must be a tuple")
-		else:
-			# potentially check entries are integers
-			self._version_max_update = value
+	def auto_reload_post_update(self):
+		return self._auto_reload_post_update
+	@auto_reload_post_update.setter
+	def auto_reload_post_update(self, value):
+		try:
+			self._auto_reload_post_update = bool(value)
+		except:
+			raise ValueError("Must be a boolean value")
 
 	@property
 	def backup_current(self):
@@ -493,6 +190,300 @@ class Singleton_updater(object):
 		else:
 			self._backup_ignore_patterns = value
 
+	@property
+	def check_interval(self):
+		return (self._check_interval_enable,
+				self._check_interval_months,
+				self._check_interval_days,
+				self._check_interval_hours,
+				self._check_interval_minutes)
+
+	@property
+	def current_version(self):
+		return self._current_version
+	@current_version.setter
+	def current_version(self, tuple_values):
+		if tuple_values==None:
+			self._current_version = None
+			return
+		elif type(tuple_values) is not tuple:
+			try:
+				tuple(tuple_values)
+			except:
+				raise ValueError(
+				"Not a tuple! current_version must be a tuple of integers")
+		for i in tuple_values:
+			if type(i) is not int:
+				raise ValueError(
+				"Not an integer! current_version must be a tuple of integers")
+		self._current_version = tuple(tuple_values)
+
+	@property
+	def engine(self):
+		return self._engine.name
+	@engine.setter
+	def engine(self, value):
+		if value.lower()=="github":
+			self._engine = GithubEngine()
+		elif value.lower()=="gitlab":
+			self._engine = GitlabEngine()
+		elif value.lower()=="bitbucket":
+			self._engine = BitbucketEngine()
+		else:
+			raise ValueError("Invalid engine selection")
+
+	@property
+	def error(self):
+		return self._error
+
+	@property
+	def error_msg(self):
+		return self._error_msg
+
+	@property
+	def fake_install(self):
+		return self._fake_install
+	@fake_install.setter
+	def fake_install(self, value):
+		if type(value) != type(False):
+			raise ValueError("fake_install must be a boolean value")
+		self._fake_install = bool(value)
+
+	# not currently used
+	@property
+	def include_branch_autocheck(self):
+		return self._include_branch_autocheck
+	@include_branch_autocheck.setter
+	def include_branch_autocheck(self, value):
+		try:
+			self._include_branch_autocheck = bool(value)
+		except:
+			raise ValueError("include_branch_autocheck must be a boolean value")
+
+	@property
+	def include_branch_list(self):
+		return self._include_branch_list
+	@include_branch_list.setter
+	def include_branch_list(self, value):
+		try:
+			if value == None:
+				self._include_branch_list = ['master']
+			elif type(value) != type(['master']) or value==[]:
+				raise ValueError("include_branch_list should be a list of valid branches")
+			else:
+				self._include_branch_list = value
+		except:
+			raise ValueError("include_branch_list should be a list of valid branches")
+
+	@property
+	def include_branches(self):
+		return self._include_branches
+	@include_branches.setter
+	def include_branches(self, value):
+		try:
+			self._include_branches = bool(value)
+		except:
+			raise ValueError("include_branches must be a boolean value")
+
+	@property
+	def json(self):
+		if self._json == {}:
+			self.set_updater_json()
+		return self._json
+
+	@property
+	def latest_release(self):
+		if self._latest_release == None:
+			return None
+		return self._latest_release
+
+	@property
+	def manual_only(self):
+		return self._manual_only
+	@manual_only.setter
+	def manual_only(self, value):
+		try:
+			self._manual_only = bool(value)
+		except:
+			raise ValueError("manual_only must be a boolean value")
+
+	@property
+	def overwrite_patterns(self):
+		return self._overwrite_patterns
+	@overwrite_patterns.setter
+	def overwrite_patterns(self, value):
+		if value == None:
+			self._overwrite_patterns = ["*.py","*.pyc"]
+		elif type(value) != type(['']):
+			raise ValueError("overwrite_patterns needs to be in a list format")
+		else:
+			self._overwrite_patterns = value
+
+	@property
+	def private_token(self):
+		return self._engine.token
+	@private_token.setter
+	def private_token(self, value):
+		if value==None:
+			self._engine.token = None
+		else:
+			self._engine.token = str(value)
+
+	@property
+	def remove_pre_update_patterns(self):
+		return self._remove_pre_update_patterns
+	@remove_pre_update_patterns.setter
+	def remove_pre_update_patterns(self, value):
+		if value == None:
+			self._remove_pre_update_patterns = []
+		elif type(value) != type(['']):
+			raise ValueError("remove_pre_update_patterns needs to be in a list format")
+		else:
+			self._remove_pre_update_patterns = value
+
+	@property
+	def repo(self):
+		return self._repo
+	@repo.setter
+	def repo(self, value):
+		try:
+			self._repo = str(value)
+		except:
+			raise ValueError("User must be a string")
+
+	@property
+	def select_link(self):
+		return self._select_link
+	@select_link.setter
+	def select_link(self, value):
+		# ensure it is a function assignment, with signature:
+		# input self, tag; returns link name
+		if not hasattr(value, "__call__"):
+			raise ValueError("select_link must be a function")
+		self._select_link = value
+
+	@property
+	def stage_path(self):
+		return self._updater_path
+	@stage_path.setter
+	def stage_path(self, value):
+		if value == None:
+			if self._verbose: print("Aborting assigning stage_path, it's null")
+			return
+		elif value != None and not os.path.exists(value):
+			try:
+				os.makedirs(value)
+			except:
+				if self._verbose: print("Error trying to staging path")
+				return
+		self._updater_path = value
+
+	@property
+	def subfolder_path(self):
+		return self._subfolder_path
+	@subfolder_path.setter
+	def subfolder_path(self, value):
+		self._subfolder_path = value
+
+	@property
+	def tags(self):
+		if self._tags == []:
+			return []
+		tag_names = []
+		for tag in self._tags:
+			tag_names.append(tag["name"])
+		return tag_names
+
+	@property
+	def tag_latest(self):
+		if self._tag_latest == None:
+			return None
+		return self._tag_latest["name"]
+
+	@property
+	def update_link(self):
+		return self._update_link
+
+	@property
+	def update_ready(self):
+		return self._update_ready
+
+	@property
+	def update_version(self):
+		return self._update_version
+
+	@property
+	def use_releases(self):
+		return self._use_releases
+	@use_releases.setter
+	def use_releases(self, value):
+		try:
+			self._use_releases = bool(value)
+		except:
+			raise ValueError("use_releases must be a boolean value")
+
+	@property
+	def user(self):
+		return self._user
+	@user.setter
+	def user(self, value):
+		try:
+			self._user = str(value)
+		except:
+			raise ValueError("User must be a string value")
+
+	@property
+	def verbose(self):
+		return self._verbose
+	@verbose.setter
+	def verbose(self, value):
+		try:
+			self._verbose = bool(value)
+			if self._verbose == True:
+				print(self._addon+" updater verbose is enabled")
+		except:
+			raise ValueError("Verbose must be a boolean value")
+
+	@property
+	def version_max_update(self):
+		return self._version_max_update
+	@version_max_update.setter
+	def version_max_update(self, value):
+		if value == None:
+			self._version_max_update = None
+			return
+		if type(value) != type((1,2,3)):
+			raise ValueError("Version maximum must be a tuple")
+		for subvalue in value:
+			if type(subvalue) != int:
+				raise ValueError("Version elements must be integers")
+		self._version_max_update = value
+
+	@property
+	def version_min_update(self):
+		return self._version_min_update
+	@version_min_update.setter
+	def version_min_update(self, value):
+		if value == None:
+			self._version_min_update = None
+			return
+		if type(value) != type((1,2,3)):
+			raise ValueError("Version minimum must be a tuple")
+		for subvalue in value:
+			if type(subvalue) != int:
+				raise ValueError("Version elements must be integers")
+		self._version_min_update = value
+
+	@property
+	def website(self):
+		return self._website
+	@website.setter
+	def website(self, value):
+		if self.check_is_url(value) == False:
+			raise ValueError("Not a valid URL: " + value)
+		self._website = value
+
+
 	# -------------------------------------------------------------------------
 	# Parameter validation related functions
 	# -------------------------------------------------------------------------
@@ -507,11 +498,35 @@ class Singleton_updater(object):
 
 	def get_tag_names(self):
 		tag_names = []
-		self.get_tags(self)
+		self.get_tags()
 		for tag in self._tags:
 			tag_names.append(tag["name"])
 		return tag_names
 
+	def set_check_interval(self,enable=False,months=0,days=14,hours=0,minutes=0):
+		# enabled = False, default initially will not check against frequency
+		# if enabled, default is then 2 weeks
+
+		if type(enable) is not bool:
+			raise ValueError("Enable must be a boolean value")
+		if type(months) is not int:
+			raise ValueError("Months must be an integer value")
+		if type(days) is not int:
+			raise ValueError("Days must be an integer value")
+		if type(hours) is not int:
+			raise ValueError("Hours must be an integer value")
+		if type(minutes) is not int:
+			raise ValueError("Minutes must be an integer value")
+
+		if enable==False:
+			self._check_interval_enable = False
+		else:
+			self._check_interval_enable = True
+
+		self._check_interval_months = months
+		self._check_interval_days = days
+		self._check_interval_hours = hours
+		self._check_interval_minutes = minutes
 
 	# declare how the class gets printed
 
@@ -606,7 +621,12 @@ class Singleton_updater(object):
 	def get_raw(self, url):
 		# print("Raw request:", url)
 		request = urllib.request.Request(url)
-		context = ssl._create_unverified_context()
+		try:
+			context = ssl._create_unverified_context()
+		except:
+			# some blender packaged python versions don't have this, largely
+			# useful for local network setups otherwise minimal impact
+			context = None
 
 		# setup private request headers if appropriate
 		if self._engine.token != None:
@@ -617,19 +637,30 @@ class Singleton_updater(object):
 
 		# run the request
 		try:
-			result = urllib.request.urlopen(request,context=context)
+			if context:
+				result = urllib.request.urlopen(request, context=context)
+			else:
+				result = urllib.request.urlopen(request)
 		except urllib.error.HTTPError as e:
-			self._error = "HTTP error"
-			self._error_msg = str(e.code)
+			if str(e.code) == "403":
+				self._error = "HTTP error (access denied)"
+				self._error_msg = str(e.code) + " - server error response"
+				print(self._error, self._error_msg)
+			else:
+				self._error = "HTTP error"
+				self._error_msg = str(e.code)
+				print(self._error, self._error_msg)
 			self._update_ready = None
 		except urllib.error.URLError as e:
 			reason = str(e.reason)
 			if "TLSV1_ALERT" in reason or "SSL" in reason:
 				self._error = "Connection rejected, download manually"
 				self._error_msg = reason
+				print(self._error, self._error_msg)
 			else:
 				self._error = "URL error, check internet connection"
 				self._error_msg = reason
+				print(self._error, self._error_msg)
 			self._update_ready = None
 			return None
 		else:
@@ -650,6 +681,7 @@ class Singleton_updater(object):
 				self._error = "API response has invalid JSON format"
 				self._error_msg = str(e.reason)
 				self._update_ready = None
+				print(self._error, self._error_msg)
 				return None
 		else:
 			return None
@@ -795,15 +827,25 @@ class Singleton_updater(object):
 			raise ValueError("Resulting file is not a zip")
 		if self._verbose: print("Extracted source")
 
-		# either directly in root of zip, or one folder level deep
 		unpath = os.path.join(self._updater_path,"source")
+		if not os.path.isdir(unpath):
+			self._error = "Install failed"
+			self._error_msg = "Extracted path does not exist"
+			print("Extracted path does not exist: ", unpath)
+			return -1
+
+		if self._subfolder_path:
+			self._subfolder_path.replace('/', os.path.sep)
+			self._subfolder_path.replace('\\', os.path.sep)
+
+		# either directly in root of zip/one subfolder, or use specified path
 		if os.path.isfile(os.path.join(unpath,"__init__.py")) == False:
 			dirlist = os.listdir(unpath)
 			if len(dirlist)>0:
 				if self._subfolder_path == "" or self._subfolder_path == None:
-					unpath = os.path.join(unpath,dirlist[0])
+					unpath = os.path.join(unpath, dirlist[0])
 				else:
-					unpath = os.path.join(unpath,dirlist[0],self._subfolder_path)
+					unpath = os.path.join(unpath, self._subfolder_path)
 
 			# smarter check for additional sub folders for a single folder
 			# containing __init__.py
@@ -815,13 +857,9 @@ class Singleton_updater(object):
 
 				raise ValueError("__init__ file not found in new source")
 
-		# now commence merging in the two locations:
-		# note this MAY not be accurate, as updater files could be placed elsewhere
-		origpath = os.path.dirname(__file__)
-
 		# merge code with running addon directory, using blender default behavior
 		# plus any modifiers indicated by user (e.g. force remove/keep)
-		self.deepMergeDirectory(origpath,unpath,clean)
+		self.deepMergeDirectory(self._addon_root, unpath, clean)
 
 		# Now save the json state
 		#  Change to True, to trigger the handler on other side
@@ -835,16 +873,17 @@ class Singleton_updater(object):
 	# merge folder 'merger' into folder 'base' without deleting existing
 	def deepMergeDirectory(self,base,merger,clean=False):
 		if not os.path.exists(base):
-			if self._verbose: print("Base path does not exist")
+			if self._verbose:
+				print("Base path does not exist:", base)
 			return -1
 		elif not os.path.exists(merger):
-			if self._verbose: print("Merger path does not exist")
+			if self._verbose:
+				print("Merger path does not exist")
 			return -1
 
 		# paths to be aware of and not overwrite/remove/etc
 		staging_path = os.path.join(self._updater_path,"update_staging")
 		backup_path = os.path.join(self._updater_path,"backup")
-		json_path = os.path.join(self._updater_path,"updater_status.json")
 
 		# If clean install is enabled, clear existing files ahead of time
 		# note: will not delete the update.json, update folder, staging, or staging
@@ -871,9 +910,9 @@ class Singleton_updater(object):
 					shutil.rmtree(os.path.join(base,f))
 					print("Clean removing folder and contents {}".format(os.path.join(base,f)))
 
-			except error:
+			except Exception as err:
 				error = "failed to create clean existing addon folder"
-				print(error,str(e))
+				print(error, str(err))
 
 		# Walk through the base addon folder for rules on pre-removing
 		# but avoid removing/altering backup and updater file
@@ -1162,7 +1201,7 @@ class Singleton_updater(object):
 				tg = tag
 				break
 		if tg == None:
-			raise ValueError("Version tag not found: "+revert_tag)
+			raise ValueError("Version tag not found: "+name)
 		new_version = self.version_tuple_from_text(self.tag_latest)
 		self._update_version = new_version
 		self._update_link = self.select_link(self, tg)
@@ -1268,18 +1307,39 @@ class Singleton_updater(object):
 					print("{} Updater: Determined it's not yet time to check for updates".format(self._addon))
 				return False
 
+	def get_json_path(self):
+		"""Returns the full path to the json state file used by this updater.
+
+		Will also rename old file paths to addon-specific path if found
+		"""
+		json_path = os.path.join(self._updater_path,
+			"{}_updater_status.json".format(self._addon_package))
+		old_json_path = os.path.join(self._updater_path, "updater_status.json")
+
+		# rename old file if it exists
+		try:
+			os.rename(old_json_path, json_path)
+		except FileNotFoundError:
+			pass
+		except Exception as err:
+			print("Other OS error occured while trying to rename old json")
+			print(err)
+		return json_path
 
 	def set_updater_json(self):
+		"""Load or initialize json dictionary data for updater state"""
 		if self._updater_path == None:
 			raise ValueError("updater_path is not defined")
 		elif os.path.isdir(self._updater_path) == False:
 			os.makedirs(self._updater_path)
 
-		jpath = os.path.join(self._updater_path,"updater_status.json")
+		jpath = self.get_json_path()
 		if os.path.isfile(jpath):
 			with open(jpath) as data_file:
 				self._json = json.load(data_file)
-				if self._verbose: print("{} Updater: Read in json settings from file".format(self._addon))
+				if self._verbose:
+					print("{} Updater: Read in json settings from file".format(
+						self._addon))
 		else:
 			# set data structure
 			self._json = {
@@ -1308,7 +1368,7 @@ class Singleton_updater(object):
 			self._json["update_ready"] = False
 			self._json["version_text"] = {}
 
-		jpath = os.path.join(self._updater_path,"updater_status.json")
+		jpath = self.get_json_path()
 		outf = open(jpath,'w')
 		data_out = json.dumps(self._json, indent=4)
 		outf.write(data_out)
@@ -1340,20 +1400,24 @@ class Singleton_updater(object):
 	# -------------------------------------------------------------------------
 
 	def start_async_check_update(self, now=False, callback=None):
-		if self._async_checking == True:
+		"""Start a background thread which will check for updates"""
+		if self._async_checking is True:
 			return
-		if self._verbose: print("{} updater: Starting background checking thread".format(self._addon))
+		if self._verbose:
+			print("{} updater: Starting background checking thread".format(
+				self._addon))
 		check_thread = threading.Thread(target=self.async_check_update,
 										args=(now,callback,))
 		check_thread.daemon = True
 		self._check_thread = check_thread
 		check_thread.start()
 
-		return True
-
 	def async_check_update(self, now, callback=None):
+		"""Perform update check, run as target of background thread"""
 		self._async_checking = True
-		if self._verbose: print("{} BG thread: Checking for update now in background".format(self._addon))
+		if self._verbose:
+			print("{} BG thread: Checking for update now in background".format(
+				self._addon))
 		# time.sleep(3)  # to test background, in case internet too fast to tell
 		# try:
 		self.check_for_update(now=now)
@@ -1371,18 +1435,23 @@ class Singleton_updater(object):
 
 		if self._verbose:
 			print("{} BG thread: Finished checking for update, doing callback".format(self._addon))
-		if callback != None: callback(self._update_ready)
-
+		if callback != None:
+			callback(self._update_ready)
 
 	def stop_async_check_update(self):
+		"""Method to give impression of stopping check for update.
+
+		Currently does nothing but allows user to retry/stop blocking UI from
+		hitting a refresh button. This does not actually stop the thread, as it
+		will complete after the connection timeout regardless. If the thread
+		does complete with a successful response, this will be still displayed
+		on next UI refresh (ie no update, or update available).
+		"""
 		if self._check_thread != None:
-			try:
-				if self._verbose: print("Thread will end in normal course.")
-				# however, "There is no direct kill method on a thread object."
-				# better to let it run its course
-				#self._check_thread.stop()
-			except:
-				pass
+			if self._verbose: print("Thread will end in normal course.")
+			# however, "There is no direct kill method on a thread object."
+			# better to let it run its course
+			#self._check_thread.stop()
 		self._async_checking = False
 		self._error = None
 		self._error_msg = None
@@ -1394,6 +1463,7 @@ class Singleton_updater(object):
 
 
 class BitbucketEngine(object):
+	"""Integration to Bitbucket API for git-formatted repositories"""
 
 	def __init__(self):
 		self.api_url = 'https://api.bitbucket.org'
@@ -1418,10 +1488,12 @@ class BitbucketEngine(object):
 	def parse_tags(self, response, updater):
 		if response == None:
 			return []
-		return [{"name": tag["name"], "zipball_url": self.get_zip_url(tag["name"], updater)} for tag in response["values"]]
+		#return [{"name": tag["name"], "zipball_url": self.get_zip_url(tag["name"], updater)} for tag in response["values"]]
+		return sorted([{"name": tag["name"], "zipball_url": self.get_zip_url(tag["name"], updater)} for tag in response["values"]], key=lambda s: list(map(int, s["name"].split('.'))), reverse=True)
 
 
 class GithubEngine(object):
+	"""Integration to Github API"""
 
 	def __init__(self):
 		self.api_url = 'https://api.github.com'
@@ -1452,6 +1524,7 @@ class GithubEngine(object):
 
 
 class GitlabEngine(object):
+	"""Integration to GitLab API"""
 
 	def __init__(self):
 		self.api_url = 'https://gitlab.com'
@@ -1459,7 +1532,7 @@ class GitlabEngine(object):
 		self.name = "gitlab"
 
 	def form_repo_url(self, updater):
-		return "{}{}{}".format(self.api_url,"/api/v3/projects/",updater.repo)
+		return "{}{}{}".format(self.api_url,"/api/v4/projects/",updater.repo)
 
 	def form_tags_url(self, updater):
 		return "{}{}".format(self.form_repo_url(updater),"/repository/tags")
@@ -1480,7 +1553,7 @@ class GitlabEngine(object):
 			branch)
 
 	def get_zip_url(self, sha, updater):
-		return "{base}/repository/archive.zip?sha:{sha}".format(
+		return "{base}/repository/archive.zip?sha={sha}".format(
 			base=self.form_repo_url(updater),
 			sha=sha)
 

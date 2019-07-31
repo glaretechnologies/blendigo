@@ -88,7 +88,7 @@ def matrixListToKeyframes(scene, obj, matrix_list):
         matrix = p[1]
     
         # Diff matrix is the transform from base_matrix to matrix.
-        diff_matrix = matrix * base_matrix.inverted()
+        diff_matrix = matrix @ base_matrix.inverted()
 
         if matrix==None or matrix_list[0][1]==None:
             matrix_kf = matrix
@@ -102,7 +102,7 @@ def matrixListToKeyframes(scene, obj, matrix_list):
             # Get the rotation component of the difference matrix.
             r_diff = diff_matrix.decompose()[1]
 
-            matrix_kf = mathutils.Matrix.Translation(lm_k) * \
+            matrix_kf = mathutils.Matrix.Translation(lm_k) @ \
                         mathutils.Matrix.Rotation(r_diff.angle, 4, r_diff.axis)
 
         xform = getTransform(scene, obj, matrix_kf, xml_format='quat')

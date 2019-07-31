@@ -94,13 +94,39 @@ class igmesh_writer(object):
         if profile:
             total_start_time = time.time()
             
-        if len(mesh.tessfaces) < 1:
+        if len(mesh.polygons) < 1:
             raise UnexportableObjectException('Object %s has no faces!' % obj.name)
         
         if len(mesh.vertices) < 1:
             raise UnexportableObjectException('Object %s has no verts!' % obj.name)
 
-        render_uvs = [uvt for uvt in mesh.tessface_uv_textures]
+        mesh.calc_loop_triangles()
+        # TODO: consecutive loop triangles corresponding to the same polygon ought to be considered as one quad
+        tessfaces = mesh.loop_triangles
+        
+        def get_tess_idxs():
+            # convert tris to quads/tris and get indexes of verts
+            # TODO: step+2? WTF what have i done
+            length = len(mesh.loop_triangles)
+            for i in range(0, length, 2):
+                if i+1 < length and mesh.loop_triangles[i].polygon_index == mesh.loop_triangles[i+1].polygon_index:
+                    # quad
+                    yield mesh.loop_triangles[i].loops[:] + (mesh.loop_triangles[i+1].loops[2],)
+                else:
+                    # tri
+                    yield mesh.loop_triangles[i].loops[:]
+
+        class Quad:
+            def __init__(self, index, tri1, tri2=None):
+                self.tri1 = tri1
+                self.tri2 = tri2
+                self.index = index
+
+            @property
+            def material_index(self):
+                return self.__tri1.material_index
+        
+        render_uvs = [uvl for uvl in mesh.uv_layers]
         num_uv_sets = len(render_uvs)
         
 
@@ -119,26 +145,6 @@ class igmesh_writer(object):
         else:
             write_uint32(file, num_uv_sets)
         
-        #total_tris = 0
-        '''
-        used_mat_indices = set()
-        for face in mesh.tessfaces:
-            #total_tris += len(face.vertices) - 2
-            used_mat_indices.add(face.material_index)
-            
-            
-        #indigo_log('B1') # TEMP
-        
-        # Get list of used materials
-
-        mats = []
-        if len(obj.material_slots) > 0:
-            # need to attach all mats up to max used index
-            for mi in range(max(used_mat_indices) + 1): #sorted([mi for mi in used_mat_indices]):
-                mat = obj.material_slots[mi].material
-                if mat == None: continue
-                mats.append(mat)
-        '''
         #used_mat_indices = rang(obj.material_slots)
         
         used_mat_indices = set()
@@ -181,7 +187,7 @@ class igmesh_writer(object):
         start_time = time.time()
 
         num_smooth = 0
-        for face in mesh.tessfaces: # for each face
+        for face in mesh.polygons: # for each face
             if face.use_smooth:
                 num_smooth += 1
             
@@ -195,6 +201,7 @@ class igmesh_writer(object):
             vertices.append(v.co)
             
         # If we need shading normals, write them all out
+        # TODO: loops[].normal in 2.8. This does not work for flat/smooth mixed meshes (all exported as smooth). Have to use split normals.
         if num_smooth != 0:
             for v in mesh.vertices:
                 normals.append(v.normal)
@@ -212,42 +219,9 @@ class igmesh_writer(object):
         if profile:
             indigo_log('Writing vertices and vertex normals: %0.5f sec' % (time.time() - start_time))
         
-        '''
-        # Write UVs
-        uv_list = []
-
-        #igo.add_num_uv_pairs(4*len(mesh.tessfaces)*num_uv_sets)
-        
-        start_time = time.time()
-
-        if num_uv_sets > 0:
-            # UVs are interleaved thus -
-            # face[0].uv[0].co[0]
-            # face[0].uv[1].co[0]
-            # ..
-            # face[0].uv[*].co[1]
-            # ..
-            # face[1].uv[*].co[*]
-            for face in mesh.tessfaces:
-                add_blank_uv4 = len(face.vertices) == 3
-                for uv_coord_idx in range(4):
-                    for uv_index in range(num_uv_sets):
-                        if add_blank_uv4 and uv_coord_idx == 3:
-                            uv_list.append(tuple([0,0]))
-                            #igo.add_uv_pair_fast(tuple([0,0]))
-                        else:
-                            uv_list.append(tuple(render_uvs[uv_index].data[face.index].uv[uv_coord_idx]))
-                            #igo.add_uv_pair_fast(tuple(render_uvs[uv_index].data[face.index].uv[uv_coord_idx]))
-                            
-                
-        indigo_log('Making UV list time : %0.5f sec' % (time.time() - start_time))
-        
-        write_list_of_vec2s(file, uv_list)
-        '''
-        
         if profile:
             indigo_log('num_uv_sets : %i' % num_uv_sets)
-            indigo_log('len(mesh.tessfaces) : %i' % len(mesh.tessfaces))
+            indigo_log('len(mesh.loop_triangles) : %i' % len(mesh.loop_triangles))
             #indigo_log('4*len(mesh.tessfaces)*num_uv_sets : %i sec' % (4*len(mesh.tessfaces)*num_uv_sets))
             #indigo_log('8*4*len(mesh.tessfaces)*num_uv_sets : %i sec' % (8*4*len(mesh.tessfaces)*num_uv_sets))
         
@@ -255,11 +229,20 @@ class igmesh_writer(object):
         uv_start_time = time.time()
         
         uv_data = []
-        
+
+        if num_uv_sets > 0:
+            for layer_uv in render_uvs: # For each UV set
+                for tri in mesh.loop_triangles: # For each tri
+                    uv_data.extend([layer_uv.data[tri.loops[0]].uv, layer_uv.data[tri.loops[1]].uv, layer_uv.data[tri.loops[2]].uv, (0,0)])
+                    # TODO: Only tris for now. Need quads
+        elif exportDummyUVs:
+            uv_data.extend([(0,0)])
+
+        '''
         if num_uv_sets > 0:
             for uv_index in range(num_uv_sets): # For each UV set
                 layer_uvs = render_uvs[uv_index]
-                for face in mesh.tessfaces: # For each face
+                for face in tessfaces: # For each face
                     face_uvs = layer_uvs.data[face.index]
                     if len(face.vertices) == 3:
                         uv_data.extend([face_uvs.uv[0], face_uvs.uv[1], face_uvs.uv[2], (0,0)])
@@ -267,6 +250,7 @@ class igmesh_writer(object):
                         uv_data.extend([face_uvs.uv[0], face_uvs.uv[1], face_uvs.uv[2], face_uvs.uv[3]])
         elif exportDummyUVs:
             uv_data.extend([(0,0)])
+        '''
 
         if profile:
             indigo_log('    Making UV list time : %0.5f sec' % (time.time() - start_time))
@@ -295,7 +279,26 @@ class igmesh_writer(object):
         
 
         if num_uv_sets > 0:
-            for face in mesh.tessfaces:
+            # TODO: Quads
+            for tri in mesh.loop_triangles:
+                uv_idx = tri.index * 4
+                fv = tri.vertices
+                
+                if len(tri.vertices) == 3: # if this is a triangle
+                    tri_data.extend([fv[0], fv[1], fv[2], uv_idx, uv_idx + 1, uv_idx + 2, tri.material_index])
+                else: # Else if this is a quad
+                    quad_data.extend([fv[0], fv[1], fv[2], fv[3], uv_idx, uv_idx + 1, uv_idx + 2, uv_idx + 3, face.material_index])
+        else:
+            # TODO: Quads
+            for tri in mesh.loop_triangles:
+                fv = tri.vertices
+                if len(tri.vertices) == 3: # if this is a triangle
+                    tri_data.extend([fv[0], fv[1], fv[2], 0, 0, 0, tri.material_index])
+                else: # Else if this is a quad
+                    quad_data.extend([fv[0], fv[1], fv[2], fv[3], 0, 0, 0, 0, face.material_index])
+        '''
+        if num_uv_sets > 0:
+            for face in tessfaces:
                 uv_idx = face.index * 4
                 fv = face.vertices
                 
@@ -304,12 +307,13 @@ class igmesh_writer(object):
                 else: # Else if this is a quad
                     quad_data.extend([fv[0], fv[1], fv[2], fv[3], uv_idx, uv_idx + 1, uv_idx + 2, uv_idx + 3, face.material_index])
         else:
-            for face in mesh.tessfaces:
+            for face in tessfaces:
                 fv = face.vertices
                 if len(face.vertices) == 3: # if this is a triangle
                     tri_data.extend([fv[0], fv[1], fv[2], 0, 0, 0, face.material_index])
                 else: # Else if this is a quad
                     quad_data.extend([fv[0], fv[1], fv[2], fv[3], 0, 0, 0, 0, face.material_index])
+        '''
         
     
         ####### Write triangles #######        

@@ -5,8 +5,7 @@ from .. core import BL_IDNAME
 
 narrowui = 180
 
-class IndigoUILamps(bpy.types.Panel):
-    bl_idname = "view3d.indigo_ui_lamps"
+class INDIGO_PT_ui_lamps(bpy.types.Panel):
     bl_label = "Indigo Lamps"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -27,10 +26,9 @@ class IndigoUILamps(bpy.types.Panel):
             
             
             if context.lamp.type not in ('SUN', 'HEMI'):
-                self.layout.label('Unsupported lamp type')
+                self.layout.label(text='Unsupported lamp type')
                 
-class IndigoUILampSun(bpy.types.Panel):
-    bl_idname = "view3d.indigo_ui_lamp_sun"
+class INDIGO_PT_ui_lamp_sun(bpy.types.Panel):
     bl_label = "Indigo Sun+Sky Lamp"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -52,8 +50,7 @@ class IndigoUILampSun(bpy.types.Panel):
             col.prop_search(indigo_lamp, 'sunlayer', context.scene.indigo_lightlayers, 'lightlayers')
             col.prop_search(indigo_lamp, 'skylayer', context.scene.indigo_lightlayers, 'lightlayers')
 
-class IndigoUILampHemi(bpy.types.Panel):
-    bl_idname = "view3d.indigo_ui_lamp_hemi"
+class INDIGO_PT_ui_lamp_hemi(bpy.types.Panel):
     bl_label = "Indigo Hemi Lamp"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
