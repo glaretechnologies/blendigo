@@ -119,12 +119,6 @@ class ExportCache(object):
     def count(self):
         return len(self.cache_keys)
 
-def indigo_visible(scene, obj, is_dupli=False):
-    # return (obj.visible_get() or is_dupli) and not obj.hide_render
-    
-    # all objects come from evaluated depsgraph (render context) so to my understanding they are visible
-    return not obj.hide_render
-
 class SceneIterator(object):
     progress_thread_action = "Exporting"
     
@@ -161,41 +155,10 @@ class SceneIterator(object):
                 
             try:
                 # Export only objects which are enabled for render (in the outliner) and visible on a render layer
-                if obj.is_instancer and not obj.show_instancer_for_render: # not indigo_visible(self.scene, obj):
+                
+                print(obj.name, not ob_inst.is_instance, (obj.parent.name, obj.parent.is_instancer) if obj.parent else '')
+                if obj.is_instancer and not obj.show_instancer_for_render:
                     raise UnexportableObjectException(' -> not visible')
-                
-                if obj.parent and obj.parent.is_instancer:
-                    raise UnexportableObjectException(' -> parent is duplicator')
-                
-                number_psystems = len(obj.particle_systems)
-                
-                # TODO: number_psystems is always 0 because this is 'evaluated single object'
-                if obj.is_instancer and number_psystems < 1:
-                    if OBJECT_ANALYSIS: indigo_log(' -> is duplicator without particle systems')
-                    print('--> dupli type:', obj.dupli_type)
-                    if obj.dupli_type in ('FACES', 'GROUP', 'VERTS'):
-                        self.handleDuplis(obj)
-                    elif OBJECT_ANALYSIS: indigo_log(' -> Unsupported Dupli type: %s' % obj.dupli_type)
-                
-                # Some dupli types should hide the original
-                if obj.is_instancer and obj.dupli_type in ('VERTS', 'FACES', 'GROUP'):
-                    export_original_object = False
-                else:
-                    export_original_object = True
-                
-                
-                if number_psystems > 0:
-                    export_original_object = False
-                    if OBJECT_ANALYSIS: indigo_log(' -> has %i particle systems' % number_psystems)
-                    for psys in obj.particle_systems:
-                        export_original_object = export_original_object or psys.settings.use_render_emitter
-                        if psys.settings.render_type in ('GROUP', 'OBJECT'):
-                            self.handleDuplis(obj, psys)
-                         # PATH not supported?
-                        elif OBJECT_ANALYSIS: indigo_log(' -> Unsupported Particle system type: %s' % psys.settings.render_type)
-                
-                if not export_original_object:
-                    raise UnexportableObjectException('export_original_object=False')
                 
                 if not obj.type in self.supported_mesh_types:
                     raise UnexportableObjectException('Unsupported object type')
@@ -203,7 +166,7 @@ class SceneIterator(object):
                 if obj.type == 'LIGHT':
                     self.handleLamp(obj)
                 elif obj.type in ('MESH', 'CURVE', 'SURFACE', 'FONT'):
-                    self.handleMesh(obj)
+                    self.handleMesh(ob_inst)
             
             except UnexportableObjectException as err:
                 if OBJECT_ANALYSIS: indigo_log(' -> Unexportable object: %s : %s : %s' % (obj, obj.type, err))

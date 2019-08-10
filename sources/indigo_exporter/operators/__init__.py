@@ -9,7 +9,7 @@ from ..extensions_framework import util as efutil
 
 from .. import export
 from .. export import (
-    indigo_log, geometry, include, xml_multichild, xml_builder, indigo_visible,
+    indigo_log, geometry, include, xml_multichild, xml_builder,
     SceneIterator, ExportCache, exportutil
 )
 from .. export.igmesh import igmesh_writer
