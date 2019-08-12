@@ -17,32 +17,6 @@ from . util import getVersion, getGuiPath, getConsolePath, getInstallPath, count
 BL_IDNAME = 'indigo_renderer'
 
 # Add standard Blender Interface elements
-'''
-bl_ui.properties_render.RENDER_PT_render.COMPAT_ENGINES.add(BL_IDNAME)
-bl_ui.properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add(BL_IDNAME)
-bl_ui.properties_render.RENDER_PT_output.COMPAT_ENGINES.add(BL_IDNAME)
-
-bl_ui.properties_scene.SCENE_PT_scene.COMPAT_ENGINES.add(BL_IDNAME)
-bl_ui.properties_scene.SCENE_PT_audio.COMPAT_ENGINES.add(BL_IDNAME)
-bl_ui.properties_scene.SCENE_PT_physics.COMPAT_ENGINES.add(BL_IDNAME) #This is the gravity panel
-bl_ui.properties_scene.SCENE_PT_keying_sets.COMPAT_ENGINES.add(BL_IDNAME)
-bl_ui.properties_scene.SCENE_PT_keying_set_paths.COMPAT_ENGINES.add(BL_IDNAME)
-bl_ui.properties_scene.SCENE_PT_unit.COMPAT_ENGINES.add(BL_IDNAME)
-bl_ui.properties_scene.SCENE_PT_custom_props.COMPAT_ENGINES.add(BL_IDNAME)
-
-bl_ui.properties_material.MATERIAL_PT_context_material.COMPAT_ENGINES.add(BL_IDNAME)
-bl_ui.properties_texture.TEXTURE_PT_context_texture.COMPAT_ENGINES.add(BL_IDNAME)
-
-def compatible(module):
-    module = getattr(bl_ui, module)
-    for subclass in module.__dict__.values():
-        try:    subclass.COMPAT_ENGINES.add(BL_IDNAME)
-        except: pass
-
-compatible("properties_data_mesh")
-compatible("properties_data_camera")
-compatible("properties_particle")
-'''
 
 # RenderEngines also need to tell UI Panels that they are compatible with.
 # We recommend to enable all panels marked as BLENDER_RENDER, and then
@@ -54,6 +28,9 @@ def get_panels():
         'RENDER_PT_freestyle',
         'RENDER_PT_stereoscopy',
         'RENDER_PT_stamp',
+        'DATA_PT_light',
+        'NODE_DATA_PT_light',
+        'DATA_PT_area',
     }
 
     panels = []
@@ -89,20 +66,6 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
         Render the scene file, or in our case, export the frame(s)
         and launch an Indigo process.
         '''
-        
-        # TEST
-        print('\n'*2)
-        for ob_inst in depsgraph.object_instances:
-            if ob_inst.is_instance:  # Real dupli instance
-                ob = ob_inst.instance_object#.original
-                parent = ob_inst.parent#.original
-                print('dupli:', ob, parent, len(ob.data.polygons) if hasattr(ob.data, 'polygons') else '--')
-            else:  # Usual object
-                ob = ob_inst.object#.original
-                print('real', ob, len(ob.data.polygons) if hasattr(ob.data, 'polygons') else '--')
-            # Do whatever you want with ob, parent, and mat.
-            # These are a local copy or original data-blocks.
-        # TEST END
         
         with RENDERENGINE_indigo.render_lock:    # Just render one thing at a time.
             self.renderer            = None

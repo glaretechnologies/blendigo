@@ -5,7 +5,7 @@
 # Run this script in command line to start testing suite. report.html and results.txt will be created in outputs directory
 # Copy pypng to blender's python/lib
 
-BLENDER_BINARY = r'E:\Blender\blender-2.79b-windows64\blender.exe'
+BLENDER_BINARY = r'F:\Blender\blender-2.80-windows64\blender.exe'
 filter_scenes = [
 # 'AbsoluteTexturePath',
 # 'Animation',
@@ -38,7 +38,7 @@ filter_scenes = [
 # 'RelativeTexturePath',
 # 'ShadowCatcher',
 # 'SpherePrimitive',
-# 'SunAndEnvMap',
+'SunAndEnvMap',
 # 'TexturedEmission',
 # 'TriangleMesh',
 # 'dupligroup-error',

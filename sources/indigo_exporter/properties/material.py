@@ -1389,7 +1389,15 @@ def is_material_emitting_from_IGM(igm_contents):
         return False
     except Exception as e:
         raise Exception('While parsing IGM file: ' + str(e))
-    
+
+def read_guess_encoding(path):
+    for encoding in ['utf-8', 'latin-1', 'ascii', 'ansi']:
+        try:
+            with open(path, 'r', encoding=encoding) as f:
+                return f.read()
+        except:
+            continue
+
 def get_material_filename_and_emission_from_external_mat(self, blender_material):
     try:
         #NOTE: We can't set material_name etc.. here, or we get an error message about updating attributes when we render animations.
@@ -1432,8 +1440,7 @@ def get_material_filename_and_emission_from_external_mat(self, blender_material)
 
         # Else if the user specified an IGM file:
         elif self.filename[-4:].lower() == '.igm':
-            with open(extmat_file, 'r') as igm_file:
-                igm_data = try_file_decode(igm_file.read()) # Get the file contents
+            igm_data = try_file_decode(read_guess_encoding(extmat_file)) # Get the file contents
         else:
             ex_str = "'" + str(self.filename) + "' is not an IGM or PIGM file.  (For External material"
             if (hasattr(blender_material, "name")):
@@ -1456,9 +1463,6 @@ def get_material_filename_and_emission_from_external_mat(self, blender_material)
         
         # self.is_valid = True
     except Exception as err:
-        #print('%s' % err)
-        # self.material_name = '%s' % err
-        # self.is_valid = False
         raise err
 
 @register_properties_dict

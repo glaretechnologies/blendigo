@@ -420,7 +420,7 @@ class INDIGO_PT_ui_material_external(material_subpanel, bpy.types.Panel):
         
         layout = self.layout
         col = self.layout.column()
-        col.operator('WM_OT_url_open', 'Open materials database', 'URL').url = 'http://www.indigorenderer.com/materials/'
+        col.operator('WM_OT_url_open', text='Open materials database', icon='URL').url = 'http://www.indigorenderer.com/materials/'
         col.prop(indigo_material_external, 'filename')
         col = col.column()
         col.prop(indigo_material_external, 'material_name')

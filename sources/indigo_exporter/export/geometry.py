@@ -256,7 +256,7 @@ class LightingChecker:
     def handleLamp(self, obj):
         if self.valid_lighting or self.LampsChecked.have(obj): return
         
-        self.valid_lighting |= obj.data.type in ('SUN', 'HEMI')
+        self.valid_lighting |= obj.data.type in ('SUN')
         self.LampsChecked.add(obj, obj)
         
     def check_spectrum(self, obj, prefix):
@@ -318,9 +318,9 @@ class GeometryExporter(SceneIterator):
 
         if obj.data.type == 'AREA':
             pass
-        if obj.data.type == 'HEMI':
+        elif obj.data.type == 'SUN' and obj.data.indigo_lamp_sun.type == "hemi":
             self.ExportedLamps[obj.name] = [obj.data.indigo_lamp_hemi.build_xml_element(obj, self.scene)]
-        if obj.data.type == 'SUN':
+        elif obj.data.type == 'SUN':
             self.ExportedLamps[obj.name] = [obj.data.indigo_lamp_sun.build_xml_element(obj, self.scene)]
 
     def handleMesh(self, ob_inst):
@@ -406,7 +406,12 @@ class GeometryExporter(SceneIterator):
             # if not obj.data.indigo_mesh.valid_proxy():
             #     # Create mesh with applied modifiers
             #     mesh = obj.to_mesh()
-            mesh = obj.data # because obj comes from evaluated depsgraph
+            # mesh = obj.data # because obj comes from evaluated depsgraph
+
+            # depsgraph = context.evaluated_depsgraph_get()
+            # object_eval = obj.evaluated_get(depsgraph)
+            # mesh_from_eval = object_eval.to_mesh()
+            mesh = obj.to_mesh()
 
             # Compute a hash over the mesh data (vertex positions, material names etc..)
             mesh_hash = self.meshHash(obj, mesh)

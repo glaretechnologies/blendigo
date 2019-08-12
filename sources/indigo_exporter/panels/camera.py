@@ -57,6 +57,13 @@ class INDIGO_PT_ui_camera(bpy.types.Panel):
                 row = col.row(align=True)
                 row.prop(indigo_camera, 'ad_curvature')
                 row.prop(indigo_camera, 'ad_angle')
+        
+        layout.separator()
+
+        dof = context.object.data.dof
+        col = layout.column()
+        col.prop(dof, 'focus_object')
+        col.prop(dof, 'focus_distance')
             
             
             

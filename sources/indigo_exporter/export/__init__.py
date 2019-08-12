@@ -5,7 +5,6 @@ REPORTER = None
 PRINT_CONSOLE = efutil.find_config_value('indigo', 'defaults', 'console_output', False)
 
 OBJECT_ANALYSIS = os.getenv('B25_OBJECT_ANALYSIS', False)
-OBJECT_ANALYSIS = True
 
 def indigo_log(message, popup=False, message_type='INFO'):
     global REPORTER, PRINT_CONSOLE
@@ -139,24 +138,18 @@ class SceneIterator(object):
     def iterateScene(self, depsgraph):
         self.scene = depsgraph.scene_eval
 
-        print('\nscene iterator\n')
-        # TODO: optimisations! 
         for ob_inst in depsgraph.object_instances:
             if ob_inst.is_instance:  # Real dupli instance
                 obj = ob_inst.instance_object
                 parent = ob_inst.parent
-                print('dupli:', obj, parent)
             else:  # Usual object
                 obj = ob_inst.object
-                print('real', obj)
     
             if self.canAbort(): break
             if OBJECT_ANALYSIS: indigo_log('Analysing object %s : %s' % (obj, obj.type))
                 
             try:
                 # Export only objects which are enabled for render (in the outliner) and visible on a render layer
-                
-                print(obj.name, not ob_inst.is_instance, (obj.parent.name, obj.parent.is_instancer) if obj.parent else '')
                 if obj.is_instancer and not obj.show_instancer_for_render:
                     raise UnexportableObjectException(' -> not visible')
                 

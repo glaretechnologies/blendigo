@@ -65,10 +65,14 @@ class _Impl_OT_igmesh(_Impl_operator):
         except:
             indigo_log('Cannot find mesh data in context', message_type='ERROR')
             return {'CANCELLED'}
-        # TODO: get object from depsgraph (modifiers etc.)
-        mesh = obj.to_mesh()
-        igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh, debug=False)
-        bpy.data.meshes.remove(mesh)
+        
+        depsgraph = context.evaluated_depsgraph_get()
+        object_eval = obj.evaluated_get(depsgraph)
+        mesh_from_eval = object_eval.to_mesh()
+
+        igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh_from_eval, debug=False)
+        
+        object_eval.to_mesh_clear()
         
         return {'FINISHED'}
     
@@ -272,7 +276,7 @@ class _Impl_OT_indigo(_Impl_operator):
                 geometry_exporter.normalised_time = normalised_time
                 
                 if master_scene.indigo_engine.motionblur:
-                    bpy.context.scene.frame_set(cur_frame, 0.0) # waaay too slow for many objects (probably dupli_list gets recreated). Obligatory for motion blur.
+                    bpy.context.scene.frame_set(cur_frame, subframe=0.0) # waaay too slow for many objects (probably dupli_list gets recreated). Obligatory for motion blur.
                 else:
                     bpy.context.scene.frame_current = cur_frame # is it enough?
 

@@ -60,6 +60,7 @@ class MaterialBase(xml_builder):
         d = {}
         
         channel_type = getattr(property_group, channel_prop_name + '_type')
+        print(self, property_group, channel_name, channel_prop_name, channel_type)
         
         if channel_type == 'spectrum':
             spectrum_type = getattr(property_group, channel_prop_name + '_SP_type')
@@ -119,7 +120,7 @@ class MaterialBase(xml_builder):
                                 '%05d' % self.scene.frame_current,
                                 bl_file_formatted
                             )
-                            img.save_render(bl_img_path, self.scene)
+                            img.save_render(bl_img_path, scene=self.scene)
                         
                         relative_texture_path = efutil.path_relative_to_export(bl_img_path)
                     
@@ -132,8 +133,8 @@ class MaterialBase(xml_builder):
                     
                     uv_set_name  = getattr(property_group, channel_prop_name + '_TX_uvset')
                     try:
-                        uv_set_index = self.obj.data.uv_textures.keys().index(uv_set_name)
-                    except:
+                        uv_set_index = self.obj.data.uv_layers.keys().index(uv_set_name)
+                    except Exception as e:
                         uv_set_index = 0
                     
                     self.found_textures.append({
