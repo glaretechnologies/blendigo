@@ -141,7 +141,6 @@ class SceneIterator(object):
         for ob_inst in depsgraph.object_instances:
             if ob_inst.is_instance:  # Real dupli instance
                 obj = ob_inst.instance_object
-                parent = ob_inst.parent
             else:  # Usual object
                 obj = ob_inst.object
     

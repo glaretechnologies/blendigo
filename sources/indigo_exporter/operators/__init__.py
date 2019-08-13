@@ -201,8 +201,9 @@ class _Impl_OT_indigo(_Impl_operator):
     scene_xml = None
     verbose = True
     
-    def execute(self, depsgraph):
-        master_scene = depsgraph.scene_eval
+    def execute(self, render_engine, depsgraph):
+        # master_scene = depsgraph.scene_eval
+        master_scene = depsgraph.scene
         try:
             if master_scene is None:
                 #indigo_log('Scene context is invalid')
@@ -268,6 +269,7 @@ class _Impl_OT_indigo(_Impl_operator):
             
             #------------------------------------------------------------------------------
             # Process all objects in all frames in all scenes.
+            print( '\n\n\n\n*******', master_scene.frame_current)
             for cur_frame in frame_list:
                 # Calculate normalised time for keyframes.
                 normalised_time = (cur_frame - start_frame) / fps / exposure
@@ -275,19 +277,11 @@ class _Impl_OT_indigo(_Impl_operator):
                 
                 geometry_exporter.normalised_time = normalised_time
                 
-                if master_scene.indigo_engine.motionblur:
-                    bpy.context.scene.frame_set(cur_frame, subframe=0.0) # waaay too slow for many objects (probably dupli_list gets recreated). Obligatory for motion blur.
-                else:
-                    bpy.context.scene.frame_current = cur_frame # is it enough?
+                render_engine.frame_set(cur_frame, subframe=0.0)
 
                 # Add Camera matrix.
                 camera[1].append((normalised_time, camera[0].matrix_world.copy()))
-            
-                # for ex_scene in export_scenes:
-                #     if ex_scene is None: continue
-                    
-                #     if self.verbose: indigo_log('Processing objects for scene %s' % ex_scene.name)
-                #     geometry_exporter.iterateScene(ex_scene)
+
                 geometry_exporter.iterateScene(depsgraph)
                 
             

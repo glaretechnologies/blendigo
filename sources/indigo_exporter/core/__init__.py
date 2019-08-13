@@ -170,7 +170,7 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
             ).set_report(self.report)
 
             # Write the scene file.
-            export_result = scene_writer.execute(depsgraph)
+            export_result = scene_writer.execute(self, depsgraph)
 
             # Return if the export didn't finish.
             if not 'FINISHED' in export_result:
