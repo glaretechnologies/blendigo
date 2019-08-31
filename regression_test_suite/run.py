@@ -8,10 +8,12 @@
 import os
 INDIGO_TEST_SUITE = os.path.split(__file__)[0]
 
-import os, subprocess, shutil, time, glob
+import os, subprocess, shutil, time, glob, sys
+
+sys.path.append(INDIGO_TEST_SUITE)
 from pypng import png
 
-import bpy
+# import bpy
 from indigo_exporter.core import getConsolePath
 BLENDER_BINARY = os.path.join(bpy.utils.script_paths()[0].split(os.sep)[0]+os.sep, *bpy.utils.script_paths()[0].split(os.sep)[1:-3], 'blender.exe')
 INDIGO_PATH = os.path.split(getConsolePath())[0]
