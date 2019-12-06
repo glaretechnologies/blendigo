@@ -1681,6 +1681,11 @@ class Indigo_Material_Properties(bpy.types.PropertyGroup):
                 ('fastsss', 'Fast SSS', 'fastsss'),
             ]
         },
+        {
+            'type': 'int',
+            'attr': 'texture_list_index',
+            'default': 0,
+        },
     ]
     indigo_material_emission = bpy.props.PointerProperty(type = indigo_material_emission)
     indigo_material_colour = bpy.props.PointerProperty(type = indigo_material_colour)

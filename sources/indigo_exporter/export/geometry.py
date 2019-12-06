@@ -402,16 +402,14 @@ class GeometryExporter(SceneIterator):
                 self.total_mesh_export_time += time.time() - start_time
                 return exported_mesh
         
-            # mesh = None
-            # if not obj.data.indigo_mesh.valid_proxy():
-            #     # Create mesh with applied modifiers
-            #     mesh = obj.to_mesh()
-            # mesh = obj.data # because obj comes from evaluated depsgraph
+            mesh = None
+            if not obj.data.indigo_mesh.valid_proxy():
+                # Create mesh with applied modifiers
+                mesh = obj.to_mesh()
 
             # depsgraph = context.evaluated_depsgraph_get()
             # object_eval = obj.evaluated_get(depsgraph)
             # mesh_from_eval = object_eval.to_mesh()
-            mesh = obj.to_mesh()
 
             # Compute a hash over the mesh data (vertex positions, material names etc..)
             mesh_hash = self.meshHash(obj, mesh)

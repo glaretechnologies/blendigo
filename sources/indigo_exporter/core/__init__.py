@@ -31,6 +31,11 @@ def get_panels():
         'DATA_PT_light',
         'NODE_DATA_PT_light',
         'DATA_PT_area',
+        'TEXTURE_PT_image_alpha',
+        'TEXTURE_PT_image_mapping',
+        'TEXTURE_PT_image_mapping_crop',
+        'TEXTURE_PT_image_sampling',
+        'TEXTURE_PT_colors',
     }
 
     panels = []

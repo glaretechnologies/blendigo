@@ -35,3 +35,18 @@ class INDIGO_PT_ui_texture(texture_subpanel, bpy.types.Panel):
         col.prop(indigo_texture, 'A')
         col.prop(indigo_texture, 'B')
         col.prop(indigo_texture, 'C')
+
+# class INDIGO_PT_ui_texture_list(texture_subpanel, bpy.types.Panel):
+#     bl_label = 'Indigo Render Texture Settings'
+
+#     # index: bpy.props.IntProperty()
+    
+#     @classmethod
+#     def poll(cls, context):
+#         return context.scene.render.engine == BL_IDNAME
+
+#     def draw(self, context):
+#         layout = self.layout
+#         print(context.texture)
+#         layout.template_ID(context.texture_user, "texture", new="texture.new")
+#         layout.template_list("UI_UL_list", "INDIGO_PT_ui_texture_list", bpy.data, "textures", context.active_object.active_material.indigo_material, 'texture_list_index')
