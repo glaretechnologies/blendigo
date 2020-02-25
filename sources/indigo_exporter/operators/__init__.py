@@ -9,7 +9,7 @@ from ..extensions_framework import util as efutil
 
 from .. import export
 from .. export import (
-    indigo_log, geometry, include, xml_multichild, xml_builder, indigo_visible,
+    indigo_log, geometry, include, xml_multichild, xml_builder,
     SceneIterator, ExportCache, exportutil
 )
 from .. export.igmesh import igmesh_writer
@@ -46,11 +46,11 @@ class _Impl_OT_igmesh(_Impl_operator):
     bl_idname = "export.igmesh"
     bl_label = "Export IGMESH"
     
-    objectname = bpy.props.StringProperty(options={'HIDDEN'}, name="Object Name", default='')
+    objectname: bpy.props.StringProperty(options={'HIDDEN'}, name="Object Name", default='')
     
-    filename = bpy.props.StringProperty(name="File Name", description="File name used for exporting the IGMESH file", maxlen= 1024, default= "")
-    directory = bpy.props.StringProperty(name="Directory", description="", maxlen= 1024, default= "")
-    filepath = bpy.props.StringProperty(name="File Path", description="File path used for exporting the IGMESH file", maxlen= 1024, default= "")
+    filename: bpy.props.StringProperty(name="File Name", description="File name used for exporting the IGMESH file", maxlen= 1024, default= "")
+    directory: bpy.props.StringProperty(name="Directory", description="", maxlen= 1024, default= "")
+    filepath: bpy.props.StringProperty(name="File Path", description="File path used for exporting the IGMESH file", maxlen= 1024, default= "")
     
     def execute(self, context):
         if not self.properties.filepath:
@@ -66,9 +66,13 @@ class _Impl_OT_igmesh(_Impl_operator):
             indigo_log('Cannot find mesh data in context', message_type='ERROR')
             return {'CANCELLED'}
         
-        mesh = obj.to_mesh(context.scene, True, 'RENDER')
-        igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh, debug=False)
-        bpy.data.meshes.remove(mesh)
+        depsgraph = context.evaluated_depsgraph_get()
+        object_eval = obj.evaluated_get(depsgraph)
+        mesh_from_eval = object_eval.to_mesh()
+
+        igmesh_writer.factory(context.scene, obj, self.properties.filepath, mesh_from_eval, debug=False)
+        
+        object_eval.to_mesh_clear()
         
         return {'FINISHED'}
     
@@ -88,7 +92,7 @@ class EXPORT_OT_igmesh(_Impl_OT_igmesh, bpy.types.Operator):
        
 # add igmesh operator into file->export menu
 menu_func = lambda self, context: self.layout.operator("export.igmesh", text="Export Indigo Mesh...")
-bpy.types.INFO_MT_file_export.append(menu_func)
+bpy.types.TOPBAR_MT_file_export.append(menu_func)
     
 class _Impl_OT_indigo(_Impl_operator):
     '''Export an Indigo format scene (.igs)'''
@@ -96,8 +100,8 @@ class _Impl_OT_indigo(_Impl_operator):
     bl_idname = 'export.indigo'
     bl_label = 'Export Indigo Scene (.igs)'
     
-    filename    = bpy.props.StringProperty(name='IGS filename')
-    directory    = bpy.props.StringProperty(name='IGS directory')
+    filename: bpy.props.StringProperty(name='IGS filename')
+    directory: bpy.props.StringProperty(name='IGS directory')
     
     def invoke(self, context, event):
         wm = context.window_manager
@@ -197,7 +201,9 @@ class _Impl_OT_indigo(_Impl_operator):
     scene_xml = None
     verbose = True
     
-    def execute(self, master_scene):
+    def execute(self, render_engine, depsgraph):
+        # master_scene = depsgraph.scene_eval
+        master_scene = depsgraph.scene
         try:
             if master_scene is None:
                 #indigo_log('Scene context is invalid')
@@ -263,6 +269,7 @@ class _Impl_OT_indigo(_Impl_operator):
             
             #------------------------------------------------------------------------------
             # Process all objects in all frames in all scenes.
+            print( '\n\n\n\n*******', master_scene.frame_current)
             for cur_frame in frame_list:
                 # Calculate normalised time for keyframes.
                 normalised_time = (cur_frame - start_frame) / fps / exposure
@@ -270,19 +277,13 @@ class _Impl_OT_indigo(_Impl_operator):
                 
                 geometry_exporter.normalised_time = normalised_time
                 
-                if master_scene.indigo_engine.motionblur:
-                    bpy.context.scene.frame_set(cur_frame, 0.0) # waaay too slow for many objects (probably dupli_list gets recreated). Obligatory for motion blur.
-                else:
-                    bpy.context.scene.frame_current = cur_frame # is it enough?
+                render_engine.frame_set(cur_frame, subframe=0.0)
 
                 # Add Camera matrix.
                 camera[1].append((normalised_time, camera[0].matrix_world.copy()))
-            
-                for ex_scene in export_scenes:
-                    if ex_scene is None: continue
-                    
-                    if self.verbose: indigo_log('Processing objects for scene %s' % ex_scene.name)
-                    geometry_exporter.iterateScene(ex_scene)
+
+                geometry_exporter.iterateScene(depsgraph)
+                
             
             # Export background light if no light exists.
             self.export_default_background_light(geometry_exporter.isLightingValid())
@@ -541,6 +542,8 @@ class _Impl_OT_indigo(_Impl_operator):
         
         except Exception as err:
             indigo_log('%s' % err, message_type='ERROR')
+            import traceback
+            traceback.print_exc()
             if os.getenv('B25_OBJECT_ANALYSIS', False):
                 raise err
             return {'CANCELLED'}
@@ -551,7 +554,7 @@ class EXPORT_OT_indigo(_Impl_OT_indigo, bpy.types.Operator):
         return super().execute(context.scene)
     
 menu_func = lambda self, context: self.layout.operator("export.indigo", text="Export Indigo Scene...")
-bpy.types.INFO_MT_file_export.append(menu_func)
+bpy.types.TOPBAR_MT_file_export.append(menu_func)
 
 class INDIGO_OT_lightlayer_add(bpy.types.Operator):
     '''Add a new light layer definition to the scene'''

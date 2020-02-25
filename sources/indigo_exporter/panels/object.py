@@ -4,8 +4,7 @@ import bl_ui
 from .. core import BL_IDNAME
 
 
-class IndigoUIObjectSettings(bpy.types.Panel):
-    bl_idname = "view3d.indigo_ui_object_settings"
+class INDIGO_PT_ui_object_settings(bpy.types.Panel):
     bl_label = "Indigo Object Settings"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'

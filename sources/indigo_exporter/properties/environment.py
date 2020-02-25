@@ -95,7 +95,9 @@ lightlayer_data_properties = [
 
 from .. import export
 from . import register_properties_dict
+from .. auto_load import force_register
 @register_properties_dict
+@force_register
 class Indigo_Lightlayer_Data_Properties(bpy.types.PropertyGroup, export.xml_builder):
     properties = lightlayer_data_properties
     
@@ -214,7 +216,7 @@ def is_layer_empty(layer):
         if mat.indigo_material.indigo_material_emission.emit_layer == layer.name:
             return False
     
-    for lamp in bpy.data.lamps:
+    for lamp in bpy.data.lights:
         if  layer.name in (lamp.indigo_lamp_sun.sunlayer, lamp.indigo_lamp_sun.skylayer, lamp.indigo_lamp_hemi.layer):
             return False
         

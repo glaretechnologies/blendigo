@@ -4,8 +4,7 @@ import bl_ui
 from .. core import BL_IDNAME
 
 
-class IndigoUICamera(bpy.types.Panel):
-    bl_idname = "view3d.indigo_ui_camera"
+class INDIGO_PT_ui_camera(bpy.types.Panel):
     bl_label = "Indigo Camera"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -58,11 +57,17 @@ class IndigoUICamera(bpy.types.Panel):
                 row = col.row(align=True)
                 row.prop(indigo_camera, 'ad_curvature')
                 row.prop(indigo_camera, 'ad_angle')
+        
+        layout.separator()
+
+        dof = context.object.data.dof
+        col = layout.column()
+        col.prop(dof, 'focus_object')
+        col.prop(dof, 'focus_distance')
             
             
             
-class IndigoUITonemapping(bpy.types.Panel):
-    bl_idname = "view3d.indigo_ui_tonemapping"
+class INDIGO_PT_ui_tonemapping(bpy.types.Panel):
     bl_label = "Indigo Tonemapping"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -92,7 +97,7 @@ class IndigoUITonemapping(bpy.types.Panel):
             row.prop(indigo_tonemapping, 'reinhard_burn')
         elif indigo_tonemapping.tonemap_type == 'camera':
             col = layout.column()
-            col.label("Camera Tonemapping Settings")
+            col.label(text="Camera Tonemapping Settings")
             row = col.row(align=True)
             row.prop(indigo_tonemapping, 'camera_response_type', expand=True)
             if indigo_tonemapping.camera_response_type == 'preset':

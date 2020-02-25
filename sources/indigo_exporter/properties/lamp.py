@@ -14,6 +14,18 @@ Spe_BG = Spectrum('env_bg', rgb=True, uniform=True, blackbody=True)
 class Indigo_Lamp_Sun_Properties(bpy.types.PropertyGroup, export.xml_builder):
     properties = [
         {
+            # Blender 2.80 does not have Hemi light, so its features are moved to Sun
+            'type': 'enum',
+            'attr': 'type',
+            'name': 'Sun or Hemi',
+            'description': 'Choose light Sun type (Sun/Hemi)',
+            'default': 'sun',
+            'items': [
+                ('sun', 'Sun', 'Sun'),
+                ('hemi', 'Hemi', 'Hemi'),
+            ]
+        },
+        {
             'type': 'float',
             'attr': 'turbidity',
             'name': 'Turbidity',
@@ -262,7 +274,7 @@ class Indigo_Lamp_Hemi_Properties(bpy.types.PropertyGroup, export.xml_builder):
         trans[2][0:3] = 0.0, 0.0, 1.0
         
         mat = obj.matrix_world.to_3x3()
-        mat = mat * trans
+        mat = mat @ trans
         
         rq = mat.to_quaternion().to_axis_angle()
         

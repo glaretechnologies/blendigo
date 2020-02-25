@@ -15,7 +15,6 @@ from .. core.util import get_worldscale
 from .. export import ( indigo_log,
                             xml_builder,
                             SceneIterator, OBJECT_ANALYSIS,
-                            indigo_visible,
                             exportutil
                             )
 from .. export.igmesh import igmesh_writer
@@ -257,7 +256,7 @@ class LightingChecker:
     def handleLamp(self, obj):
         if self.valid_lighting or self.LampsChecked.have(obj): return
         
-        self.valid_lighting |= obj.data.type in ('SUN', 'HEMI')
+        self.valid_lighting |= obj.data.type in ('SUN')
         self.LampsChecked.add(obj, obj)
         
     def check_spectrum(self, obj, prefix):
@@ -312,74 +311,6 @@ class GeometryExporter(SceneIterator):
     def isLightingValid(self):
         return self.lc.valid_lighting
 
-    def handleDuplis(self, obj, particle_system=None):
-        try:
-
-            try:
-                old_draw_method = None
-                if particle_system and particle_system.settings.draw_method != 'RENDER':
-                    # Switch viewport draw method to allow creating dupli list (viewport draw method should not affect rendering/exporting)
-                    old_draw_method = particle_system.settings.draw_method
-                    particle_system.settings.draw_method = 'RENDER'
-                    bpy.context.scene.update()
-                    
-                obj.dupli_list_create(self.scene, 'RENDER')
-                
-                if old_draw_method:
-                    # Reset draw method
-                    particle_system.settings.draw_method = old_draw_method
-                    
-                if not obj.dupli_list:
-                    raise Exception('cannot create dupli list for object %s' % obj.name)
-            except Exception as err:
-                indigo_log('%s'%err)
-                return
-                
-            exported_objects = 0
-
-            # Create our own DupliOb list to work around incorrect layers
-            # attribute when inside create_dupli_list()..free_dupli_list()
-            for dupli_ob in obj.dupli_list:
-                if dupli_ob.object.type not in self.supported_mesh_types:
-                    continue
-                if not indigo_visible(self.scene, dupli_ob.object, is_dupli=True):
-                    continue
-                if hasattr(dupli_ob.object.data, 'polygons') and not dupli_ob.object.data.polygons and not dupli_ob.object.data.indigo_mesh.valid_proxy():
-                    continue
-                
-                #Lighting
-                self.lc.handleMesh(dupli_ob.object)
-
-                do = dupli_ob.object
-                dm = dupli_ob.matrix.copy()
-                
-                # Check for group layer visibility, if the object is in a group
-                gviz = len(do.users_group) == 0
-                for grp in do.users_group:
-                    gviz |= True in [a&b for a,b in zip(do.layers, grp.layers)]
-                if not gviz:
-                    continue
-
-                exported_objects += 1
-                
-                self.exportModelElements(
-                    do,
-                    self.buildMesh(do),
-                    dm,
-                    dupli_ob,
-                    particle_system
-                )
-
-
-            obj.dupli_list_clear()
-            
-            self.ExportedDuplis[obj] = True
-            
-            if self.verbose: indigo_log('... done, exported %s duplis' % exported_objects)
-
-        except SystemError as err:
-            indigo_log('Error with handleDuplis and object %s: %s' % (obj, err))
-
     def handleLamp(self, obj):
         if OBJECT_ANALYSIS: indigo_log(' -> handleLamp: %s' % obj)
         #Lighting
@@ -387,18 +318,23 @@ class GeometryExporter(SceneIterator):
 
         if obj.data.type == 'AREA':
             pass
-        if obj.data.type == 'HEMI':
+        elif obj.data.type == 'SUN' and obj.data.indigo_lamp_sun.type == "hemi":
             self.ExportedLamps[obj.name] = [obj.data.indigo_lamp_hemi.build_xml_element(obj, self.scene)]
-        if obj.data.type == 'SUN':
+        elif obj.data.type == 'SUN':
             self.ExportedLamps[obj.name] = [obj.data.indigo_lamp_sun.build_xml_element(obj, self.scene)]
 
-    def handleMesh(self, obj):
+    def handleMesh(self, ob_inst):
+        if ob_inst.is_instance:  # Real dupli instance
+            obj = ob_inst.instance_object
+        else:  # Usual object
+            obj = ob_inst.object
+
         if OBJECT_ANALYSIS: indigo_log(' -> handleMesh: %s' % obj)
         self.lc.handleMesh(obj)
         self.exportModelElements(
-            obj,
+            ob_inst,
             self.buildMesh(obj),
-            obj.matrix_world.copy()
+            ob_inst.matrix_world.copy()
         )
 
     def buildMesh(self, obj):
@@ -469,7 +405,11 @@ class GeometryExporter(SceneIterator):
             mesh = None
             if not obj.data.indigo_mesh.valid_proxy():
                 # Create mesh with applied modifiers
-                mesh = obj.to_mesh(self.scene, True, 'RENDER')
+                mesh = obj.to_mesh()
+
+            # depsgraph = context.evaluated_depsgraph_get()
+            # object_eval = obj.evaluated_get(depsgraph)
+            # mesh_from_eval = object_eval.to_mesh()
 
             # Compute a hash over the mesh data (vertex positions, material names etc..)
             mesh_hash = self.meshHash(obj, mesh)
@@ -484,7 +424,7 @@ class GeometryExporter(SceneIterator):
                 # Important! If an object is matched to a mesh on disk, add to ExportedMeshes.
                 # Otherwise the mesh checksum will be computed over and over again.
                 self.ExportedMeshes[obj] = exported_mesh
-                if mesh: bpy.data.meshes.remove(mesh)
+                if mesh: obj.to_mesh_clear()
                 self.total_mesh_export_time += time.time() - start_time
                 return exported_mesh
 
@@ -500,7 +440,7 @@ class GeometryExporter(SceneIterator):
                     # if skipping mesh write, parse faces to gather used mats
                     used_mat_indices = set()
                     num_smooth = 0
-                    for face in mesh.tessfaces:
+                    for face in mesh.polygons:
                         used_mat_indices.add(face.material_index)
                         if face.use_smooth:
                             num_smooth += 1
@@ -515,7 +455,7 @@ class GeometryExporter(SceneIterator):
                 used_mat_indices = range(len(obj.material_slots))
 
             # Remove mesh.
-            if mesh: bpy.data.meshes.remove(mesh)
+            if mesh: obj.to_mesh_clear()
             
             # Export materials used by this mesh
             if len(obj.material_slots) > 0:
@@ -547,13 +487,15 @@ class GeometryExporter(SceneIterator):
 
             return mesh_definition
 
-    def exportModelElements(self, obj, mesh_definition, matrix, dupli_ob=None, particle_system=None):
-        if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition))
+    def exportModelElements(self, ob_inst, mesh_definition, matrix):
+        if ob_inst.is_instance:  # Real dupli instance
+            obj = ob_inst.instance_object
+        else:  # Usual object
+            obj = ob_inst.object
+
+        if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s' % (obj, mesh_definition))
         # If this object was instanced by a DupliObject, hash the DupliObject's persistent_id
-        if dupli_ob != None:
-            key = hash((obj, particle_system, dupli_ob.persistent_id[0], dupli_ob.id_data))
-        else:
-            key = hash(obj)
+        key = hash((ob_inst, ob_inst.persistent_id, ob_inst.random_id, obj.name, obj.data.name)) # the more the merrier. ob_insts can have identical hash and random_id... 
         
         # If the model (object) was already exported, only update the keyframe list.
         emodel = self.ExportedObjects.get(key)

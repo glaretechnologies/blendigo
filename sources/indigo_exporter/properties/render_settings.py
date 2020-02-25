@@ -36,7 +36,7 @@ def indigo_scene_load_render_settings(context):
         # output path, potentially including # characters. s.render.frame_path(1)
         # handles # characters correctly. Not handling them correctly will result
         # in false positives for the output path adjusting.
-        output_dir = os.path.dirname(s.render.frame_path(1))
+        output_dir = os.path.dirname(s.render.frame_path(frame=1))
 
         if not os.path.exists(output_dir):
             export.indigo_log("Scene '%s' output path was adjusted for local machine" % s.name)
@@ -98,6 +98,8 @@ def set_export_console_output(self, context):
     export.PRINT_CONSOLE = self.console_output
     write_config_value(getAddonDir(), 'defaults', 'console_output', self.console_output)
 
+from .. auto_load import force_register
+@force_register
 class IndigoDevice(bpy.types.PropertyGroup):
     @classmethod
     def register(cls):

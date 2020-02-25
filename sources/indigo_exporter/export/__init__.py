@@ -113,17 +113,10 @@ class ExportCache(object):
             raise Exception('Item %s not found in %s!' % (ck, self.name))
     
     def get_all(self):
-        return self.cache_items.items();
+        return self.cache_items.items()
     
     def count(self):
         return len(self.cache_keys)
-
-def indigo_visible(scene, obj, is_dupli=False):
-    ov = False
-    for lv in [ol and sl for ol,sl in zip(obj.layers, scene.layers)]:
-        ov |= lv
-    
-    return (ov or is_dupli) and not obj.hide_render
 
 class SceneIterator(object):
     progress_thread_action = "Exporting"
@@ -133,7 +126,7 @@ class SceneIterator(object):
         'CURVE',
         'SURFACE',
         'FONT',
-        'LAMP'
+        'LIGHT'
     ]
     
     scene = None
@@ -142,56 +135,30 @@ class SceneIterator(object):
     def canAbort(self):
         return self.abort
     
-    def iterateScene(self, scene):
-        self.scene = scene
+    def iterateScene(self, depsgraph):
+        self.scene = depsgraph.scene_eval
+
+        for ob_inst in depsgraph.object_instances:
+            if ob_inst.is_instance:  # Real dupli instance
+                obj = ob_inst.instance_object
+            else:  # Usual object
+                obj = ob_inst.object
     
-        for obj in self.scene.objects:
             if self.canAbort(): break
             if OBJECT_ANALYSIS: indigo_log('Analysing object %s : %s' % (obj, obj.type))
                 
             try:
                 # Export only objects which are enabled for render (in the outliner) and visible on a render layer
-                if not indigo_visible(self.scene, obj):
+                if obj.is_instancer and not obj.show_instancer_for_render:
                     raise UnexportableObjectException(' -> not visible')
-                
-                if obj.parent and obj.parent.is_duplicator:
-                    raise UnexportableObjectException(' -> parent is duplicator')
-                
-                number_psystems = len(obj.particle_systems)
-                
-                if obj.is_duplicator and number_psystems < 1:
-                    if OBJECT_ANALYSIS: indigo_log(' -> is duplicator without particle systems')
-                    if obj.dupli_type in ('FACES', 'GROUP', 'VERTS'):
-                        self.handleDuplis(obj)
-                    elif OBJECT_ANALYSIS: indigo_log(' -> Unsupported Dupli type: %s' % obj.dupli_type)
-                
-                # Some dupli types should hide the original
-                if obj.is_duplicator and obj.dupli_type in ('VERTS', 'FACES', 'GROUP'):
-                    export_original_object = False
-                else:
-                    export_original_object = True
-                
-                
-                if number_psystems > 0:
-                    export_original_object = False
-                    if OBJECT_ANALYSIS: indigo_log(' -> has %i particle systems' % number_psystems)
-                    for psys in obj.particle_systems:
-                        export_original_object = export_original_object or psys.settings.use_render_emitter
-                        if psys.settings.render_type in ('GROUP', 'OBJECT'):
-                            self.handleDuplis(obj, psys)
-                         # PATH not supported?
-                        elif OBJECT_ANALYSIS: indigo_log(' -> Unsupported Particle system type: %s' % psys.settings.render_type)
-                
-                if not export_original_object:
-                    raise UnexportableObjectException('export_original_object=False')
                 
                 if not obj.type in self.supported_mesh_types:
                     raise UnexportableObjectException('Unsupported object type')
                 
-                if obj.type == 'LAMP':
+                if obj.type == 'LIGHT':
                     self.handleLamp(obj)
                 elif obj.type in ('MESH', 'CURVE', 'SURFACE', 'FONT'):
-                    self.handleMesh(obj)
+                    self.handleMesh(ob_inst)
             
             except UnexportableObjectException as err:
                 if OBJECT_ANALYSIS: indigo_log(' -> Unexportable object: %s : %s : %s' % (obj, obj.type, err))

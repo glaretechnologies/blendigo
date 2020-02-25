@@ -25,6 +25,7 @@ from .. export.materials.FastSSS    import FastSSSMaterial
 
 from .. import export
 from . import register_properties_dict
+from .. auto_load import force_register
 
 PROPERTY_GROUP_USAGE = {
     'colour': {'diffuse', 'phong', 'fastsss'},
@@ -327,6 +328,7 @@ class Texture(object):
 
 
 @register_properties_dict
+@force_register
 class Indigo_Texture_Properties(bpy.types.PropertyGroup):
     properties = [
         {
@@ -520,7 +522,9 @@ def EmissionLightLayerParameter():
             'name': 'Light Layer'
         },
     ]
+
 @register_properties_dict
+@force_register
 class indigo_material_emission(indigo_material_feature):
     
     properties = Cha_Emit.properties + \
@@ -633,6 +637,7 @@ class indigo_material_emission(indigo_material_feature):
     
 Cha_Colour = MaterialChannel('colour', spectrum=True, texture=True, shader=True, switch=False, master_colour=True)
 @register_properties_dict
+@force_register
 class indigo_material_colour(indigo_material_feature):
     properties    = Cha_Colour.properties
     
@@ -641,6 +646,7 @@ class indigo_material_colour(indigo_material_feature):
     
 Cha_Bump = MaterialChannel('bumpmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Bump Map')
 @register_properties_dict
+@force_register
 class indigo_material_bumpmap(indigo_material_feature):
     properties    = Cha_Bump.properties
     
@@ -649,6 +655,7 @@ class indigo_material_bumpmap(indigo_material_feature):
     
 Cha_Normal = MaterialChannel('normalmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Normal Map')
 @register_properties_dict
+@force_register
 class indigo_material_normalmap(indigo_material_feature):
     properties    = Cha_Normal.properties
     
@@ -657,6 +664,7 @@ class indigo_material_normalmap(indigo_material_feature):
     
 Cha_Disp = MaterialChannel('displacement', spectrum=False, texture=True,  shader=True,  switch=True, label='Displacement Map')
 @register_properties_dict
+@force_register
 class indigo_material_displacement(indigo_material_feature):
     properties    = Cha_Disp.properties
     
@@ -666,6 +674,7 @@ class indigo_material_displacement(indigo_material_feature):
 #legacy    
 Cha_Exp = MaterialChannel('exponent', spectrum=False, texture=True,  shader=True,  switch=True, label='Exponent Map')
 @register_properties_dict
+@force_register
 class indigo_material_exponent(indigo_material_feature):
     properties    = Cha_Exp.properties
     
@@ -674,6 +683,7 @@ class indigo_material_exponent(indigo_material_feature):
 #new
 Cha_Rough = MaterialChannel('roughness', spectrum=False, texture=True,  shader=True,  switch=True, label='Roughness Map')
 @register_properties_dict
+@force_register
 class indigo_material_roughness(indigo_material_feature):
     properties    = Cha_Rough.properties
     
@@ -682,6 +692,7 @@ class indigo_material_roughness(indigo_material_feature):
         
 Cha_Fres = MaterialChannel('fresnel_scale', spectrum=False, texture=True,  shader=True,  switch=True, label='Fresnel Scale Map')
 @register_properties_dict
+@force_register
 class indigo_material_fresnel_scale(indigo_material_feature):
     properties    = Cha_Fres.properties
     
@@ -690,6 +701,7 @@ class indigo_material_fresnel_scale(indigo_material_feature):
 
 Cha_BlendMap  = MaterialChannel('blendmap', spectrum=False, texture=True,  shader=True,  switch=True, label='Blend Map')
 @register_properties_dict
+@force_register
 class indigo_material_blendmap(indigo_material_feature):
     properties    = Cha_BlendMap.properties
     
@@ -698,6 +710,7 @@ class indigo_material_blendmap(indigo_material_feature):
         
 Cha_Transmittance  = MaterialChannel('transmittance', spectrum=True, texture=True,  shader=True,  switch=False, spectrum_types={'rgb':True, 'uniform':True, 'rgb_default':(0.5,0.5,0.5)}, label='Transmittance')
 @register_properties_dict
+@force_register
 class indigo_material_transmittance(indigo_material_feature):
     properties    = Cha_Transmittance.properties
     
@@ -706,6 +719,7 @@ class indigo_material_transmittance(indigo_material_feature):
         
 Cha_Absorption  = MaterialChannel('absorption', spectrum=True, texture=True,  shader=True,  switch=False, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True, 'rgb_default':(0.0,0.0,0.0)}, label='Absorption')
 @register_properties_dict
+@force_register
 class indigo_material_absorption(indigo_material_feature):
     properties    = Cha_Absorption.properties
     
@@ -714,6 +728,7 @@ class indigo_material_absorption(indigo_material_feature):
 
 Cha_AbsorptionLayer  = MaterialChannel('absorption_layer', spectrum=True, texture=True,  shader=True,  switch=True, spectrum_types={'rgb':True, 'rgbgain':True, 'uniform':True, 'blackbody': True, 'rgb_default':(0.0,0.0,0.0)}, label='Absorption Layer')
 @register_properties_dict
+@force_register
 class indigo_material_absorption_layer(indigo_material_feature):
     properties    = Cha_AbsorptionLayer.properties
     
@@ -733,6 +748,7 @@ def setRoughness(self, value):
     return None
 
 @register_properties_dict
+@force_register
 class indigo_material_specular(indigo_material_feature):
     #roughness = bpy.props.FloatProperty(description='Roughness', get=getRoughness)#, set=setRoughness)
 
@@ -853,6 +869,7 @@ class indigo_material_specular(indigo_material_feature):
         return [ im ]
 
 @register_properties_dict
+@force_register
 class indigo_material_diffuse(indigo_material_feature):
     
     channel_name = 'albedo'
@@ -910,6 +927,7 @@ def find_nkdata(self, context):
         return []
 
 @register_properties_dict
+@force_register
 class indigo_material_phong(indigo_material_feature):
     
     channel_name = 'diffuse_albedo'
@@ -1014,6 +1032,7 @@ class indigo_material_phong(indigo_material_feature):
         
         
 @register_properties_dict
+@force_register
 class indigo_material_coating(indigo_material_feature):
     
     properties = [
@@ -1102,6 +1121,7 @@ class indigo_material_coating(indigo_material_feature):
         
         
 @register_properties_dict
+@force_register
 class indigo_material_doublesidedthin(indigo_material_feature):
     
     properties = [
@@ -1224,6 +1244,7 @@ class indigo_material_doublesidedthin(indigo_material_feature):
         
 
 @register_properties_dict
+@force_register
 class indigo_material_blended(indigo_material_feature):
     
     properties = [
@@ -1368,7 +1389,15 @@ def is_material_emitting_from_IGM(igm_contents):
         return False
     except Exception as e:
         raise Exception('While parsing IGM file: ' + str(e))
-    
+
+def read_guess_encoding(path):
+    for encoding in ['utf-8', 'latin-1', 'ascii', 'ansi']:
+        try:
+            with open(path, 'r', encoding=encoding) as f:
+                return f.read()
+        except:
+            continue
+
 def get_material_filename_and_emission_from_external_mat(self, blender_material):
     try:
         #NOTE: We can't set material_name etc.. here, or we get an error message about updating attributes when we render animations.
@@ -1411,8 +1440,7 @@ def get_material_filename_and_emission_from_external_mat(self, blender_material)
 
         # Else if the user specified an IGM file:
         elif self.filename[-4:].lower() == '.igm':
-            with open(extmat_file, 'r') as igm_file:
-                igm_data = try_file_decode(igm_file.read()) # Get the file contents
+            igm_data = try_file_decode(read_guess_encoding(extmat_file)) # Get the file contents
         else:
             ex_str = "'" + str(self.filename) + "' is not an IGM or PIGM file.  (For External material"
             if (hasattr(blender_material, "name")):
@@ -1435,12 +1463,10 @@ def get_material_filename_and_emission_from_external_mat(self, blender_material)
         
         # self.is_valid = True
     except Exception as err:
-        #print('%s' % err)
-        # self.material_name = '%s' % err
-        # self.is_valid = False
         raise err
 
 @register_properties_dict
+@force_register
 class indigo_material_external(indigo_material_feature):
     
     properties = [
@@ -1573,6 +1599,7 @@ class indigo_material_external(indigo_material_feature):
             raise Exception(str(err))
 
 @register_properties_dict
+@force_register
 class indigo_material_null(indigo_material_feature):
     properties = []
     
@@ -1584,6 +1611,7 @@ class indigo_material_null(indigo_material_feature):
         return [im]
     
 @register_properties_dict
+@force_register
 class indigo_material_fastsss(indigo_material_feature):
     channel_name = 'albedo'
     
@@ -1652,6 +1680,11 @@ class Indigo_Material_Properties(bpy.types.PropertyGroup):
                 ('null', 'Null', 'null'),
                 ('fastsss', 'Fast SSS', 'fastsss'),
             ]
+        },
+        {
+            'type': 'int',
+            'attr': 'texture_list_index',
+            'default': 0,
         },
     ]
     indigo_material_emission = bpy.props.PointerProperty(type = indigo_material_emission)

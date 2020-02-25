@@ -5,8 +5,7 @@ from .. core import BL_IDNAME
 
 narrowui = 180
 
-class IndigoUILamps(bpy.types.Panel):
-    bl_idname = "view3d.indigo_ui_lamps"
+class INDIGO_PT_ui_lamps(bpy.types.Panel):
     bl_label = "Indigo Lamps"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -14,23 +13,38 @@ class IndigoUILamps(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LAMP'
+        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LIGHT'
     
     def draw(self, context):
-        if context.lamp is not None:
+        if context.object.data is not None:
             wide_ui = context.region.width > narrowui
             
             if wide_ui:
-                self.layout.prop(context.lamp, "type", expand=True)
+                self.layout.prop(context.object.data, "type", expand=True)
             else:
-                self.layout.prop(context.lamp, "type", text="")
+                self.layout.prop(context.object.data, "type", text="")
             
             
-            if context.lamp.type not in ('SUN', 'HEMI'):
-                self.layout.label('Unsupported lamp type')
-                
-class IndigoUILampSun(bpy.types.Panel):
-    bl_idname = "view3d.indigo_ui_lamp_sun"
+            if context.object.data.type not in ('SUN'):
+                self.layout.label(text='Unsupported lamp type')
+
+class INDIGO_PT_ui_lamp_sun_hemi_switch(bpy.types.Panel):
+    bl_label = "Indigo Sun/Hemi"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "data"
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LIGHT' and context.object.data.type == 'SUN'
+    
+    def draw(self, context):
+        indigo_lamp = context.object.data.indigo_lamp_sun
+        
+        # col = self.layout.column()
+        self.layout.row().prop(indigo_lamp, 'type', expand=True)
+
+class INDIGO_PT_ui_lamp_sun(bpy.types.Panel):
     bl_label = "Indigo Sun+Sky Lamp"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -38,10 +52,9 @@ class IndigoUILampSun(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LAMP' and context.lamp.type == 'SUN'
+        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LIGHT' and context.object.data.type == 'SUN' and context.object.data.indigo_lamp_sun.type == 'sun'
     
     def draw(self, context):
-        indigo_engine = context.scene.indigo_engine
         col = self.layout.column()
         
         indigo_lamp = context.object.data.indigo_lamp_sun
@@ -52,20 +65,17 @@ class IndigoUILampSun(bpy.types.Panel):
             col.prop_search(indigo_lamp, 'sunlayer', context.scene.indigo_lightlayers, 'lightlayers')
             col.prop_search(indigo_lamp, 'skylayer', context.scene.indigo_lightlayers, 'lightlayers')
 
-class IndigoUILampHemi(bpy.types.Panel):
-    bl_idname = "view3d.indigo_ui_lamp_hemi"
+class INDIGO_PT_ui_lamp_hemi(bpy.types.Panel):
     bl_label = "Indigo Hemi Lamp"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "data"
-    COMPAT_ENGINES = {BL_IDNAME}
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LAMP'and context.lamp.type == 'HEMI'
+        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LIGHT' and context.object.data.type == 'SUN' and context.object.data.indigo_lamp_sun.type == 'hemi'
     
     def draw(self, context):
-        indigo_engine = context.scene.indigo_engine
         col = self.layout.column()
         
         indigo_lamp = context.object.data.indigo_lamp_hemi
