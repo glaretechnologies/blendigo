@@ -495,7 +495,7 @@ class GeometryExporter(SceneIterator):
 
         if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s' % (obj, mesh_definition))
         # If this object was instanced by a DupliObject, hash the DupliObject's persistent_id
-        key = hash((ob_inst, ob_inst.persistent_id, ob_inst.random_id, obj.name, obj.data.name)) # the more the merrier. ob_insts can have identical hash and random_id... 
+        key = hash((ob_inst, *ob_inst.persistent_id, ob_inst.random_id, obj.name, obj.data.name)) # the more the merrier. ob_insts can have identical hash and random_id... 
         
         # If the model (object) was already exported, only update the keyframe list.
         emodel = self.ExportedObjects.get(key)
