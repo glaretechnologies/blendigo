@@ -90,39 +90,21 @@ RequestExecutionLevel admin
 ;--------------------------------
 
 Function DetectInstallPath
-	IfFileExists "$APPDATA\Blender Foundation\Blender\2.79" 0 AppData2_78
-		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.79\scripts\addons"
-		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.79"
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.82" 0 AppData2_81
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.82\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.82"
 		Return
 		
-	AppData2_78:
-	IfFileExists "$APPDATA\Blender Foundation\Blender\2.78" 0 AppData2_72
-		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.78\scripts\addons"
-		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.78"
+	AppData2_81:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.81" 0 AppData2_80
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.81\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.81"
 		Return
 		
-	AppData2_72:
-	IfFileExists "$APPDATA\Blender Foundation\Blender\2.72" 0 AppData2_71
-		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.72\scripts\addons"
-		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.72"
-		Return
-		
-	AppData2_71:
-	IfFileExists "$APPDATA\Blender Foundation\Blender\2.71" 0 AppData2_70
-		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.71\scripts\addons"
-		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.71"
-		Return
-		
-	AppData2_70:
-	IfFileExists "$APPDATA\Blender Foundation\Blender\2.70" 0 AppData2_69
-		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.70\scripts\addons"
-		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.70"
-		Return
-		
-	AppData2_69:
-	IfFileExists "$APPDATA\Blender Foundation\Blender\2.69" 0 AutoFindFailed
-		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.69\scripts\addons"
-		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.69"
+	AppData2_80:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\2.80" 0 AutoFindFailed
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.80\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.80"
 		Return
 
 	AutoFindFailed:
