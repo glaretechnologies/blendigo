@@ -66,6 +66,7 @@ if __name__ == '__main__':
 		# Make windows installer
 		os.environ['BLENDIGO_VERSION'] = TAG
 		os.environ['BLENDIGO_COMMIT_HASH'] = HASH
+		os.environ['BLENDIGO_BRANCH'] = BRANCH
 
 		# Make a Blender version string string like "2.68"
 		# This controls where the installed indigo files go in the blender program files dir.
@@ -80,6 +81,7 @@ if __name__ == '__main__':
 		del os.environ['BLENDIGO_VERSION']
 		del os.environ['BLENDER_VERSION']
 		del os.environ['BLENDIGO_COMMIT_HASH']
+		del os.environ['BLENDIGO_BRANCH']
 
 		signProgram("Blendigo " + TAG, './installer_windows/' + INSTALLER_NAME)
 		
