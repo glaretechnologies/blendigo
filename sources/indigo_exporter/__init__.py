@@ -19,7 +19,7 @@ bl_info = {
     "name": "Blendigo - Indigo Exporter",
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
-    "version": (4, 2, 5),
+    "version": (4, 3, 0),
     "blender": (2, 78, 0),
     "location": "View3D",
     "wiki_url": "",
@@ -115,7 +115,7 @@ def register():
     updater.user = "glaretechnologies"
     updater.repo = "blendigo"
     updater.addon = "blendigo"
-    # updater.include_branche_list = ["master", "dev"]
+    updater.include_branch_list = ["2.79"]
     updater.subfolder_path = "sources/indigo_exporter/"
 
     try: bpy.utils.register_module(__name__)

@@ -551,7 +551,7 @@ class GeometryExporter(SceneIterator):
         if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s, %s' % (obj, mesh_definition))
         # If this object was instanced by a DupliObject, hash the DupliObject's persistent_id
         if dupli_ob != None:
-            key = hash((obj, particle_system, dupli_ob.persistent_id[0], dupli_ob.id_data))
+            key = hash((obj, particle_system, *dupli_ob.persistent_id, dupli_ob.id_data))
         else:
             key = hash(obj)
         
