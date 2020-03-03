@@ -51,8 +51,11 @@ if __name__ == '__main__':
 		proc = subprocess.Popen('git log --pretty=format:%h -n 1 ..', stdout=subprocess.PIPE)
 		HASH, errs = proc.communicate()
 		print("HASH: " + HASH);
+
+		BRANCH = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
+		print("BRANCH: " + BRANCH);
 		
-		ZIP_NAME = "blendigo-%s-%s.zip" % (TAG, HASH)
+		ZIP_NAME = "blendigo-%s-%s-%s.zip" % (TAG, HASH, BRANCH)
 		
 		cwd = os.getcwd()
 		
@@ -67,7 +70,7 @@ if __name__ == '__main__':
 		# Make a Blender version string string like "2.68"
 		# This controls where the installed indigo files go in the blender program files dir.
 		os.environ['BLENDER_VERSION'] = str(bl_info['blender'][0]) + "." + str(bl_info['blender'][1]) + str(bl_info['blender'][2])
-		INSTALLER_NAME = "blendigo-%s-%s-installer.exe" % (TAG, HASH)
+		INSTALLER_NAME = "blendigo-%s-%s-%s-installer.exe" % (TAG, HASH, BRANCH)
 
 		print("Making Windows installer ./installer_windows/" + INSTALLER_NAME + "...");
 
