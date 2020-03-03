@@ -52,7 +52,7 @@ if __name__ == '__main__':
 		HASH, errs = proc.communicate()
 		print("HASH: " + HASH);
 
-		BRANCH = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
+		BRANCH = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).strip()
 		print("BRANCH: " + BRANCH);
 		
 		ZIP_NAME = "blendigo-%s-%s-%s.zip" % (TAG, HASH, BRANCH)
