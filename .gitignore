@@ -1,5 +1,5 @@
 __pycache__/
-/indigo_exporter_updater/
+/sources/indigo_exporter/indigo_exporter_updater/
 /regression_test_suite/outputs/*
 !/regression_test_suite/outputs/*.png
 !/regression_test_suite/outputs/*.txt
