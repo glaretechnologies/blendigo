@@ -198,6 +198,8 @@ class IndigoRenderRenderChannels(bpy.types.Panel):
         row = sub.row()
 
         sc = row.column()
+        sc.prop(indigo_engine, 'channel_beauty')
+        sc.prop(indigo_engine, 'channel_albedo')
         sc.prop(indigo_engine, 'channel_normals')
         sc.prop(indigo_engine, 'channel_normals_pre_bump')
         sc.prop(indigo_engine, 'channel_depth')
