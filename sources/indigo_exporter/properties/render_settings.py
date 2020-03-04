@@ -536,7 +536,7 @@ properties = [
     {
         'type': 'bool',
         'attr': 'channel_transmission_lighting',
-        'name': 'Transmission Lighting',
+        'name': 'Transmitted Lighting',
         'default': False,
     },
     {
@@ -577,6 +577,18 @@ properties = [
     },
     {
         'type': 'bool',
+        'attr': 'channel_beauty',
+        'name': 'Beauty',
+        'default': True,
+    },
+    {
+        'type': 'bool',
+        'attr': 'channel_albedo',
+        'name': 'Albedo',
+        'default': False,
+    },
+    {
+        'type': 'bool',
         'attr': 'channel_position',
         'name': 'Position',
         'default': False,
@@ -596,7 +608,7 @@ properties = [
     {
         'type': 'bool',
         'attr': 'channel_alpha',
-        'name': 'Alpha',
+        'name': 'Foreground',
         'default': False,
     },
     {
@@ -805,10 +817,12 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
 
                 'gpu': 'gpu',
 
+                'beauty_channel': 'channel_beauty',
+                'albedo_channel': 'channel_albedo',
                 'normals_channel': 'channel_normals',
                 'normals_pre_bump_channel': 'channel_normals_pre_bump',
-                'position_channel': 'channel_depth',
-                'depth_channel': 'channel_position',
+                'position_channel': 'channel_position',
+                'depth_channel': 'channel_depth',
                 'material_id_channel': 'channel_material_id',
                 'object_id_channel': 'channel_object_id',
                 'foreground_channel': 'channel_alpha',
