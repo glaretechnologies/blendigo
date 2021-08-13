@@ -19,7 +19,7 @@ bl_info = {
     "name": "Blendigo - Indigo Exporter",
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
-    "version": (4, 3, 0),
+    "version": (4, 3, 1),
     "blender": (2, 80, 0),
     "location": "View3D",
     "wiki_url": "",
@@ -32,6 +32,7 @@ import bpy
 ##################################
 
 from . import auto_load
+from . import addon_updater_ops
 
 auto_load.init(ignore=("addon_updater", "addon_updater_ops"), make_annotations=True)
 
@@ -41,7 +42,6 @@ def register():
     # addon updater code and configurations
     # in case of broken version, try to register the updater first
     # so that users can revert back to a working version
-    from . import addon_updater_ops
     addon_updater_ops.register(bl_info)
     from .addon_updater import Updater as updater
     updater.user = "glaretechnologies"
