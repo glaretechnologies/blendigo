@@ -64,7 +64,6 @@ def parse_properties(properties, target):
 
         #a = {k: v for k,v in prop.items()}
         #del a['attr']
-        # print(type(t), a)
         setattr(target, prop['attr'], t(**a))
 
 def register_properties_dict(cls):

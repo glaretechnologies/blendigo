@@ -19,7 +19,7 @@ bl_info = {
     "name": "Blendigo - Indigo Exporter",
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
-    "version": (4, 3, 2),
+    "version": (4, 3, 3),
     "blender": (2, 80, 0),
     "location": "View3D",
     "wiki_url": "",
@@ -31,8 +31,7 @@ import bpy
 # register
 ##################################
 
-from . import auto_load
-from . import addon_updater_ops
+from . import auto_load, addon_updater_ops
 
 auto_load.init(ignore=("addon_updater", "addon_updater_ops"), make_annotations=True)
 
@@ -42,6 +41,7 @@ def register():
     # addon updater code and configurations
     # in case of broken version, try to register the updater first
     # so that users can revert back to a working version
+    from . import addon_updater_ops
     addon_updater_ops.register(bl_info)
     from .addon_updater import Updater as updater
     updater.user = "glaretechnologies"
@@ -85,3 +85,64 @@ def register():
 def unregister():
     auto_load.unregister()
     addon_updater_ops.unregister()
+
+# Indigo auto-updater preferences
+@auto_load.force_register
+@addon_updater_ops.make_annotations
+class IndigoPreferences(bpy.types.AddonPreferences):
+    bl_idname = __package__
+   
+    # Addon updater preferences.
+
+    auto_check_update = bpy.props.BoolProperty(
+        name="Auto-check for Update",
+        description="If enabled, auto-check for updates using an interval",
+        default=False)
+
+    updater_interval_months = bpy.props.IntProperty(
+        name='Months',
+        description="Number of months between checking for updates",
+        default=0,
+        min=0)
+
+    updater_interval_days = bpy.props.IntProperty(
+        name='Days',
+        description="Number of days between checking for updates",
+        default=7,
+        min=0,
+        max=31)
+
+    updater_interval_hours = bpy.props.IntProperty(
+        name='Hours',
+        description="Number of hours between checking for updates",
+        default=0,
+        min=0,
+        max=23)
+
+    updater_interval_minutes = bpy.props.IntProperty(
+        name='Minutes',
+        description="Number of minutes between checking for updates",
+        default=0,
+        min=0,
+        max=59)
+    
+    def draw(self, context):
+        layout = self.layout
+        # col = layout.column() # works best if a column, or even just self.layout
+        mainrow = layout.row()
+        col = mainrow.column()
+
+        # updater draw function
+        # could also pass in col as third arg
+        addon_updater_ops.update_settings_ui(self, context)
+
+        # Alternate draw function, which is more condensed and can be
+        # placed within an existing draw function. Only contains:
+        #   1) check for update/update now buttons
+        #   2) toggle for auto-check (interval will be equal to what is set above)
+        # addon_updater_ops.update_settings_ui_condensed(self, context, col)
+
+        # Adding another column to help show the above condensed ui as one column
+        # col = mainrow.column()
+        # col.scale_y = 2
+        # col.operator("wm.url_open","Open webpage ").url=addon_updater_ops.updater.website
