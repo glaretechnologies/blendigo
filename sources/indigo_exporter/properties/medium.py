@@ -188,7 +188,7 @@ class Indigo_Material_Medium_Properties(bpy.types.PropertyGroup):
             'name': 'medium_index',
             'attr': 'medium_index',
         },
-         {
+        {
             'type': 'template_list',
             'listtype_name': 'UI_UL_list',
             'list_id': 'mediumlist',

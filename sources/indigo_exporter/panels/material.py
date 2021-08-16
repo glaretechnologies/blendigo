@@ -13,6 +13,71 @@ class material_subpanel():
     def poll(cls, context):
         return context.scene.render.engine == BL_IDNAME and (context.material or context.object) and (context.object.active_material)
 
+class INDIGO_PT_context_material(bpy.types.Panel):
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    COMPAT_ENGINES = {BL_IDNAME}
+    bl_label = ""
+    bl_context = "material"
+    bl_options = {'HIDE_HEADER'}
+
+    @classmethod
+    def poll(cls, context):
+        if context.active_object and context.active_object.type == 'GPENCIL':
+            return False
+        else:
+            return (context.material or context.object) and context.engine in cls.COMPAT_ENGINES
+
+    def draw(self, context):
+        layout = self.layout
+
+        mat = context.material
+        ob = context.object
+        slot = context.material_slot
+        space = context.space_data
+
+        if ob:
+            is_sortable = len(ob.material_slots) > 1
+            rows = 1
+            if (is_sortable):
+                rows = 4
+
+            row = layout.row()
+
+            row.template_list("MATERIAL_UL_matslots", "", ob, "material_slots", ob, "active_material_index", rows=rows)
+
+            col = row.column(align=True)
+            col.operator("object.material_slot_add", icon='ADD', text="")
+            col.operator("object.material_slot_remove", icon='REMOVE', text="")
+
+            col.menu("MATERIAL_MT_context_menu", icon='DOWNARROW_HLT', text="")
+
+            if is_sortable:
+                col.separator()
+
+                col.operator("object.material_slot_move", icon='TRIA_UP', text="").direction = 'UP'
+                col.operator("object.material_slot_move", icon='TRIA_DOWN', text="").direction = 'DOWN'
+
+            if ob.mode == 'EDIT':
+                row = layout.row(align=True)
+                row.operator("object.material_slot_assign", text="Assign")
+                row.operator("object.material_slot_select", text="Select")
+                row.operator("object.material_slot_deselect", text="Deselect")
+
+        split = layout.split(factor=0.65)
+
+        if ob:
+            split.template_ID(ob, "active_material", new="material.new")
+            row = split.row()
+
+            if slot:
+                row.prop(slot, "link", text="")
+            else:
+                row.label()
+        elif mat:
+            split.template_ID(space, "pin_id")
+            split.separator()
+
 class INDIGO_PT_ui_material(material_subpanel, bpy.types.Panel):
     """    Material Type First     """
 
@@ -28,6 +93,7 @@ class INDIGO_PT_ui_material(material_subpanel, bpy.types.Panel):
         row = self.layout.row(align=True)
         indigo_material = context.object.active_material.indigo_material
         row.prop(indigo_material, 'type', text="Type")
+        # layout.template_list("MATERIAL_UL_matslots", "", context.object, "material_slots", context.object, "active_material_index")
 
 class INDIGO_PT_ui_material_colour(material_subpanel, bpy.types.Panel):
     bl_label = 'Material Colour'

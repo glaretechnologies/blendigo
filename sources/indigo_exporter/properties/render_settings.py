@@ -883,3 +883,4 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
         self.build_subelements(scene, xml_format, xml)
 
         return xml
+

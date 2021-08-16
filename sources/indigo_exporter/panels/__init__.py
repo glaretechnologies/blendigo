@@ -1,45 +1,46 @@
 import bpy
-from .. import addon_updater_ops
+from .. import addon_updater_ops, auto_load
 
 # Indigo auto-updater preferences
+@addon_updater_ops.make_annotations
+@auto_load.force_register
 class IndigoPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
-
-    # addon updater preferences
+   
+    # Addon updater preferences.
 
     auto_check_update = bpy.props.BoolProperty(
         name="Auto-check for Update",
         description="If enabled, auto-check for updates using an interval",
-        default=False,
-        )
-    updater_intrval_months = bpy.props.IntProperty(
+        default=False)
+
+    updater_interval_months = bpy.props.IntProperty(
         name='Months',
         description="Number of months between checking for updates",
         default=0,
-        min=0
-        )
-    updater_intrval_days = bpy.props.IntProperty(
+        min=0)
+
+    updater_interval_days = bpy.props.IntProperty(
         name='Days',
         description="Number of days between checking for updates",
         default=7,
         min=0,
-        max=31
-        )
-    updater_intrval_hours = bpy.props.IntProperty(
+        max=31)
+
+    updater_interval_hours = bpy.props.IntProperty(
         name='Hours',
         description="Number of hours between checking for updates",
         default=0,
         min=0,
-        max=23
-        )
-    updater_intrval_minutes = bpy.props.IntProperty(
+        max=23)
+
+    updater_interval_minutes = bpy.props.IntProperty(
         name='Minutes',
         description="Number of minutes between checking for updates",
         default=0,
         min=0,
-        max=59
-        )
-
+        max=59)
+    
     def draw(self, context):
         layout = self.layout
         # col = layout.column() # works best if a column, or even just self.layout

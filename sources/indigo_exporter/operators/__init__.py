@@ -17,6 +17,8 @@ from .. export.geometry import model_object
 
 from .. import eprofiler as ep
 
+from ..auto_load import force_register
+
 class _Impl_operator(object):
     
     def __init__(self, **kwargs):
@@ -40,6 +42,7 @@ class _Impl_operator(object):
         export.REPORTER = report_func
         return self
     
+@force_register
 class _Impl_OT_igmesh(_Impl_operator):
     '''Export an Indigo format binary mesh file (.igmesh)'''
     
@@ -83,6 +86,7 @@ class _Impl_OT_igmesh(_Impl_operator):
         wm.fileselect_add(self)
         return {'RUNNING_MODAL'}
     
+@force_register
 class EXPORT_OT_igmesh(_Impl_OT_igmesh, bpy.types.Operator):
     '''Export an Indigo format binary mesh file (.igmesh)'''
     
@@ -93,7 +97,8 @@ class EXPORT_OT_igmesh(_Impl_OT_igmesh, bpy.types.Operator):
 # add igmesh operator into file->export menu
 menu_func = lambda self, context: self.layout.operator("export.igmesh", text="Export Indigo Mesh...")
 bpy.types.TOPBAR_MT_file_export.append(menu_func)
-    
+
+@force_register    
 class _Impl_OT_indigo(_Impl_operator):
     '''Export an Indigo format scene (.igs)'''
     
@@ -269,7 +274,7 @@ class _Impl_OT_indigo(_Impl_operator):
             
             #------------------------------------------------------------------------------
             # Process all objects in all frames in all scenes.
-            print( '\n\n\n\n*******', master_scene.frame_current)
+            # print( '\n\n\n\n*******', master_scene.frame_current)
             for cur_frame in frame_list:
                 # Calculate normalised time for keyframes.
                 normalised_time = (cur_frame - start_frame) / fps / exposure
@@ -547,7 +552,8 @@ class _Impl_OT_indigo(_Impl_operator):
             if os.getenv('B25_OBJECT_ANALYSIS', False):
                 raise err
             return {'CANCELLED'}
-        
+
+@force_register        
 class EXPORT_OT_indigo(_Impl_OT_indigo, bpy.types.Operator):
     def execute(self, context):
         self.set_report(self.report)
@@ -556,6 +562,7 @@ class EXPORT_OT_indigo(_Impl_OT_indigo, bpy.types.Operator):
 menu_func = lambda self, context: self.layout.operator("export.indigo", text="Export Indigo Scene...")
 bpy.types.TOPBAR_MT_file_export.append(menu_func)
 
+@force_register
 class INDIGO_OT_lightlayer_add(bpy.types.Operator):
     '''Add a new light layer definition to the scene'''
     
@@ -570,7 +577,8 @@ class INDIGO_OT_lightlayer_add(bpy.types.Operator):
         new_lg = lg[len(lg)-1]
         new_lg.name = self.properties.new_lightlayer_name
         return {'FINISHED'}
-    
+
+@force_register    
 class INDIGO_OT_lightlayer_remove(bpy.types.Operator):
     '''Remove the selected lightlayer definition'''
     
@@ -587,7 +595,8 @@ class INDIGO_OT_lightlayer_remove(bpy.types.Operator):
             w.lightlayers.remove( self.properties.lg_index )
         w.lightlayers_index = len(w.lightlayers)-1
         return {'FINISHED'}
-    
+
+@force_register    
 class INDIGO_OT_medium_add(bpy.types.Operator):
     """Add a new medium definition to the scene"""
 
@@ -602,7 +611,8 @@ class INDIGO_OT_medium_add(bpy.types.Operator):
         new_me = me[len(me) - 1]
         new_me.name = self.properties.new_medium_name
         return {'FINISHED'}
-    
+
+@force_register    
 class INDIGO_OT_medium_remove(bpy.types.Operator):
     '''Remove the selected medium definition'''
 
