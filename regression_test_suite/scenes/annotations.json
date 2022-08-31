@@ -1,0 +1,6 @@
+{
+    "motion_blur_dupli_instances": "Blender has some internal problems synchronizing its dependency graph in this particular case which results in geometry being altered every time a frame is changed. This problem gets even more evident when Blender is run in headless mode (used in the test suite). In this particular case, motion blur works in Blender 2.93.6. It seems that the problem lies in bpy.types.RenderEngine.frame_set(frame, subframe)",
+    "Group_Instances_mb": "Previously used dupli group instancing which was removed in Blender 2.9. Collection instancing is used now instead.",
+    "multifile_animation": "Render two frames and check for correct files names. Currently, Indigo has a bug which leads to rendering a blank last frame of animation in headless mode. IGI name timestamps should not be exported in animation.",
+    "multifile_still": "Render one frame and check for correct files names. IGI file name timestamp is used."
+}

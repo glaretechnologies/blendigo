@@ -63,6 +63,8 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
     bl_idname = BL_IDNAME
     bl_label = 'Indigo'
     bl_use_preview = False
+    bl_use_shading_nodes_custom = True
+    bl_use_eevee_viewport = True
 
     render_lock = threading.Lock()
 

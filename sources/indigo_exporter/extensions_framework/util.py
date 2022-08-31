@@ -35,8 +35,8 @@ import bpy
 
 """List of possibly appropriate paths to load/save addon config from/to"""
 config_paths = []
-if bpy.utils.user_resource('CONFIG', '') != "": config_paths.append(bpy.utils.user_resource('CONFIG', '', create=True))
-if bpy.utils.user_resource('SCRIPTS', '') != "": config_paths.append(bpy.utils.user_resource('SCRIPTS', '', create=True))
+if bpy.utils.user_resource('CONFIG') != "": config_paths.append(bpy.utils.user_resource('CONFIG', create=True))
+if bpy.utils.user_resource('SCRIPTS') != "": config_paths.append(bpy.utils.user_resource('SCRIPTS', create=True))
 # want to scan other script paths in reverse order, since the user path comes last
 sp = [p for p in bpy.utils.script_paths() if p != '']
 sp.reverse()

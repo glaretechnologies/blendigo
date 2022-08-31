@@ -53,8 +53,8 @@ bpy.context.scene.indigo_engine.skip_version_check = True
 # don't switch to gpu in incompatible scenes 
 if not bpy.context.scene.indigo_engine.render_mode in ('custom', 'shadow'):
 	# speed up testing with gpu
-	# bpy.context.scene.indigo_engine.render_mode = 'path_gpu'
-	bpy.context.scene.indigo_engine.render_mode = 'path_cpu' # temporary... i don't have sufficient gpu right now
+	bpy.context.scene.indigo_engine.render_mode = 'path_gpu'
+	# bpy.context.scene.indigo_engine.render_mode = 'path_cpu' # temporary... i don't have sufficient gpu right now
 
 # Set up halt condition and behaviour
 bpy.context.scene.indigo_engine.halttime = -1
