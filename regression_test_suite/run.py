@@ -13,8 +13,14 @@ import os, subprocess, shutil, time, glob, sys
 sys.path.append(INDIGO_TEST_SUITE)
 from pypng import png
 
-# import bpy
+import json
+with open(os.path.join(INDIGO_TEST_SUITE, 'scenes', 'annotations.json'), 'r') as f:
+    annotations_data = json.loads(f.read())
+print(annotations_data)
+
+import bpy
 from indigo_exporter.core import getConsolePath
+from indigo_exporter.core.util import getVersion
 BLENDER_BINARY = os.path.join(bpy.utils.script_paths()[0].split(os.sep)[0]+os.sep, *bpy.utils.script_paths()[0].split(os.sep)[1:-3], 'blender.exe')
 INDIGO_PATH = os.path.split(getConsolePath())[0]
 
@@ -28,14 +34,14 @@ def image_analysis(ref_file, tst_file):
     ref_rgb = ref_data[2]
     tst_rgb = tst_data[2]
     
-    sum_sqr_err = 0
+    sum_err = 0
     px_count = 0
     for ref_row, tst_row in zip(ref_rgb, tst_rgb):
-        for col in range(ref_file.width):
-            err = tst_row[col] - ref_row[col]
-            sum_sqr_err += (err*err)
+        for ref_col, tst_col in zip(ref_row, tst_row):
+            err = tst_col - ref_col
+            sum_err += abs(err)
             px_count += 1
-    return sum_sqr_err/px_count
+    return sum_err/px_count
 
 def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
     output_log = []
@@ -94,14 +100,14 @@ def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
             
             ref_file = png.Reader(os.path.join(INDIGO_TEST_SUITE, 'references', '%s.png' % name))
             tst_file = png.Reader(tst_file_path)
-            MSE = image_analysis(ref_file, tst_file)
-            if MSE > 1.0:
-                MSE_msg = '****** HIGH VALUE ******'
+            ME = image_analysis(ref_file, tst_file)
+            if ME > 4:
+                ME_msg = '****** HIGH VALUE ******'
                 failure_count += 1
             else:
-                MSE_msg = 'OK'
+                ME_msg = 'OK'
                 
-            test_results[name] = 'MSE = %0.4f  %s' % (MSE, MSE_msg)
+            test_results[name] = 'ME = %0.4f  %s' % (ME, ME_msg)
         
         except Exception as err:
             test_results[name] = 'FAILED: %s' % err
@@ -159,10 +165,24 @@ html_template="""
     label{{
         margin: 1rem;
     }}
+    .cap{{
+        margin: 2rem;
+    }}
+    .text{{
+        text-align: justify;
+    }}
+    .additional{{
+        margin: 2rem 0rem;
+        padding: 1rem;
+        border: solid 1px gray;
+        border-radius: 1rem;
+    }}
 </style>
 </head>
 <body>
-<span>Blendigo Version: {ver}</span>
+<span class="cap">Blendigo: {ver}</span>
+<span class="cap">Indigo: {indigo_ver}</span>
+<span class="cap">Blender: {blender_ver}</span>
 <div>
 <label><input id="check" type="checkbox" checked onclick="
 if(this.checked){{
@@ -196,10 +216,17 @@ pair_template="""
         <span class="right">{test_result}</span>
     </div>
     <img src="../references/{reference_file}"><img src="{out_file}">
+    <div class="text">{test_annotation}</div>
 </div>
 """
 
-textcase_template="""
+additional_tests = set()
+
+class NonstandardTest:
+    def register(cls):
+        additional_tests.add(cls)
+
+    textcase_template="""
 <div class="container faulty-{faulty}">
     <div class="caption">
         <span class="left">{test_name}</span>
@@ -207,116 +234,364 @@ textcase_template="""
     </div>
 </div>
 """
+    name = "NonstandardTest"
 
-def additional_tests():
-    test_dict = {
-        "multifile_animation": test_multifile_animation
-    }
-    output_log=[]
-    test_results={}
-    for t in test_dict.items():
-        if not filter_list or t[0] in filter_list:
-            output_log1, test_results1 = t[1]()
-            output_log.extend(output_log1)
-            test_results.update(test_results1)
-
-    return output_log, test_results
-
-def test_multifile_animation(BLENDIGO_VERSION='0.0.0'):
-    # additional non-standardized tests
-
-    # use one of the test scenes to check multi-file export options
     output_log = []
-    
-    # turn off verbose exporting
-    if 'B25_OBJECT_ANALYSIS' in os.environ.keys():
-        del os.environ['B25_OBJECT_ANALYSIS']
-    
-    test_sep = '*'*80
-    
     test_results = {}
 
-    scene  = os.path.join(INDIGO_TEST_SUITE, 'scenes', 'multifile', 'multifile.blend')
-    name   = "multifile_export"
+    def __contains__(self, key):
+        return key == self.name
     
-    print(test_sep)
-    print('Additional tests')
-    print('Test: multi-file export')
+    def __str__(self):
+        # use template to produce html formatted output e.g.:
+        return self.textcase_template.format(
+            test_name=test_name,
+            test_result=self.test_results[test_name],
+            faulty=str('FAILED' in self.test_results[self.name]),
+            )
     
-    # clean the output location
-    output_path = os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile', 'multifile')
-    try:
-        shutil.rmtree(output_path)
-    except: pass
-    
-    try:
-        # run blender
-        args = [BLENDER_BINARY, '-noaudio']
-        args.extend(['-b',scene])
-        args.extend(['-P', os.path.join(INDIGO_TEST_SUITE, 'scene_multifile.py')])
-        args.append('--')
-        args.append('--output-path=%s' % output_path)
-        args.append('--install-path=%s' % INDIGO_PATH)
-        args.append('--test-name=%s' % name)
-        args.append('--blendigo-version=%s' % BLENDIGO_VERSION)
-        exit_code = subprocess.call(args, env=os.environ)
+    def execute(self, BLENDIGO_VERSION='0.0.0'):
+        # return output_log and test_result
+        pass
+
+@NonstandardTest.register
+class MultifileAnimation(NonstandardTest):
+    name = "multifile_animation"
+
+    textcase_template="""
+<div class="additional">
+    <div class="cap">{testcase}</div>
+    <div class="text">{test_annotation}</div>
+    {results_images}
+    {results_simple}
+</div>
+"""
+
+    simple_result_template="""
+<div class="container faulty-{faulty}">
+    <div class="caption">
+        <span class="left">{test_name}</span>
+        <span class="right">{test_result}</span>
+    </div>
+</div>
+"""
+    pair_template="""
+<div class="container faulty-{faulty}">
+    <div class="caption">
+        <span class="left">{test_name}</span>
+        <span class="right">{test_result}</span>
+    </div>
+    <img src="../references/{reference_file}"><img src="../outputs/{out_file}">
+</div>
+"""
+
+    def __str__(self):
+        simple_str = ""
+        for name, result in self.test_results.items():
+            simple_str += self.simple_result_template.format(
+                test_name=name,
+                test_result=result,
+                faulty=str('FAILED' in result),
+                )
         
-        if exit_code < 0:
-            raise Exception('process error!')
+        images_str = ""
+        # First image
+        ref_path = os.path.join(INDIGO_TEST_SUITE, 'references', 'multifile', 'multifile0189.png')
+        tst_path = os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile', 'multifile0189.png')
+        ref_file = png.Reader(ref_path)
+        tst_file = png.Reader(tst_path)
+        ME = image_analysis(ref_file, tst_file)
+        if ME > 4:
+            ME_msg = f'ME = {ME:0.4f}  ****** HIGH VALUE ******'
+        else:
+            ME_msg = 'OK'
+        
+        images_str += self.pair_template.format(
+            faulty = ME > 4,
+            test_name = "multifile0189.png Image",
+            test_result = ME_msg,
+            reference_file = 'multifile/multifile0189.png',
+            out_file = 'multifile/multifile0189.png',
+        )
 
-        ####
-        tst_file_names = [f for f in os.listdir(os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile'))]
-        # tst_file_name = glob.glob(os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile', test_name+"*"))
+        # Second image
+        ref_path = os.path.join(INDIGO_TEST_SUITE, 'references', 'multifile', 'multifile0190.png')
+        tst_path = os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile', 'multifile0190.png')
+        ref_file = png.Reader(ref_path)
+        tst_file = png.Reader(tst_path)
+        ME = image_analysis(ref_file, tst_file)
+        if ME > 4:
+            ME_msg = f'ME = {ME:0.4f}  ****** HIGH VALUE ******'
+        else:
+            ME_msg = 'OK'
+        
+        images_str += self.pair_template.format(
+            faulty = ME > 4,
+            test_name = "multifile0190.png Image",
+            test_result = ME_msg,
+            reference_file = 'multifile/multifile0190.png',
+            out_file = 'multifile/multifile0190.png',
+        )
+        
+        outstr = self.textcase_template.format(
+            testcase = self.name,
+            test_annotation = annotations_data[self.name] if self.name in annotations_data else "",
+            results_images = images_str,
+            results_simple = simple_str,
+        )
+        return outstr
 
-        reference_filenames = [
-        # 'multifile.Scene.00189.igs',
-        # 'multifile.Scene.00190.igs',
-        # 'multifile0189.igi',
-        'multifile0189.png',
-        'multifile0189_channels.exr',
-        'multifile0189_tonemapped.exr',
-        'multifile0189_untonemapped.exr',
-        # 'multifile0190.igi',
-        'multifile0190.png',
-        'multifile0190_channels.exr',
-        'multifile0190_tonemapped.exr',
-        'multifile0190_untonemapped.exr',
-        ]
+    def execute(self, BLENDIGO_VERSION='0.0.0'):
+        # additional non-standardized tests
 
-        for name in reference_filenames:
-            if name in tst_file_names:
-                test_results[name] = "OK"
+        # use one of the test scenes to check multi-file export options
+        
+        # turn off verbose exporting
+        if 'B25_OBJECT_ANALYSIS' in os.environ.keys():
+            del os.environ['B25_OBJECT_ANALYSIS']
+        
+        test_sep = '*'*80
+
+        scene  = os.path.join(INDIGO_TEST_SUITE, 'scenes', 'multifile', 'multifile.blend')
+        name   = "multifile_export"
+        
+        print(test_sep)
+        print('Additional tests')
+        print('Test: multi-file export')
+        
+        # clean the output location
+        output_path = os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile', 'multifile')
+        try:
+            shutil.rmtree(output_path)
+        except: pass
+        
+        try:
+            # run blender
+            args = [BLENDER_BINARY, '-noaudio']
+            args.extend(['-b',scene])
+            args.extend(['-P', os.path.join(INDIGO_TEST_SUITE, 'scene_multifile.py')])
+            args.append('--')
+            args.append('--output-path=%s' % output_path)
+            args.append('--install-path=%s' % INDIGO_PATH)
+            args.append('--test-name=%s' % name)
+            args.append('--blendigo-version=%s' % BLENDIGO_VERSION)
+            exit_code = subprocess.call(args, env=os.environ)
+            
+            if exit_code < 0:
+                raise Exception('process error!')
+
+            ####
+            tst_file_names = [f for f in os.listdir(os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile'))]
+            # tst_file_name = glob.glob(os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile', test_name+"*"))
+
+            reference_filenames = [
+            # 'multifile.Scene.00189.igs',
+            # 'multifile.Scene.00190.igs',
+            # 'multifile0189.igi',
+            'multifile0189.png',
+            'multifile0189_channels.exr',
+            'multifile0189_tonemapped.exr',
+            'multifile0189_untonemapped.exr',
+            # 'multifile0190.igi',
+            'multifile0190.png',
+            'multifile0190_channels.exr',
+            'multifile0190_tonemapped.exr',
+            'multifile0190_untonemapped.exr',
+            ]
+
+            for name in reference_filenames:
+                if name in tst_file_names:
+                    self.test_results[name] = "OK"
+                else:
+                    self.test_results[name] = "FAILED"
+            
+            # check igi files exported with timestamp in filename
+            import re
+            refstr = ' '.join(tst_file_names)
+            if re.search('multifile0189_\d+\.igi', refstr):
+                self.test_results[r'multifile0189_\d+\.igi'] = "FAILED"
             else:
-                test_results[name] = "FAILED"
-        
-        # check igi files exported with timestamp in filename
-        import re
-        refstr = ' '.join(reference_filenames)
-        if re.search('multifile0189_\d+\.igi', refstr):
-            test_results[r'multifile0189_\d+\.igi'] = "OK"
-        else:
-            test_results[r'multifile0189_\d+\.igi'] = "FAILED"
+                self.test_results[r'multifile0189_\d+\.igi'] = "OK"
 
-        if re.search('multifile0190_\d+\.igi', refstr):
-            test_results[r'multifile0190_\d+\.igi'] = "OK"
+            if re.search('multifile0190_\d+\.igi', refstr):
+                self.test_results[r'multifile0190_\d+\.igi'] = "FAILED"
+            else:
+                self.test_results[r'multifile0190_\d+\.igi'] = "OK"
+        
+        except Exception as err:
+            self.test_results[name] = 'FAILED: %s' % err
+        
+        print('Test: %s completed' % name)
+        print(test_sep)
+        print('\n')
+        
+        
+        self.output_log.append('All Tests complete!\n')
+        self.output_log.append(test_sep)
+        for test_name in sorted(self.test_results.keys()):
+            self.output_log.append('%-30s %s' % (test_name, self.test_results[test_name]))
+        self.output_log.append(test_sep)
+
+
+
+
+@NonstandardTest.register
+class MultifileStill(NonstandardTest):
+    name = "multifile_still"
+
+    textcase_template="""
+<div class="additional">
+    <div class="cap">{testcase}</div>
+    <div class="text">{test_annotation}</div>
+    {results_images}
+    {results_simple}
+</div>
+"""
+
+    simple_result_template="""
+<div class="container faulty-{faulty}">
+    <div class="caption">
+        <span class="left">{test_name}</span>
+        <span class="right">{test_result}</span>
+    </div>
+</div>
+"""
+    pair_template="""
+<div class="container faulty-{faulty}">
+    <div class="caption">
+        <span class="left">{test_name}</span>
+        <span class="right">{test_result}</span>
+    </div>
+    <img src="../references/{reference_file}"><img src="../outputs/{out_file}">
+</div>
+"""
+
+    def __str__(self):
+        simple_str = ""
+        for name, result in self.test_results.items():
+            simple_str += self.simple_result_template.format(
+                test_name=name,
+                test_result=result,
+                faulty=str('FAILED' in result),
+                )
+        
+        images_str = ""
+        # Only image
+        ref_path = os.path.join(INDIGO_TEST_SUITE, 'references', 'multifile', 'multifile0189.png')
+        tst_path = os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile', 'multifile0189.png')
+        ref_file = png.Reader(ref_path)
+        tst_file = png.Reader(tst_path)
+        ME = image_analysis(ref_file, tst_file)
+        if ME > 4:
+            ME_msg = f'ME = {ME:0.4f}  ****** HIGH VALUE ******'
         else:
-            test_results[r'multifile0190_\d+\.igi'] = "FAILED"
-    
-    except Exception as err:
-        test_results[name] = 'FAILED: %s' % err
-    
-    print('Test: %s completed' % name)
-    print(test_sep)
-    print('\n')
-    
-    
-    output_log.append('All Tests complete!\n')
-    output_log.append(test_sep)
-    for test_name in sorted(test_results.keys()):
-        output_log.append('%-30s %s' % (test_name, test_results[test_name]))
-    output_log.append(test_sep)
-    
-    return output_log, test_results
+            ME_msg = 'OK'
+        
+        images_str += self.pair_template.format(
+            faulty = ME > 4,
+            test_name = "multifile0189.png Image",
+            test_result = ME_msg,
+            reference_file = 'multifile_still/multifile0189.png',
+            out_file = 'multifile_still/multifile0189.png',
+        )
+        
+        outstr = self.textcase_template.format(
+            testcase = self.name,
+            test_annotation = annotations_data[self.name] if self.name in annotations_data else "",
+            results_images = images_str,
+            results_simple = simple_str,
+        )
+        return outstr
+
+    def execute(self, BLENDIGO_VERSION='0.0.0'):
+        # additional non-standardized tests
+
+        # use one of the test scenes to check multi-file export options
+        
+        # turn off verbose exporting
+        if 'B25_OBJECT_ANALYSIS' in os.environ.keys():
+            del os.environ['B25_OBJECT_ANALYSIS']
+        
+        test_sep = '*'*80
+
+        scene  = os.path.join(INDIGO_TEST_SUITE, 'scenes', 'multifile_still', 'multifile.blend')
+        name   = "multifile_export"
+        
+        print(test_sep)
+        print('Additional tests')
+        print('Test: multi-file export')
+        
+        # clean the output location
+        output_path = os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile_still', 'multifile')
+        try:
+            shutil.rmtree(output_path)
+        except: pass
+        
+        try:
+            # run blender
+            args = [BLENDER_BINARY, '-noaudio']
+            args.extend(['-b',scene])
+            args.extend(['-P', os.path.join(INDIGO_TEST_SUITE, 'scene_script.py')])
+            args.append('--')
+            args.append('--output-path=%s' % output_path)
+            args.append('--install-path=%s' % INDIGO_PATH)
+            args.append('--test-name=%s' % name)
+            args.append('--blendigo-version=%s' % BLENDIGO_VERSION)
+            exit_code = subprocess.call(args, env=os.environ)
+            
+            if exit_code < 0:
+                raise Exception('process error!')
+
+            ####
+            tst_file_names = [f for f in os.listdir(os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile_still'))]
+            # tst_file_name = glob.glob(os.path.join(INDIGO_TEST_SUITE, 'outputs', 'multifile', test_name+"*"))
+
+            reference_filenames = [
+            # 'multifile.Scene.00189.igs',
+            # 'multifile.Scene.00190.igs',
+            # 'multifile0189.igi',
+            'multifile0189.png',
+            'multifile0189_channels.exr',
+            'multifile0189_tonemapped.exr',
+            'multifile0189_untonemapped.exr',
+            ]
+
+            for name in reference_filenames:
+                if name in tst_file_names:
+                    self.test_results[name] = "OK"
+                else:
+                    self.test_results[name] = "FAILED"
+            
+            # check igi files exported with timestamp in filename
+            import re
+            refstr = ' '.join(tst_file_names)
+            print(refstr)
+            if re.search('multifile0189_\d+\.igi', refstr):
+                self.test_results[r'multifile0189_\d+\.igi'] = "OK"
+            else:
+                self.test_results[r'multifile0189_\d+\.igi'] = "FAILED"
+        
+        except Exception as err:
+            self.test_results[name] = 'FAILED: %s' % err
+        
+        print('Test: %s completed' % name)
+        print(test_sep)
+        print('\n')
+        
+        
+        self.output_log.append('All Tests complete!\n')
+        self.output_log.append(test_sep)
+        for test_name in sorted(self.test_results.keys()):
+            self.output_log.append('%-30s %s' % (test_name, self.test_results[test_name]))
+        self.output_log.append(test_sep)
+
+def run_additional_tests():
+    tests = filter(lambda t: t.name in filter_list, additional_tests) if filter_list else additional_tests
+    tests = [t() for t in tests]
+    for test in tests:
+        test.execute()
+
+    return tests
 
 
 if __name__ == "__main__":
@@ -334,14 +609,16 @@ if __name__ == "__main__":
     os.environ['BLENDIGO_RELEASE'] = 'TRUE'
     
     from indigo_exporter import bl_info
-    TAG = '.'.join(['%i'%i for i in bl_info['version']])
+    blendigo_version = '.'.join(['%i'%i for i in bl_info['version']])
+    indigo_version = '.'.join(['%i'%i for i in getVersion()])
+    blender_version = bpy.app.version_string
     
     del os.environ['BLENDIGO_RELEASE']
     
     print('\n\n\n* Test Started *\n\n\n')
-    log_lines, failure_count, test_results, test_times = regression_test(filter_list, TAG)
+    log_lines, failure_count, test_results, test_times = regression_test(filter_list, blendigo_version)
         
-    additional_output_log, additional_test_results = additional_tests()
+    executed_additional_tests = run_additional_tests()
 
     with open(os.path.join(INDIGO_TEST_SUITE, 'outputs','results.txt'), 'w') as file:
         for log_line in log_lines:
@@ -349,11 +626,14 @@ if __name__ == "__main__":
             file.write('\n'+log_line)
         file.write('\n'*2 + '\nFailures: '+str(failure_count))
 
-        for log_line in additional_output_log:
-            print(log_line)
-            file.write('\n'+log_line)
+        for test in executed_additional_tests:
+            for log_line in test.output_log:
+                print(log_line)
+                file.write('\n'+log_line)
 
-        file.write('\nBlendigo Version: '+TAG)
+        file.write('\nBlendigo Version: '+blendigo_version)
+        file.write('\nIndigo Version: '+indigo_version)
+        file.write('\nBlender Version: '+blender_version)
         
         
     with open(os.path.join(INDIGO_TEST_SUITE, 'outputs','report.html'), 'w') as file:
@@ -369,13 +649,10 @@ if __name__ == "__main__":
                 out_file=out_file,
                 test_result='%0.2f sec'%test_times[test_name]+' '+test_results[test_name],
                 faulty=str('HIGH VALUE' in test_results[test_name] or 'FAILED' in test_results[test_name]),
+                test_annotation=annotations_data[test_name] if test_name in annotations_data else "",
                 ))
 
-        for test_name in additional_test_results.keys():
-            cases.append(textcase_template.format(
-                test_name=test_name,
-                test_result=additional_test_results[test_name],
-                faulty=str('FAILED' in additional_test_results[test_name]),
-                ))
+        for test in executed_additional_tests:
+            cases.append(str(test))
 
-        file.write(html_template.format(pairs='\n'.join(cases), ver=TAG))
+        file.write(html_template.format(pairs='\n'.join(cases), ver=blendigo_version, indigo_ver=indigo_version, blender_ver=blender_version))

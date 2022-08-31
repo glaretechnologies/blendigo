@@ -4,4 +4,13 @@ __pycache__/
 !/regression_test_suite/outputs/*.png
 !/regression_test_suite/outputs/*.txt
 !/regression_test_suite/outputs/*.html
+
+!/regression_test_suite/outputs/multifile/
+/regression_test_suite/outputs/multifile/*
+!/regression_test_suite/outputs/multifile/*.png
+
+!/regression_test_suite/outputs/multifile_still/
+/regression_test_suite/outputs/multifile_still/*
+!/regression_test_suite/outputs/multifile_still/*.png
+
 *.blend1

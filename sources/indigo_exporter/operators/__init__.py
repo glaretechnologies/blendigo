@@ -202,8 +202,8 @@ class _Impl_OT_indigo(_Impl_operator):
     verbose = True
     
     def execute(self, render_engine, depsgraph):
-        # master_scene = depsgraph.scene_eval
-        master_scene = depsgraph.scene
+        master_scene = depsgraph.scene_eval
+        # master_scene = depsgraph.scene
         try:
             if master_scene is None:
                 #indigo_log('Scene context is invalid')
@@ -215,7 +215,8 @@ class _Impl_OT_indigo(_Impl_operator):
             export_start_time = time.time()
             
             igs_filename = self.check_output_path(self.properties.directory)
-            export_scenes = [master_scene.background_set, master_scene]
+            # export_scenes = [master_scene.background_set, master_scene]
+            export_scenes = [master_scene] # background set objects also are in depsgraph now
             
             if self.verbose: indigo_log('Export render settings')
             
@@ -278,6 +279,7 @@ class _Impl_OT_indigo(_Impl_operator):
                 geometry_exporter.normalised_time = normalised_time
                 
                 render_engine.frame_set(cur_frame, subframe=0.0)
+                depsgraph.update()
 
                 # Add Camera matrix.
                 camera[1].append((normalised_time, camera[0].matrix_world.copy()))
