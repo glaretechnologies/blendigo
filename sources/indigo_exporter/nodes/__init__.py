@@ -26,6 +26,8 @@ No solution at this moment.
 5. Custom shaders take really long time to recompile (or start recompiling).
     E.g. seems like Blender does not know that a texture was connected even though color socket is part of the inner shader group...
     Switching area fullscreen initiates the refresh. Probably some refresh tag is needed.
+    Update: Actually, CUSTOM type socket makes EEVEE/Cycles go into updating loop (node's update() function is called constantly)
+    but actual changes do not get propagated.
 
 =========
 
@@ -58,7 +60,7 @@ import bpy
 import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem, NodeItemCustom
 
-from bpy.types import NodeSocket, Node, ShaderNodeCustomGroup
+from bpy.types import NodeSocket, Node, ShaderNodeCustomGroup, NodeSocketInterface
 
 class OptionShard:
     '''Mix-in class'''
@@ -79,10 +81,13 @@ class IR_OptionShardSocket(NodeSocket):
         if not self.rna_type.properties['is_multi_input'].is_readonly:
             self.is_multi_input= True
         self.link_limit = 0
-        self.display_shape = 'SQUARE' #  [‘CIRCLE’, ‘SQUARE’, ‘DIAMOND’, ‘CIRCLE_DOT’, ‘SQUARE_DOT’, ‘DIAMOND_DOT’]
+        self.display_shape = 'SQUARE' #  [CIRCLE, SQUARE, DIAMOND, CIRCLE_DOT, SQUARE_DOT, DIAMOND_DOT]
+        # self.type = 'CUSTOM' # CUSTOM, VALUE, INT, BOOLEAN, VECTOR, STRING, RGBA, SHADER, OBJECT, IMAGE, GEOMETRY, COLLECTION, TEXTURE, MATERIAL
 
     # Optional function for drawing the socket input value
     def draw(self, context, layout, node, text):
+        layout.label(text=text)
+        return
         if self.is_output or self.is_linked:
             layout.label(text=text)
         else:
@@ -95,13 +100,22 @@ class IR_OptionShardSocket(NodeSocket):
     def socket_value_update(context):
         print('socket_value_update', context)
 
+class IR_OptionShardSocketInterface(NodeSocketInterface):
+    bl_socket_idname = IR_OptionShardSocket.__name__ # required, Blender will complain if it is missing
+    # those are (at least) used under Interface in N-menu in
+    # node editor when viewing a node group, for input and output sockets
+    def draw(self, context, layout):
+        pass
+    def draw_color(self, context):
+        return (0,1,1,1)
+
 class IR_MaterialSpectrumSocket(NodeSocket):
     '''Indigo Material Spectrum Type'''
     bl_label = "Indigo Spectrum"
     
     def __init__(self):
         self.link_limit = 1
-        self.display_shape = 'SQUARE' #  [‘CIRCLE’, ‘SQUARE’, ‘DIAMOND’, ‘CIRCLE_DOT’, ‘SQUARE_DOT’, ‘DIAMOND_DOT’]
+        self.display_shape = 'SQUARE' #  [CIRCLE, SQUARE, DIAMOND, CIRCLE_DOT, SQUARE_DOT, DIAMOND_DOT]
 
     # Optional function for drawing the socket input value
     def draw(self, context, layout, node, text):
@@ -115,6 +129,7 @@ class IR_MaterialSpectrumSocket(NodeSocket):
         return (0.9, 0.9, 0.1, 1.0)
 
 class IR_M_Diffuse(ShaderNodeCustomGroup):
+    '''Indigo Render Diffuse'''
     bl_label = "Indigo Diffuse"
     eevee_type_name = "ShaderNodeBsdfDiffuse"
     
@@ -145,15 +160,19 @@ class IR_M_Diffuse(ShaderNodeCustomGroup):
 
     def free(self):
         bpy.data.node_groups.remove(self.node_tree)
+    
+    def copy(self, node):
+        self.group_builder(self.eevee_type_name)
 
 
     # def socket_value_update(context):
     #     print('socket_value_update', context)
     
-    # def update(self):
-    #     print("update", self)
+    def update(self):
+        print("update", self)
 
 class IR_S_Emission(OptionShard, Node):
+    '''Indigo Render Emission Shard'''
     bl_label = "Emission Shard"
     
     def draw_buttons( self, context, layout ):
@@ -192,7 +211,9 @@ class IR_S_Emission(OptionShard, Node):
         self.outputs.new('IR_OptionShardSocket', "Output")
         self.inputs.new('IR_MaterialSpectrumSocket', "Color", identifier="Emission Color")
 
+"""
 class IR_BlackBody(InputShard, Node):
+    '''Indigo Render Emission Shard'''
     bl_label = "Black Body"
     
     def draw_buttons( self, context, layout ):
@@ -244,7 +265,7 @@ class IR_RGB(InputShard, Node):
     
     def init( self, context ):
         self.outputs.new('IR_MaterialSpectrumSocket', "Output")
-
+"""
 class IR_Spectrum(InputShard, Node):
     bl_label = "Spectrum"
     
@@ -286,7 +307,8 @@ class IR_Texture(InputShard, Node):
         col = layout.column()
         # col.template_image(self, 'image', self.)
         # col.template_any_ID(self, 'image', 'image')
-        col.template_ID(self, 'image', new='image.new', open='image.open')
+        # col.template_ID(self, 'image', new='image.new', open='image.open')
+        col.template_ID_preview(self, "image", open="image.open")
         col.separator()
         #
         # col.prop_search(indigo_material_emission, 'emission_TX_texture', bpy.data, 'textures')
@@ -333,9 +355,9 @@ class BlendigoNodeCategory( NodeCategory ):
 categories = [ BlendigoNodeCategory( "IRNodes", "Indigo Render Nodes", items = [
     NodeItem('IR_M_Diffuse'),
     NodeItem('IR_S_Emission'),
-    NodeItem('IR_BlackBody'),
-    NodeItem('IR_Uniform'),
-    NodeItem('IR_RGB'),
+    # NodeItem('IR_BlackBody'),
+    # NodeItem('IR_Uniform'),
+    # NodeItem('IR_RGB'),
     NodeItem('IR_Spectrum'),
     NodeItem('IR_Texture'),
 ] ) ]
