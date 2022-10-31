@@ -116,6 +116,22 @@ class Spectrum(object):
             if c.material.diffuse_color != getattr(s, self.name+'_rgb'):
                 c.material.diffuse_color = getattr(s, self.name+'_rgb')
     
+    def set_rgb(self, s, c):
+        s_type = getattr(s, self.name + '_type')
+        print('spectrum:', self.name)
+        if s_type == 'rgb':
+            pass
+        elif s_type == 'uniform':
+            pass
+        elif s_type == 'peak':
+            pass
+        elif s_type == 'blackbody':
+            pass
+        elif s_type == 'tabulated':
+            pass
+        # ubershader_utils.switch_spectrum(c.material, self.name, getattr(s, self.name + '_type'))
+        ubershader_utils.switch_rgb(c.material, self.name, getattr(s, self.name + '_rgb'))
+    
     def get_properties(self):
         p = [{
             'type': 'enum',
@@ -123,7 +139,8 @@ class Spectrum(object):
             'name': 'Colour Type',
             'description': 'Type',
             'default': self.types[0][0],
-            'items': self.types
+            'items': self.types,
+            # 'update': lambda s, c: print(s)
         },
         {
             'type': 'float_vector',
@@ -137,7 +154,9 @@ class Spectrum(object):
             'soft_max': 1.0,
             'subtype': 'COLOR',
             'precision': 5,
-            'update': lambda s,c: self.set_master_colour(s, c)
+            # 'update': lambda s,c: self.set_master_colour(s, c)
+            'update': lambda s,c: self.set_rgb(s, c)
+            # 'update': lambda this_self, context: ubershader_utils.switch_spectrum(context.material, self.name, getattr(this_self, self.name + '_type'))
         },
         {
             'type': 'float',
@@ -247,6 +266,10 @@ class Texture(object):
         
         self.properties = self.get_properties()
     
+    def set_texture(self, s, c):
+        print(self.channel_name)
+        ubershader_utils.switch_texture(c.material, self.channel_name, getattr(s, self.name+'_texture'))
+    
     def get_properties(self):
         return [
             {
@@ -265,6 +288,7 @@ class Texture(object):
                 'attr': self.name + '_texture',
                 'name': 'Texture',
                 'description': 'Texture',
+                'update': lambda s, c: self.set_texture(s, c)
             },
             {
                 'type': 'bool',
@@ -475,7 +499,8 @@ class MaterialChannel(object):
                 'attr': self.name + '_enabled',
                 'name': 'Enabled',
                 'description': 'Enabled',
-                'default': False
+                'default': False,
+                'update': lambda this_self, context: ubershader_utils.switch_bool(context.material, self.name, getattr(this_self, self.name + '_enabled'))
             }]
         
         p += [{
@@ -484,7 +509,9 @@ class MaterialChannel(object):
             'name': self.name + ' Type',
             'description': 'Type',
             'default': self.types[0][0],
-            'items': self.types
+            'items': self.types,
+            # 'update': lambda s, c: print(s)
+            'update': lambda s, c: self.set_colour(s, c)
         }]
         
         if self.spectrum is not None:
@@ -497,6 +524,9 @@ class MaterialChannel(object):
             p += self.shader.properties
             
         return p
+    
+    def set_colour(self, s, c):
+        print(s, self.name)
     
 
 
@@ -1658,9 +1688,12 @@ class indigo_material_fastsss(indigo_material_feature):
             scene=scene
         )
         return [im]
-            
+
+from .. nodes import ubershader_utils
+
 @register_properties_dict
 class Indigo_Material_Properties(bpy.types.PropertyGroup):
+
     properties = [
         # Master material type
         {
@@ -1679,7 +1712,8 @@ class Indigo_Material_Properties(bpy.types.PropertyGroup):
                 ('external', 'External', 'external'),
                 ('null', 'Null', 'null'),
                 ('fastsss', 'Fast SSS', 'fastsss'),
-            ]
+            ],
+            'update': lambda self, context: ubershader_utils.switch_enum(context.material, self.type, {'diffuse', 'phong', 'coating', 'doublesidedthin', 'specular', 'blended', 'external', 'null', 'fastsss'})
         },
         {
             'type': 'int',
