@@ -344,6 +344,28 @@ class IR_Texture(InputShard, Node):
 
 
 
+from .ubershader_utils import current_uber_name, ensure_ubershader
+
+class IR_BlendigoUberShader(ShaderNodeCustomGroup):
+    '''Blendigo UberShader for Indigo Render'''
+    bl_label = "Blendigo UberShader"
+    
+    # def draw_buttons( self, context, layout ):
+    #     layout.label(text="Draw buttons")
+    
+    def init( self, context ):
+        self.node_tree = ensure_ubershader()
+
+
+    def socket_value_update(context):
+        print('socket_value_update', context)
+    
+    def update(self):
+        print("update", self)
+
+
+
+
 
 
 class BlendigoNodeCategory( NodeCategory ):
@@ -360,11 +382,13 @@ categories = [ BlendigoNodeCategory( "IRNodes", "Indigo Render Nodes", items = [
     # NodeItem('IR_RGB'),
     NodeItem('IR_Spectrum'),
     NodeItem('IR_Texture'),
+    NodeItem('IR_BlendigoUberShader'),
 ] ) ]
 
 classes={
     IR_M_Diffuse,
     # IR_OptionShardSocket,
+    IR_BlendigoUberShader,
 }
 
 def register():
