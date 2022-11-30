@@ -1,5 +1,4 @@
 import re, os, zipfile
-from copy import deepcopy
 
 import bpy        #@UnresolvedImport
 import bl_ui
@@ -267,8 +266,13 @@ class Texture(object):
         self.properties = self.get_properties()
     
     def set_texture(self, s, c):
-        print(self.channel_name)
+        # print(self.channel_name)
         ubershader_utils.switch_texture(c.material, self.channel_name, getattr(s, self.name+'_texture'))
+        self.set_uv(s, c)
+    
+    def set_uv(self, s, c):
+        # print(self.channel_name, getattr(s, self.name+'_uvset'))
+        ubershader_utils.switch_uv(c.material, self.channel_name, getattr(s, self.name+'_uvset'))
     
     def get_properties(self):
         return [
@@ -347,6 +351,7 @@ class Texture(object):
                 'attr': self.name+'_uvset',
                 'name': 'UV Set',
                 'description': 'UV Set',
+                'update': lambda s, c: self.set_uv(s, c)
             },
         ]
 
@@ -526,7 +531,13 @@ class MaterialChannel(object):
         return p
     
     def set_colour(self, s, c):
-        print(s, self.name)
+        ch_name = getattr(s, self.name + '_type')
+        print(s, self.name, self.name, ch_name)
+        if ch_name == 'spectrum':
+            ubershader_utils.switch_rgb(c.material, self.name+'_SP', getattr(s, self.name + '_SP_rgb'))
+        elif ch_name == 'texture':
+            ubershader_utils.switch_texture(c.material, self.name, getattr(s, self.name+'_TX_texture'))
+            
     
 
 
@@ -556,6 +567,14 @@ def EmissionLightLayerParameter():
 @register_properties_dict
 @force_register
 class indigo_material_emission(indigo_material_feature):
+    def set_strength(self, material):
+        # TODO: find factors to match Indigo and EEVEE mat preview emit strength
+        if not self.emission_scale:
+            st = self.emit_power * self.emit_gain_val * (10**self.emit_gain_exp)
+            st /= 1000 # factor match
+        else:
+            st = self.emission_scale_value * (10**self.emission_scale_exp)
+        ubershader_utils.set_float(material, 'emit_power', st)
     
     properties = Cha_Emit.properties + \
         EmissionLightLayerParameter() + \
@@ -567,7 +586,8 @@ class indigo_material_emission(indigo_material_feature):
             'description': ' Power',
             'default': 1500.0,
             'min': 0.0,
-            'max': 1000000.0
+            'max': 1000000.0,
+            'update': lambda s,c: s.set_strength(c.material)
         },
         {
             'type': 'float',
@@ -576,7 +596,8 @@ class indigo_material_emission(indigo_material_feature):
             'description': ' Gain',
             'default': 1.0,
             'min': 0.0,
-            'max': 1.0
+            'max': 1.0,
+            'update': lambda s,c: s.set_strength(c.material)
         },
         {
             'type': 'int',
@@ -585,7 +606,8 @@ class indigo_material_emission(indigo_material_feature):
             'description': 'Exponent',
             'default': 0,
             'min': -30,
-            'max': 30
+            'max': 30,
+            'update': lambda s,c: s.set_strength(c.material)
         },
         {
             'type': 'bool',
@@ -593,6 +615,7 @@ class indigo_material_emission(indigo_material_feature):
             'name': 'Emission scale',
             'description': 'Emission scale',
             'default': False,
+            'update': lambda s,c: s.set_strength(c.material)
         },
         {
             'type': 'enum',
@@ -617,6 +640,7 @@ class indigo_material_emission(indigo_material_feature):
             'soft_min': 0.0,
             'max': 10.0,
             'soft_max': 10.0,
+            'update': lambda s,c: s.set_strength(c.material)
         },
         {
             'type': 'int',
@@ -625,7 +649,8 @@ class indigo_material_emission(indigo_material_feature):
             'description': 'Emission scale exponent',
             'default': 0,
             'min': -30,
-            'max': 30
+            'max': 30,
+            'update': lambda s,c: s.set_strength(c.material)
         },
         {
             'type': 'bool',
@@ -648,6 +673,7 @@ class indigo_material_emission(indigo_material_feature):
             'name': 'Back face emission',
             'description': 'Controls of back of face is emitting or not',
             'default': False,
+            'update': lambda s, c: ubershader_utils.switch_bool(c.material, 'backface_emit', s.backface_emit),
         },
         {
             'type': 'float',
@@ -793,7 +819,8 @@ class indigo_material_specular(indigo_material_feature):
             'items': [
                 ('specular', 'Specular', 'specular'),
                 ('glossy_transparent', 'Glossy Transparent', 'glossy_transparent'),
-            ]
+            ],
+            'update': lambda s, c: ubershader_utils.switch_enum(c.material, f"spec_type_{s.type}", ["spec_type_specular", "spec_type_glossy_transparent"])
         },
         {
             'type': 'prop_search',
@@ -817,6 +844,7 @@ class indigo_material_specular(indigo_material_feature):
             'name': 'Transparent',
             'description': 'Transparent',
             'default': True,
+            'update': lambda s, c: ubershader_utils.switch_bool(c.material, "spec_transparent", s.transparent)
         },
         {
             'type': 'float',
@@ -847,6 +875,7 @@ class indigo_material_specular(indigo_material_feature):
             'default': 0.5,
             'min': 0.0,
             'max': 1.0,
+            'update': lambda s, c: ubershader_utils.set_float(c.material, "spec_roughness_value", s.roughness_value)
         },
         {
             'type': 'bool',
@@ -861,6 +890,7 @@ class indigo_material_specular(indigo_material_feature):
             'name': 'Arch Glass',
             'description': 'Arch Glass',
             'default': False,
+            'update': lambda s, c: ubershader_utils.switch_bool(c.material, "spec_arch_glass", s.arch_glass)
         },
         {
             'type': 'bool',
@@ -868,6 +898,7 @@ class indigo_material_specular(indigo_material_feature):
             'name': 'Single Face',
             'description': 'Single Face',
             'default': False,
+            'update': lambda s, c: ubershader_utils.switch_bool(c.material, "spec_single_face", s.single_face)
         },
         {
             'type': 'int',
@@ -1015,6 +1046,7 @@ class indigo_material_phong(indigo_material_feature):
             'max': 1.0,
             'get': getRoughness,
             'set': setRoughness,
+            'update': lambda s, c: ubershader_utils.set_float(c.material, 'phong_roughness_value', s.roughness_value)
         },
         {
             'type': 'float',

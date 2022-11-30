@@ -385,19 +385,19 @@ categories = [ BlendigoNodeCategory( "IRNodes", "Indigo Render Nodes", items = [
     NodeItem('IR_BlendigoUberShader'),
 ] ) ]
 
-classes={
-    IR_M_Diffuse,
-    # IR_OptionShardSocket,
-    IR_BlendigoUberShader,
-}
+# classes={
+#     IR_M_Diffuse,
+#     # IR_OptionShardSocket,
+#     IR_BlendigoUberShader,
+# }
 
-def register():
-    nodeitems_utils.register_node_categories( "IRNodes", categories )
-    for c in classes:
-        bpy.utils.register_class( c )
+# def register():
+#     nodeitems_utils.register_node_categories( "IRNodes", categories )
+#     for c in classes:
+#         bpy.utils.register_class( c )
 
-def unregister():
-    nodeitems_utils.unregister_node_categories( "IRNodes" )
-    for c in classes:
-        bpy.utils.unregister_class( c )
+# def unregister():
+#     nodeitems_utils.unregister_node_categories( "IRNodes" )
+#     for c in classes:
+#         bpy.utils.unregister_class( c )
 
