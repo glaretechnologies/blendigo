@@ -176,6 +176,7 @@ def _get_ubernode(material):
     return ubernode
 
 def switch_enum(material, element, element_list):
+    print(material, element, element_list)
     ubernode = _get_ubernode(material)
     for e in element_list:
         name = f'{e}_enum'
@@ -187,40 +188,79 @@ def switch_enum(material, element, element_list):
         ubernode.inputs[name].default_value = 1
 
 def switch_bool(material, element, value: bool):
+    print(material, element, value)
     ubernode = _get_ubernode(material)
     name = f'{element}_bool'
     if name in ubernode.inputs:
         ubernode.inputs[name].default_value = 1 if value else 0
-
-def switch_spectrum(material, element, value):
-    ubernode = _get_ubernode(material)
-    print(element)
-    print(value)
-    # name = f'{element}_bool'
-    # if name in ubernode.inputs:
-    #     ubernode.inputs[name].default_value = 1 if value else 0
+    
+    # Make sure it's ready for transparency.
+    # Could be put somewhere else but it's the first thing that came to mind
+    material.blend_method = 'HASHED'
 
 def switch_texture(material, element, value):
     ubernode = _get_ubernode(material)
     
     name = f'{element}_SP_rgb'
-    print(element, name, value)
+    # print(element, name, value)
     if name in ubernode.inputs:
         link = first(l for l in material.node_tree.links if l.to_socket == ubernode.inputs[name])
         if link:
             # TODO: assert node type image
-            link.from_node.image = bpy.data.textures[value].image
+            texnode = link.from_node
+            if value in bpy.data.textures:
+                texnode.image = bpy.data.textures[value].image
+            else:
+                texnode.image = None
         else:
             print('create image node')
             im = material.node_tree.nodes.new('ShaderNodeTexImage')
-            im.image = bpy.data.textures[value].image
+            if value in bpy.data.textures:
+                im.image = bpy.data.textures[value].image
             material.node_tree.links.new(im.outputs[0], ubernode.inputs[name])
 
 def switch_rgb(material, element, value):
     ubernode = _get_ubernode(material)
     name = f'{element}_rgb'
+    # print(name)
     if name in ubernode.inputs:
+        link = first(l for l in material.node_tree.links if l.to_socket == ubernode.inputs[name])
+        if link:
+            print('tex exist.')
+            for n in [l.from_node for l in material.node_tree.links if l.to_node == link.from_node]:
+                material.node_tree.nodes.remove(n)
+            material.node_tree.nodes.remove(link.from_node)
         ubernode.inputs[name].default_value[:3] = value
+
+def _ensure_uv_node(texnode, material):
+    if texnode.inputs['Vector'].links and texnode.inputs['Vector'].links[0].from_node.bl_idname == 'ShaderNodeUVMap':
+        return texnode.inputs['Vector'].links[0].from_node
+    else:
+        nodes = material.node_tree.nodes
+        links = material.node_tree.links
+
+        uv_node = nodes.new('ShaderNodeUVMap')
+        links.new(uv_node.outputs[0], texnode.inputs[0])
+        return uv_node
+
+def switch_uv(material, element, value):
+    ubernode = _get_ubernode(material)
+    name_texslot = f'{element}_SP_rgb'
+    if name_texslot in ubernode.inputs:
+        try:
+            texnode = ubernode.inputs[name_texslot].links[0].from_node
+            uv_node = _ensure_uv_node(texnode, material)
+            uv_node.uv_map = value
+        except:
+            import traceback
+            traceback.print_exc()
+
+
+def set_float(material, element, value):
+    ubernode = _get_ubernode(material)
+    print(material, element, value)
+    if element in ubernode.inputs:
+        ubernode.inputs[element].default_value = value
 
 if __name__ == "__main__":
 #    generate dict from selected node group
