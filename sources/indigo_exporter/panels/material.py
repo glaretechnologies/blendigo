@@ -767,17 +767,17 @@ class INDIGO_PT_ui_material_emission(material_subpanel, bpy.types.Panel):
             col.prop_search(indigo_material_emission, 'emit_layer', context.scene.indigo_lightlayers, 'lightlayers')
             
             col.separator()
+            col.prop(indigo_material_emission, 'emit_power')
+            row = col.row(align=True)
+            row.prop(indigo_material_emission, 'emit_gain_val')
+            row.prop(indigo_material_emission, 'emit_gain_exp')
+            
             col.prop(indigo_material_emission, 'emission_scale')
             if indigo_material_emission.emission_scale:
                 row = col.row(align=True)
                 row.prop(indigo_material_emission, 'emission_scale_value')
                 row.prop(indigo_material_emission, 'emission_scale_exp')
                 col.prop(indigo_material_emission, 'emission_scale_measure')
-            else:
-                col.prop(indigo_material_emission, 'emit_power')
-                row = col.row(align=True)
-                row.prop(indigo_material_emission, 'emit_gain_val')
-                row.prop(indigo_material_emission, 'emit_gain_exp')
             
             col.separator()    
             col.prop(indigo_material_emission, 'em_sampling_mult')
