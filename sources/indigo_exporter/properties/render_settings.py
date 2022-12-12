@@ -184,6 +184,61 @@ properties = [
         'default': False
     },
     {
+        'type': 'int',
+        'attr': 'gpu_max_depth',
+        'name': 'GPU Max Depth',
+        'description': 'Set the maximum number of ray bounces when doing openCL rendering.',
+        'default': 8,
+        'min': 4,
+        'soft_min': 8,
+        'max': 100,
+        'soft_max': 32
+    },
+    {
+        'type': 'int',
+        'attr': 'max_depth',
+        'name': 'Max Depth',
+        'description': 'Set the maximum number of ray bounces.',
+        'default': 10000,
+        'min': 0,
+        'soft_min': 2000,
+        'max': 100000,
+        'soft_max': 100000
+    },
+    {
+        'type': 'float',
+        'attr': 'large_mutation_prob',
+        'name': 'Large Mutation Probability',
+        'description': 'Probability of selecting a large mutation type',
+        'default': 0.4,
+        'min': 0,
+        'soft_min': 0.2,
+        'max': 1,
+        'soft_max': 0.8,
+    },
+    {
+        'type': 'float',
+        'attr': 'max_change',
+        'name': 'Max Change',
+        'description': 'Radius of the perturbation mutation distribution',
+        'default': 0.01,
+        'min': 0,
+        'soft_min': 0.01,
+        'max': 1,
+        'soft_max': 0.04,
+    },
+    {
+        'type': 'int',
+        'attr': 'max_num_consec_rejections',
+        'name': 'MNCR',
+        'description': 'Maximum number of consecutive rejection of tentative new samples when Metropolis-Hastings transport is used. Note that any non-infinite number technically causes biased sampling.',
+        'default': 1000,
+        'min': 1,
+        'soft_min': 100,
+        'max': 100000,
+        'soft_max': 5000
+    },
+    {
         # legacy
         'type': 'bool',
         'attr': 'alpha_mask',
@@ -209,7 +264,7 @@ properties = [
         'type': 'bool',
         'attr': 'bidir',
         'name': 'Bi-Directional',
-        'description': 'Enable Bi-Directional Tracing',
+        'description': 'Enable Bi-Directional Path Tracing',
         'default': True
     },
     {
@@ -225,6 +280,31 @@ properties = [
         'name': 'Motion Blur',
         'description': 'Enable Motion Blur',
         'default': False
+    },
+    {
+        'type': 'bool',
+        'attr': 'optimise_for_denoising',
+        'name': 'Otimise For Denoising',
+        'description': 'Enables albedo and normals channels, bucket rendering, and decorrelated pixel sampling for optimal denoising',
+        'default': False
+    },
+    {
+        'type': 'bool',
+        'attr': 'denoise',
+        'name': 'Denoise',
+        'description': 'Enables denoising for every image update. Not recommended for high resolutions and higher supersampling levels',
+        'default': False
+    },
+    {
+        'type': 'int',
+        'attr': 'denoising_max_memory_mb',
+        'name': 'Max Memory for Denoising',
+        'description': 'Max memory limit for denoising',
+        'default': 6000,
+        'min': 6000,
+        'soft_min': 6000,
+        'max': 16000,
+        'soft_max': 12000
     },
     {
         'type': 'bool',
@@ -477,6 +557,17 @@ properties = [
             ('master', 'Master', 'Start Indigo as a Master node (doesn\'t render)'),
             ('working_master', 'Working Master', 'Start Indigo as a Working Master node'),
             # ('manual', 'Manual', 'Connect manually to a running slave')
+        ]
+    },
+     {
+        'type': 'enum',
+        'attr': 'compress_textures',
+        'name': 'Compress Textures',
+        'default': '0',
+        'items': [
+            ('0', 'Off', 'No compression'),
+            ('1', 'All, except bump & normal maps', 'Compress all textures except bump and normal maps'),
+            ('2', 'All', 'Compress all textures'),
         ]
     },
     {
@@ -812,10 +903,19 @@ class Indigo_Engine_Properties(bpy.types.PropertyGroup, export.xml_builder):
                 'render_foreground_alpha': 'foreground_alpha',
                 'max_contribution': 'max_contribution',
                 'clamp_contributions': 'clamp_contributions',
+                'optimise_for_denoising': 'optimise_for_denoising',
+                'denoise': 'denoise',
                 
                 'shadow_pass': 'shadow',
 
                 'gpu': 'gpu',
+                'gpu_max_depth': 'gpu_max_depth',
+                'max_depth': 'max_depth',
+                'max_change': 'max_change',
+                'max_num_consec_rejections': 'max_num_consec_rejections',
+
+                'compress_textures': 'compress_textures',
+                
 
                 'beauty_channel': 'channel_beauty',
                 'albedo_channel': 'channel_albedo',
