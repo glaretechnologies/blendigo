@@ -1,7 +1,7 @@
 import bpy
 import bl_ui
 
-from .. core import BL_IDNAME
+from .. core import RENDERER_BL_IDNAME
 from .. properties.material import PROPERTY_GROUP_USAGE
 
 class material_subpanel():
@@ -11,7 +11,8 @@ class material_subpanel():
     
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and (context.material or context.object) and (context.object.active_material)
+        return context.scene.render.engine == RENDERER_BL_IDNAME and (context.material or context.object) and (context.object.active_material)
+
 
 class INDIGO_PT_ui_material(material_subpanel, bpy.types.Panel):
     """    Material Type First     """
@@ -767,17 +768,18 @@ class INDIGO_PT_ui_material_emission(material_subpanel, bpy.types.Panel):
             col.prop_search(indigo_material_emission, 'emit_layer', context.scene.indigo_lightlayers, 'lightlayers')
             
             col.separator()
+            
+            col.prop(indigo_material_emission, 'emit_power')
+            row = col.row(align=True)
+            row.prop(indigo_material_emission, 'emit_gain_val')
+            row.prop(indigo_material_emission, 'emit_gain_exp')
+            
             col.prop(indigo_material_emission, 'emission_scale')
             if indigo_material_emission.emission_scale:
                 row = col.row(align=True)
                 row.prop(indigo_material_emission, 'emission_scale_value')
                 row.prop(indigo_material_emission, 'emission_scale_exp')
                 col.prop(indigo_material_emission, 'emission_scale_measure')
-            else:
-                col.prop(indigo_material_emission, 'emit_power')
-                row = col.row(align=True)
-                row.prop(indigo_material_emission, 'emit_gain_val')
-                row.prop(indigo_material_emission, 'emit_gain_exp')
             
             col.separator()    
             col.prop(indigo_material_emission, 'em_sampling_mult')

@@ -1,6 +1,6 @@
 import bpy
 
-from .. core import BL_IDNAME
+from .. core import RENDERER_BL_IDNAME
 class INDIGO_PT_ui_render_engine_settings(bpy.types.Panel):
     bl_label = "Indigo Engine"
     bl_space_type = 'PROPERTIES'
@@ -9,7 +9,7 @@ class INDIGO_PT_ui_render_engine_settings(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME
+        return context.scene.render.engine == RENDERER_BL_IDNAME
     
     def draw(self, context):
         indigo_engine = context.scene.indigo_engine
@@ -165,7 +165,7 @@ class INDIGO_PT_ui_render_export_settings(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME
+        return context.scene.render.engine == RENDERER_BL_IDNAME
     
     def draw(self, context):
         indigo_engine = context.scene.indigo_engine
@@ -217,7 +217,7 @@ class INDIGO_PT_ui_render_render_channels(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME
+        return context.scene.render.engine == RENDERER_BL_IDNAME
 
     def draw(self, context):
         indigo_engine = context.scene.indigo_engine

@@ -1753,6 +1753,7 @@ class Indigo_Material_Properties(bpy.types.PropertyGroup):
             'default': 0,
         },
     ]
+    node_tree = bpy.props.PointerProperty(type = bpy.types.NodeTree)
     indigo_material_emission = bpy.props.PointerProperty(type = indigo_material_emission)
     indigo_material_colour = bpy.props.PointerProperty(type = indigo_material_colour)
     indigo_material_bumpmap = bpy.props.PointerProperty(type = indigo_material_bumpmap)

@@ -152,7 +152,12 @@ class UberShaderException(Exception):
     pass
 
 def _get_ubernode(material):
-    material_output = first(n for n in material.node_tree.nodes if n.type=='OUTPUT_MATERIAL' and n.is_active_output)
+    def node_tree_nodes(material):
+        if not material.use_nodes:
+            material.use_nodes = True
+        return material.node_tree.nodes
+
+    material_output = first(n for n in node_tree_nodes(material) if n.type=='OUTPUT_MATERIAL' and n.is_active_output)
     out_links = material_output.inputs[0].links
     try:
         if not out_links:

@@ -1,7 +1,7 @@
 import bpy
 import bl_ui
 
-from .. core import BL_IDNAME
+from .. core import RENDERER_BL_IDNAME
 
 narrowui = 180
 
@@ -13,7 +13,7 @@ class INDIGO_PT_ui_lamps(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LIGHT'
+        return context.scene.render.engine == RENDERER_BL_IDNAME and context.object.type == 'LIGHT'
     
     def draw(self, context):
         if context.object.data is not None:
@@ -36,7 +36,7 @@ class INDIGO_PT_ui_lamp_sun_hemi_switch(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LIGHT' and context.object.data.type == 'SUN'
+        return context.scene.render.engine == RENDERER_BL_IDNAME and context.object.type == 'LIGHT' and context.object.data.type == 'SUN'
     
     def draw(self, context):
         indigo_lamp = context.object.data.indigo_lamp_sun
@@ -52,7 +52,7 @@ class INDIGO_PT_ui_lamp_sun(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LIGHT' and context.object.data.type == 'SUN' and context.object.data.indigo_lamp_sun.type == 'sun'
+        return context.scene.render.engine == RENDERER_BL_IDNAME and context.object.type == 'LIGHT' and context.object.data.type == 'SUN' and context.object.data.indigo_lamp_sun.type == 'sun'
     
     def draw(self, context):
         col = self.layout.column()
@@ -73,7 +73,7 @@ class INDIGO_PT_ui_lamp_hemi(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and context.object.type == 'LIGHT' and context.object.data.type == 'SUN' and context.object.data.indigo_lamp_sun.type == 'hemi'
+        return context.scene.render.engine == RENDERER_BL_IDNAME and context.object.type == 'LIGHT' and context.object.data.type == 'SUN' and context.object.data.indigo_lamp_sun.type == 'hemi'
     
     def draw(self, context):
         col = self.layout.column()

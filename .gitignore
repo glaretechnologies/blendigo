@@ -14,3 +14,5 @@ __pycache__/
 !/regression_test_suite/outputs/multifile_still/*.png
 
 *.blend1
+sources/indigo_exporter/properties/material classes.png
+sources/indigo_exporter/.vscode/settings.json
