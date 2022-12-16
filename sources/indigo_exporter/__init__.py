@@ -19,7 +19,7 @@ bl_info = {
     "name": "Blendigo - Indigo Exporter",
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
-    "version": (4, 3, 4),
+    "version": (4, 4, 0),
     "blender": (2, 93, 0),
     "location": "View3D",
     "wiki_url": "",
