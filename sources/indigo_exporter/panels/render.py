@@ -28,8 +28,28 @@ class INDIGO_PT_ui_render_engine_settings(bpy.types.Panel):
             sc.prop(indigo_engine, 'bidir')
             sc.prop(indigo_engine, 'metro')
             
+            if not indigo_engine.gpu:
+                box = col.box()
+                sub = box.column()
+                sub.prop(indigo_engine, 'max_depth')
+
+            if indigo_engine.metro:
+                col.label(text="Metropolis Settings:")
+                box = col.box()
+                sub = box.column()
+                sub.prop(indigo_engine, 'large_mutation_prob')
+                sub.prop(indigo_engine, 'max_change')
+                sub.prop(indigo_engine, 'max_num_consec_rejections')
+
             sc = row.column()
             sc.prop(indigo_engine, 'shadow')
+
+        if indigo_engine.gpu:
+            col.label(text="GPU Settings:")
+            box = col.box()
+            sub = box.column()
+            sub.prop(indigo_engine, 'gpu_max_depth')
+            sub.prop(indigo_engine, 'compress_textures')
             
         col.separator()
         
@@ -59,11 +79,23 @@ class INDIGO_PT_ui_render_engine_settings(bpy.types.Panel):
                 sb = sub.row(align=True)
                 sb.prop(indigo_engine, 'ds_filter_blur', text="Blur")
                 sb.prop(indigo_engine, 'ds_filter_ring', text="Ring")
-                sb.prop(indigo_engine, 'ds_filter_radius', text="Radius")
-        
-        row = layout.row()
-        row.prop(indigo_engine, 'motionblur')
-        row.prop(indigo_engine, 'foreground_alpha')
+                sb.prop(indigo_engine, 'ds_filter_radius', text="Radius")     
+
+        col.label(text="Denoising Settings:")
+        box = col.box()
+        sub = box.column()
+        row = sub.row()
+        sc = row.column()
+        sc.prop(indigo_engine, 'optimise_for_denoising')
+        sc.prop(indigo_engine, 'denoise')
+
+        col.label(text="Misc. Settings:")
+        box = col.box()
+        sub = box.column()
+        row = sub.row()
+        sc = row.column()
+        sc.prop(indigo_engine, 'motionblur')
+        sc.prop(indigo_engine, 'foreground_alpha')    
         
         col = layout.column()
         col.separator()
