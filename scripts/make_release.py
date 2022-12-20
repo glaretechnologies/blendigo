@@ -9,7 +9,7 @@ def signProgram(app_name, exe_path):
 	code_signing_password = open(code_sign_dir + "/code_signing_password.txt").read().strip()
 
 	signtool_path = "C:/Program Files (x86)/Windows Kits/10/App Certification Kit/signtool.exe"
-	command = "\"" + signtool_path + "\" sign /f " + code_sign_dir + "/Glare-Technologies-Limited-Glare.p12 /p " + code_signing_password + " /d \"" + app_name + "\" /du http://www.indigorenderer.com /t http://tsa.starfieldtech.com \"" + exe_path + "\""
+	command = "\"" + signtool_path + "\" sign /f " + code_sign_dir + "/Glare-Technologies-Limited-Glare.p12 /p " + code_signing_password + " /d \"" + app_name + "\" /du http://www.indigorenderer.com /t http://timestamp.comodoca.com/authenticode \"" + exe_path + "\""
 
 	num_retries = 0
 	while(num_retries < max_retries):
