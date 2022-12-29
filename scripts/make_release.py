@@ -5,11 +5,11 @@ def signProgram(app_name, exe_path):
 	
 	max_retries = 3
 	
-	# v7.0A does not come with vs 2008
-	#signtool_path = 'C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A/Bin/signtool.exe'
-	signtool_path = "C:/Program Files (x86)/Microsoft SDKs/Windows/v7.1A/Bin/signtool.exe"
-	#signtool_path = 'C:/Program Files/Microsoft SDKs/Windows/v6.0A/Bin/signtool.exe'
-	command = "\"" + signtool_path + "\" sign /f " + os.environ['INDIGO_TRUNK_DIR'] + "/code_signing/Glare-Technologies-Limited-Glare.p12 /p " + os.environ['GLARE_CODE_SIGNING_PASSWORD'] + " /d \"" + app_name + "\" /du http://www.indigorenderer.com /t http://tsa.starfieldtech.com \"" + exe_path + "\""
+	code_sign_dir = "N:/code_signing"
+	code_signing_password = open(code_sign_dir + "/code_signing_password.txt").read().strip()
+
+	signtool_path = "C:/Program Files (x86)/Windows Kits/10/App Certification Kit/signtool.exe"
+	command = "\"" + signtool_path + "\" sign /f " + code_sign_dir + "/Glare-Technologies-Limited-Glare.p12 /p " + code_signing_password + " /d \"" + app_name + "\" /du http://www.indigorenderer.com /t http://timestamp.comodoca.com/authenticode \"" + exe_path + "\""
 
 	num_retries = 0
 	while(num_retries < max_retries):

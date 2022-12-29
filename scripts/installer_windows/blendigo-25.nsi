@@ -91,6 +91,24 @@ RequestExecutionLevel admin
 ;--------------------------------
 
 Function DetectInstallPath
+	IfFileExists "$APPDATA\Blender Foundation\Blender\3.4" 0 AppData3_20
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\3.4\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\3.4"
+		Return
+		
+	AppData3_20:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\3.2" 0 AppData3_00
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\3.2\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\3.2"
+		Return
+		
+	AppData3_00:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\3.0" 0 AppData2_82
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\3.0\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\3.0"
+		Return
+		
+	AppData2_82:
 	IfFileExists "$APPDATA\Blender Foundation\Blender\2.82" 0 AppData2_81
 		CreateDirectory "$APPDATA\Blender Foundation\Blender\2.82\scripts\addons"
 		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\2.82"
