@@ -1,6 +1,6 @@
 import re
 import bpy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import pickle
 from pathlib import Path
@@ -8,7 +8,7 @@ from pathlib import Path
 # TODO:
 # Coating, DoubleSidedThin materials use references to other materials, so it is not really suitable for the current node system. Best to leave it till full material nodes implementation.
 
-current_uber_name = "_IndigoUberShader_v1"
+current_uber_name = "_IndigoUberShader_v2"
 
 @dataclass
 class ParsedNode:
@@ -44,6 +44,19 @@ class ParsedNode:
             node['parent'] = parent
             if parent:
                 node['location'] = node_dict.pop('location')
+            
+            if 'default_values' in node_dict:
+                default_values = node_dict.pop('default_values')
+                for socket, value in zip(node.inputs, default_values):
+                    if value is None:
+                        continue
+                    try:
+                        socket.default_value = value
+                    except:
+                        # TODO:
+                        print('default_values error', socket, socket.default_value, value)
+                        pass
+            
             for key, val in node_dict.items():
                 setattr(node, key, val)
             if bl_idname == 'NodeGroupInput':
