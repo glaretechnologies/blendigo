@@ -7,7 +7,45 @@ from .. export import xml_builder
 
 #from .. import export
 from . import register_properties_dict
-    
+
+@register_properties_dict
+class Indigo_Object_Properties(bpy.types.PropertyGroup, xml_builder):
+    properties = [
+        {
+            'type': 'enum',
+            'attr': 'emission_scale_measure',
+            'name': 'Unit',
+            'description': 'Units for emission scale',
+            'default': 'luminous_flux',
+            'items': [
+                ('luminous_flux', 'lm', 'Luminous flux'),
+                ('luminous_intensity', 'cd', 'Luminous intensity (lm/sr)'),
+                ('luminance', 'nits', 'Luminance (lm/sr/m/m)'),
+                ('luminous_emittance', 'lux', 'Luminous emittance (lm/m/m)')
+            ],
+        },
+        {
+            'type': 'float',
+            'attr': 'emission_scale_value',
+            'name': 'Value',
+            'description': 'Emission scale value',
+            'default': 1.0,
+            'min': 0.0,
+            'soft_min': 0.0,
+            'max': 10.0,
+            'soft_max': 10.0,
+        },
+        {
+            'type': 'int',
+            'attr': 'emission_scale_exp',
+            'name': '*10^',
+            'description': 'Emission scale exponent',
+            'default': 0,
+            'min': -30,
+            'max': 30
+        },
+    ]
+
 @register_properties_dict
 class Indigo_Mesh_Properties(bpy.types.PropertyGroup, xml_builder):
     properties = [

@@ -16,6 +16,8 @@ from . util import getVersion, getGuiPath, getConsolePath, getInstallPath, count
 
 RENDERER_BL_IDNAME = 'indigo_renderer'
 
+BLENDIGO_DEV = os.getenv('BlendigoDev') == '1'
+
 # Add standard Blender Interface elements
 
 # RenderEngines also need to tell UI Panels that they are compatible with.
@@ -63,7 +65,7 @@ class RENDERENGINE_indigo(bpy.types.RenderEngine):
     bl_idname = RENDERER_BL_IDNAME
     bl_label = 'Indigo'
     bl_use_preview = False
-    bl_use_shading_nodes_custom = True
+    bl_use_shading_nodes_custom = False
     bl_use_eevee_viewport = True
 
     render_lock = threading.Lock()

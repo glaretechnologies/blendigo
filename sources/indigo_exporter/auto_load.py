@@ -125,6 +125,8 @@ def get_classes_in_modules(modules):
     classes = set()
     for module in modules:
         for cls in iter_classes_in_module(module):
+            if hasattr(cls, '_ignore_autoload'):
+                continue
             classes.add(cls)
     return classes
 
@@ -138,7 +140,7 @@ def get_register_base_types():
         "Panel", "Operator", "PropertyGroup",
         "AddonPreferences", "Header", "Menu",
         "Node", "NodeSocket", "NodeTree",
-        "UIList", "RenderEngine"
+        "UIList", "RenderEngine", 'NodeSocketInterface'
     ])
 
 
@@ -187,3 +189,10 @@ def make_annotations(cls):
             annotations[k] = v
             delattr(cls, k)
     return cls
+
+def ignore_autoload(ignore):
+    def wrap(cls):
+        if ignore:
+            cls._ignore_autoload = True
+        return cls
+    return wrap

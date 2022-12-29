@@ -27,7 +27,7 @@ def IndigoNodeEditorHeader(panel, context):
     snode = context.space_data
     assert snode.tree_type == 'IR_MaterialNodeTree'
     id_from = snode.id_from
-    print(id_from)
+    # print(id_from)
     tool_settings = context.tool_settings
     types_that_support_material = {'MESH', 'CURVE', 'SURFACE', 'FONT', 'META',
                                    'GPENCIL', 'VOLUME', 'HAIR', 'POINTCLOUD'}
@@ -80,6 +80,9 @@ def IndigoNodeEditorHeader(panel, context):
         row.prop(tool_settings, "snap_target", text="")
 
     # Overlay toggle & popover
+    if not hasattr(snode, 'overlay'):
+        # Blender 2.93
+        return
     overlay = snode.overlay
     row = layout.row(align=True)
     row.prop(overlay, "show_overlays", icon='OVERLAY', text="")

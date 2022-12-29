@@ -47,6 +47,8 @@ Two possible paths:
           Moving this to nodes solves this problem by desing.
     Cons:
         - a bit convoluted system
+    
+    Won't work. Data can't be reliably stored in EEVEE shader nodes.
 2. Creating nodes and altering them on demand. Keeping the node system inaccessible to the user.
     Pros:
         - should be easy to implement into the current system (unless I'm missing some vital points)
@@ -55,6 +57,8 @@ Two possible paths:
         - uses old panel ui system
         - needs a new system to create hidden texture nodes on demand and link them with interface
           There is no point in keeping current brush texture system if all textures need to be recreated in the nodes anyway.
+    Currently in master
+3. Syncing two separate node trees.
 '''
 import bpy
 import nodeitems_utils
@@ -62,7 +66,8 @@ from nodeitems_utils import NodeCategory, NodeItem, NodeItemCustom
 
 from bpy.types import NodeSocket, Node, ShaderNodeCustomGroup, NodeSocketInterface, NodeTree
 from .. core import RENDERER_BL_IDNAME
-
+from . ubershader_utils import fast_lookup, get_ubershader, new_eevee_node
+from . tree import *
 
 """
 
@@ -131,89 +136,6 @@ class IR_MaterialSpectrumSocket(NodeSocket):
     # Socket color
     def draw_color(self, context, node):
         return (0.9, 0.9, 0.1, 1.0)
-
-class IR_M_Diffuse(ShaderNodeCustomGroup):
-    '''Indigo Render Diffuse'''
-    bl_label = "Indigo Diffuse"
-    eevee_type_name = "ShaderNodeBsdfDiffuse"
-    
-    # def draw_buttons( self, context, layout ):
-    #     layout.label(text="Draw buttons")
-    
-    def init( self, context ):
-        self.group_builder(self.eevee_type_name)
-        # self.node_tree = bpy.data.node_groups['Diffuse']
-        self.inputs.new('IR_OptionShardSocket', 'Option Shards')
-    
-    def group_builder(self, ntype: str):
-        # Create new group for each node, so each node can manipulate its insides.
-        gname = f'_{ntype}'
-        self.node_tree = bpy.data.node_groups.new(gname, 'ShaderNodeTree')
-        
-        nodes = self.node_tree.nodes
-        links = self.node_tree.links
-        node = nodes.new(self.eevee_type_name)
-        inp = nodes.new("NodeGroupInput")
-        out = nodes.new("NodeGroupOutput")
-
-        for input in node.inputs:
-            links.new(inp.outputs[-1], input)
-        
-        for output in node.outputs:
-            links.new(output, out.inputs[-1])
-
-    def free(self):
-        bpy.data.node_groups.remove(self.node_tree)
-    
-    def copy(self, node):
-        self.group_builder(self.eevee_type_name)
-
-
-    # def socket_value_update(context):
-    #     print('socket_value_update', context)
-    
-    def update(self):
-        print("update", self)
-
-class IR_S_Emission(OptionShard, Node):
-    '''Indigo Render Emission Shard'''
-    bl_label = "Emission Shard"
-    
-    def draw_buttons( self, context, layout ):
-        # mockup.
-        indigo_material = context.object.active_material.indigo_material
-        indigo_material_emission = indigo_material.indigo_material_emission
-        
-        col = layout.column()
-        #
-        #
-        
-        col.prop_search(indigo_material_emission, 'emit_layer', context.scene.indigo_lightlayers, 'lightlayers')
-        
-        col.separator()
-        col.prop(indigo_material_emission, 'emission_scale')
-        if indigo_material_emission.emission_scale:
-            row = col.row(align=True)
-            row.prop(indigo_material_emission, 'emission_scale_value')
-            row.prop(indigo_material_emission, 'emission_scale_exp')
-            col.prop(indigo_material_emission, 'emission_scale_measure')
-        else:
-            col.prop(indigo_material_emission, 'emit_power')
-            row = col.row(align=True)
-            row.prop(indigo_material_emission, 'emit_gain_val')
-            row.prop(indigo_material_emission, 'emit_gain_exp')
-        
-        col.separator()    
-        col.prop(indigo_material_emission, 'em_sampling_mult')
-        col.prop(indigo_material_emission, 'emit_ies')
-        if indigo_material_emission.emit_ies:
-            col.prop(indigo_material_emission, 'emit_ies_path')
-        
-        col.prop(indigo_material_emission, 'backface_emit')
-    
-    def init( self, context ):
-        self.outputs.new('IR_OptionShardSocket', "Output")
-        self.inputs.new('IR_MaterialSpectrumSocket', "Color", identifier="Emission Color")
 """
 """
 class IR_BlackBody(InputShard, Node):
@@ -307,28 +229,21 @@ class IR_Spectrum(InputShard, Node):
 
 
 
-from . tree import *
 
 
 ####################
 
-# Mix-in class for all custom nodes in this tree type.
-# Defines a poll function to enable instantiation.
-class BlendigoNode:
-    @classmethod
-    def poll(cls, ntree):
-        return ntree.bl_idname == 'IR_MaterialNodeTree'
-
 class IR_Texture(BlendigoNode, Node):
     bl_label = "Texture"
+    ubername = "ShaderNodeTexImage"
 
-    image: bpy.props.PointerProperty(type=bpy.types.Image)
-    emission_TX_A: bpy.props.FloatProperty()
-    emission_TX_B: bpy.props.FloatProperty()
-    emission_TX_C: bpy.props.FloatProperty()
-    emission_TX_uvset: bpy.props.StringProperty()
-    emission_TX_abc_from_tex: bpy.props.BoolProperty()
-    emission_TX_smooth: bpy.props.BoolProperty()
+    image: NodeProperty(bpy.props.PointerProperty, identifier='image', type=bpy.types.Image)
+    TX_A: NodeProperty(bpy.props.FloatProperty, identifier='TX_A', name='(A) Brightness', precision=5,)
+    TX_B: NodeProperty(bpy.props.FloatProperty, identifier='TX_B', name='(B) Scale', precision=5,)
+    TX_C: NodeProperty(bpy.props.FloatProperty, identifier='TX_C', name='(C) Offset', precision=5,)
+    TX_uvset: NodeProperty(bpy.props.StringProperty, identifier='TX_uvset')
+    TX_abc_from_tex: NodeProperty(bpy.props.BoolProperty, identifier='TX_abc_from_tex', name='Use texture A,B,C')
+    TX_smooth: NodeProperty(bpy.props.BoolProperty, identifier='TX_smooth', name='Smooth', description='Smooth the texture by up-converting from 8bit to 16bit (for bumpmaps etc)',)
     
     def draw_buttons( self, context, layout ):
         col = layout.column()
@@ -336,187 +251,107 @@ class IR_Texture(BlendigoNode, Node):
         col.separator()
         
         col = layout.column(align=True)
-        col.prop(self, 'emission_TX_A')
-        col.prop(self, 'emission_TX_B')
-        col.prop(self, 'emission_TX_C')
-        col.enabled = self.emission_TX_abc_from_tex == False
+        col.prop(self, 'TX_A')
+        col.prop(self, 'TX_B')
+        col.prop(self, 'TX_C')
+        col.enabled = self.TX_abc_from_tex == False
 
         col = layout.column()
-        col.prop_search(self, 'emission_TX_uvset', context.object.data, 'uv_layers', text="UV Set")
+        col.prop_search(self, 'TX_uvset', context.object.data, 'uv_layers', text="UV Set")
 
         row = col.row(align=True)
-        row.prop(self, 'emission_TX_abc_from_tex')
-        row.prop(self, 'emission_TX_smooth')
+        row.prop(self, 'TX_abc_from_tex')
+        row.prop(self, 'TX_smooth')
     
-    def init( self, context ):
-        self.outputs.new(IR_Color_Socket.__name__, "Output")
-        self.inputs.new(IR_Color_Socket.__name__, "Input")
+    def init_inputs( self, context ):
+        self.outputs.new(IR_Color_Socket.__name__, "Color", identifier='colour_SP_rgb')
+        # self.inputs.new(IR_Color_Socket.__name__, "Input")
 
-class IR_Diffuse(BlendigoNode, Node):
+class IR_Diffuse(IR_MaterialType, Node):
     bl_label = "Diffuse Material"
-    bl_icon = 'MATERIAL'
+    bl_icon = 'NODE_MATERIAL'
+    ubername = "_IndigoDiffuseUberShader_v1"
 
-    shadow_catcher: bpy.props.BoolProperty()
-    sigma: bpy.props.FloatProperty()
-    transmitter: bpy.props.BoolProperty()
+    shadow_catcher: NodeProperty(bpy.props.BoolProperty, identifier='shadow_catcher')
+    sigma: NodeProperty(bpy.props.FloatProperty, identifier='sigma')
+    transmitter: NodeProperty(bpy.props.BoolProperty, identifier='transmitter')
     
-    def draw_buttons( self, context, layout ):
+    def draw_buttons(self, context, layout):
         col = layout.column()
         col.prop(self, 'transmitter')
         if not self.transmitter:
             col.prop(self, 'sigma')
         col.prop(self, 'shadow_catcher')
     
-    def init( self, context ):
-        self.outputs.new(IR_Color_Socket.__name__, "Output")
-        self.inputs.new(IR_Color_Socket.__name__, "Input")
+    def init_inputs(self, context):
+        self.outputs.new(IR_Material_Socket.__name__, "Material")
+        self.inputs.new(IR_Color_Socket.__name__, "Color", identifier='colour_SP_rgb')
+        self.inputs.new(IR_F_Emission_Socket.__name__, "Emission", identifier='emission_bool')
+        self.inputs.new(IR_F_Bump_Socket.__name__, "Bump", identifier='bump_bool')
+        self.inputs.new(IR_F_Normal_Socket.__name__, "Normal", identifier='normal_bool')
+        self.inputs.new(IR_F_Displacement_Socket.__name__, "Displacement", identifier='displacement_bool')
 
-class IR_F_Emission(BlendigoNode, Node):
-    bl_label = "Feature: Emission"
-    bl_icon = 'MATERIAL'
+class IR_Mix(IR_MaterialType, Node):
+    bl_label = "Mix Materials"
+    bl_icon = 'NODE_MATERIAL'
+    ubername = "_IndigoBlendedUberShader_v1"
 
-    emit_layer: bpy.props.StringProperty(name="Light Layer", description="lightlayer; leave blank to use default")
-    emit_power: bpy.props.FloatProperty(name="Power", description="Power", default=1500.0, min=0.0, max=1000000.0, update=lambda s,c: s.set_strength(c.material))
-    emit_gain_val: bpy.props.FloatProperty(name="Gain", description="Gain", default=1.0, min=0.0, max=1.0, update=lambda s,c: s.set_strength(c.material))
-    emit_gain_exp: bpy.props.IntProperty(name="*10^", description="Exponent", default=0, min=-30, max=30, update=lambda s,c: s.set_strength(c.material))
-    emission_scale: bpy.props.BoolProperty(name="Emission scale", description="Emission scale", default=False, update=lambda s,c: s.set_strength(c.material))
-    emission_scale_measure: bpy.props.EnumProperty(name="Unit", description="Units for emission scale", default="luminous_flux", items=[
-        ('luminous_flux', 'lm', 'Luminous flux'),
-        ('luminous_intensity', 'cd', 'Luminous intensity (lm/sr)'),
-        ('luminance', 'nits', 'Luminance (lm/sr/m/m)'),
-        ('luminous_emittance', 'lux', 'Luminous emittance (lm/m/m)')
-    ])
-    emission_scale_value: bpy.props.FloatProperty(name="Value", description="Emission scale value", default=1.0, min=0.0, soft_min=0.0, max=10.0, soft_max=10.0, update=lambda s,c: s.set_strength(c.material))
-    emission_scale_exp: bpy.props.IntProperty(name="*10^", description="Emission scale exponent", default=0, min=-30, max=30, update=lambda s,c: s.set_strength(c.material))
-    emit_ies: bpy.props.BoolProperty(name="IES Profile", description="IES Profile", default=False)
-    emit_ies_path: bpy.props.StringProperty(subtype="FILE_PATH", name=" IES Path", description=" IES Path", default="")
-    backface_emit: bpy.props.BoolProperty(name="Back face emission", description="Controls of back of face is emitting or not", default=False, update=lambda s, c: ubershader_utils.switch_bool(c.material, 'backface_emit', s.backface_emit),)
-    em_sampling_mult: bpy.props.FloatProperty(name="Emission Sampling Multiplier", description="A multiplier for the amount of sampling emission from this light material will receive", default=1.0, min=0.0, max=99999.0)
-
-    def draw_buttons( self, context, layout ):
-        # col = layout.column()
-        # #
-        # col.prop(self, 'emission_type')
-        
-        # if self.emission_type == 'texture':
-        #     col = self.layout.column()
-        #     col.prop_search(self, 'emission_TX_texture', bpy.data, 'textures')
-            
-        #     col = self.layout.column()
-        #     col.prop(self, 'emission_TX_A')
-        #     col.enabled = self.emission_TX_abc_from_tex == False
-
-        #     col = self.layout.column()
-        #     col.prop(self, 'emission_TX_B')
-        #     col.enabled = self.emission_TX_abc_from_tex == False
-
-        #     col = self.layout.column()
-        #     col.prop(self, 'emission_TX_C')
-        #     col.enabled = self.emission_TX_abc_from_tex == False
-
-        #     col = self.layout.column()
-        #     col.prop_search(self, 'emission_TX_uvset', context.object.data, 'uv_layers')
-
-        #     row = col.row()
-        #     row.prop(self, 'emission_TX_abc_from_tex')
-        #     row.prop(self, 'emission_TX_smooth')
-        # elif self.emission_type == 'spectrum':
-        #     col.prop(self, 'emission_SP_type')
-        #     if self.emission_SP_type == 'rgb':
-        #         row = col.row()
-        #         row.prop(self, 'emission_SP_rgb')
-        #         #col.prop(self, 'emission_SP_rgb_gain')
-        #     elif self.emission_SP_type == 'uniform':
-        #         row = col.row(align=True)
-        #         row.prop(self, 'emission_SP_uniform_val')
-        #         row.prop(self, 'emission_SP_uniform_exp')
-        #     elif self.emission_SP_type == 'blackbody':
-        #         row = col.row(align=True)
-        #         row.prop(self, 'emission_SP_blackbody_temp')
-        #         row.prop(self, 'emission_SP_blackbody_gain')
-        # col.separator()
-        #
-        #
-        
-        col = layout.column()
-        col.prop_search(self, 'emit_layer', context.scene.indigo_lightlayers, 'lightlayers')
-        
-        col.separator()
-        col.prop(self, 'emission_scale')
-        if self.emission_scale:
-            row = col.row(align=True)
-            row.prop(self, 'emission_scale_value')
-            row.prop(self, 'emission_scale_exp')
-            col.prop(self, 'emission_scale_measure')
-        else:
-            col.prop(self, 'emit_power')
-            row = col.row(align=True)
-            row.prop(self, 'emit_gain_val')
-            row.prop(self, 'emit_gain_exp')
-        
-        col.separator()    
-        col.prop(self, 'em_sampling_mult')
-        col.prop(self, 'emit_ies')
-        if self.emit_ies:
-            col.prop(self, 'emit_ies_path')
-        
-        col.prop(self, 'backface_emit')
+    step_blend: NodeProperty(bpy.props.BoolProperty, identifier='step_blend', description="Disables partial blends so the result is either material A or B, depending on whether the blend amount (constant or map) is >= 0.5.")
     
-    def init( self, context ):
-        self.outputs.new(IR_Color_Socket.__name__, "Output")
-        self.inputs.new(IR_Color_Socket.__name__, "Color", identifier="Emission Color")
+    def draw_buttons(self, context, layout):
+        col = layout.column()
+        col.prop(self, 'step_blend')
+    
+    def init_inputs(self, context):
+        self.outputs.new(IR_Material_Socket.__name__, "Material")
+        # self.inputs.new(IR_Float_Socket.__name__, "Blend Amount", identifier="blend_amount").description="A constant blending factor; 1.0 means 100% of Material A is used, 0.0 means 100% of material B is used."
+        self.inputs.new(IR_Slider_Socket.__name__, "Blend Amount", identifier="blend_amount").slider=True
+        self.inputs.new(IR_Material_Socket.__name__, "Material B", identifier="material_B")
+        self.inputs.new(IR_Material_Socket.__name__, "Material A", identifier="material_A")
 
-def first(generator):
-    """
-    Return first element from generator or None if empty
-    """
-    try:
-        return next(generator)
-    except StopIteration:
-        return None
-
-def NodeProperty(type, /, *, update_node=None, **opts):
-    ''' Wrap normal property and its update function with additional function updating the node (sockets etc.) '''
-    if 'update' in opts and update_node:
-        foreign_f = opts['update']
-        def f(self, context):
-            update_node(self, context)
-            return foreign_f(self, context)
-        opts['update'] = f
-    elif update_node:
-        opts['update'] = update_node
-    return type(**opts)
-
-class IR_F_Emission2(BlendigoNode, Node):
-    bl_label = "Feature: Emission2"
+class IR_MaterialOutput(IR_MaterialOutputType, Node):
+    bl_label = "Material Output"
     bl_icon = 'MATERIAL'
+    
+    def init_inputs(self, context):
+        self.inputs.new(IR_Material_Socket.__name__, "Material")
+        self.inputs.new(IR_Material_Socket.__name__, "Material 2")
+
+class IR_F_Emission(BlendigoNode, Node, MaterialFamily):
+    bl_label = "Feature: Emission"
+    bl_icon = 'DISC'
+
+    emission_bool: bpy.props.BoolProperty(default=True)
 
     emit_layer: bpy.props.StringProperty(name="Light Layer", description="lightlayer; leave blank to use default")
     emit_power: bpy.props.FloatProperty(name="Power", description="Power", default=1500.0, min=0.0, max=1000000.0, update=lambda s,c: s.set_strength(c.material))
     emit_gain_val: bpy.props.FloatProperty(name="Gain", description="Gain", default=1.0, min=0.0, max=1.0, update=lambda s,c: s.set_strength(c.material))
     emit_gain_exp: bpy.props.IntProperty(name="*10^", description="Exponent", default=0, min=-30, max=30, update=lambda s,c: s.set_strength(c.material))
     # emission_scale: bpy.props.BoolProperty(name="Emission scale", description="Emission scale", default=False, update=lambda s,c: s.set_strength(c.material))
-    
-    # template for replacing sockets
-    # def emission_scale_un(self, context):
-    #     if self.emission_scale:
-    #         if 'Emit Power' in self.inputs:
-    #             self.inputs.new(IR_Color_Socket.__name__, "Emission Scale")
-    #             self.inputs.remove(self.inputs['Emit Power'])
-    #     else:
-    #         if 'Emission Scale' in self.inputs:
-    #             self.inputs.new(IR_Color_Socket.__name__, "Emit Power")
-    #             self.inputs.remove(self.inputs['Emission Scale'])
-    
+
     def emission_scale_un(self, context):
-        if self.emission_scale:
-            first(s for s in self.inputs if s.identifier == 'emit_scale_power').name = "Emit Scale"
+        # Update Node function
+        emission_scale_socket =  first(s for s in self.inputs if s.identifier == 'emission_scale_value')
+        if not self.emission_scale and emission_scale_socket:
+            self.inputs.remove(emission_scale_socket)
         else:
-            first(s for s in self.inputs if s.identifier == 'emit_scale_power').name = "Emit Power"
+            self.emission_scale_source_update_node(context)
     
-    # def set_strength(self, m):
-    #     print('set_strength', self, m)
-    emission_scale: NodeProperty(bpy.props.BoolProperty, update_node=emission_scale_un, name="Emission scale", description="Emission scale", default=False, update=lambda s,c: s.set_strength(c.material))
+    def emission_scale_source_update_node(self, context):
+        # Update Node function
+        emission_scale_value_socket =  first(s for s in self.inputs if s.identifier == 'emission_scale_value')
+        if self.emission_scale_source == 'MATERIAL':
+            if not emission_scale_value_socket:
+                self.inputs.new(IR_Float_Socket.__name__, "Emission Scale", identifier='emission_scale_value')
+        elif self.emission_scale_source in {'OBJECT', 'DATA'}:
+            if emission_scale_value_socket:
+                self.inputs.remove(emission_scale_value_socket)
+    
+    def set_strength(self, m):
+        print('set_strength', self, m)
+
+    # emission_scale: bpy.props.BoolProperty(name="Emission scale", description="Emission scale", default=False, update=lambda s,c: s.set_strength(c.material))
+    emission_scale: NodeProperty(bpy.props.BoolProperty, identifier='emission_scale', update_node=emission_scale_un, name="Emission scale", description="Emission scale", default=False, update=lambda s,c: s.set_strength(c.material))
     emission_scale_measure: bpy.props.EnumProperty(name="Unit", description="Units for emission scale", default="luminous_flux", items=[
         ('luminous_flux', 'lm', 'Luminous flux'),
         ('luminous_intensity', 'cd', 'Luminous intensity (lm/sr)'),
@@ -525,27 +360,45 @@ class IR_F_Emission2(BlendigoNode, Node):
     ])
     emission_scale_value: bpy.props.FloatProperty(name="Value", description="Emission scale value", default=1.0, min=0.0, soft_min=0.0, max=10.0, soft_max=10.0, update=lambda s,c: s.set_strength(c.material))
     emission_scale_exp: bpy.props.IntProperty(name="*10^", description="Emission scale exponent", default=0, min=-30, max=30, update=lambda s,c: s.set_strength(c.material))
+    # emission_scale_source: bpy.props.EnumProperty(name="Origin", description="Where emission scale is stored", default="MATERIAL", items=[
+    emission_scale_source: NodeProperty(bpy.props.EnumProperty, identifier='emission_scale_source', update_node=emission_scale_source_update_node, name="Origin", description="Where emission scale is stored", default="MATERIAL", items=[
+        ('MATERIAL', 'Material', 'One per Material'),
+        ('OBJECT', 'Object', 'One per Object'),
+    ])
     emit_ies: bpy.props.BoolProperty(name="IES Profile", description="IES Profile", default=False)
     emit_ies_path: bpy.props.StringProperty(subtype="FILE_PATH", name=" IES Path", description=" IES Path", default="")
-    backface_emit: bpy.props.BoolProperty(name="Back face emission", description="Controls of back of face is emitting or not", default=False, update=lambda s, c: ubershader_utils.switch_bool(c.material, 'backface_emit', s.backface_emit),)
+    # backface_emit_bool: bpy.props.BoolProperty(name="Back face emission", description="Controls of back of face is emitting or not", default=False, update=lambda s, c: ubershader_utils.switch_bool(c.material, 'backface_emit', s.backface_emit),)
+    backface_emit_bool: NodeProperty(bpy.props.BoolProperty, identifier='backface_emit_bool', name="Back face emission", description="Controls of back of face is emitting or not", default=False)
     em_sampling_mult: bpy.props.FloatProperty(name="Emission Sampling Multiplier", description="A multiplier for the amount of sampling emission from this light material will receive", default=1.0, min=0.0, max=99999.0)
+
 
     def draw_buttons( self, context, layout ):
         col = layout.column()
         col.prop_search(self, 'emit_layer', context.scene.indigo_lightlayers, 'lightlayers')
         
         # col.separator()
+        # col.prop(self, 'emit_power')
+        row = col.row(align=True)
+        row.prop(self, 'emit_gain_val')
+        row.prop(self, 'emit_gain_exp')
+        
         col.prop(self, 'emission_scale')
         if self.emission_scale:
             row = col.row(align=True)
-            # row.prop(self, 'emission_scale_value')
-            row.prop(self, 'emission_scale_exp')
-            col.prop(self, 'emission_scale_measure')
-        else:
-            # col.prop(self, 'emit_power')
-            row = col.row(align=True)
-            row.prop(self, 'emit_gain_val')
-            row.prop(self, 'emit_gain_exp')
+            row.prop(self, 'emission_scale_source', expand=True)
+            if self.emission_scale_source == 'OBJECT':
+                row = col.row(align=True)
+                # TODO: move these to object properties
+                row.prop(context.object.indigo_object, 'emission_scale_value')
+                row.prop(context.object.indigo_object, 'emission_scale_exp')
+                col.prop(context.object.indigo_object, 'emission_scale_measure')
+            elif self.emission_scale_source == 'MATERIAL':
+                col.prop(self, 'emission_scale_exp')
+                col.prop(self, 'emission_scale_measure')
+            elif self.emission_scale_source == 'DATA':
+                row.prop(context.object.data.indigo_object, 'emission_scale_value')
+                row.prop(context.object.data.indigo_object, 'emission_scale_exp')
+                col.prop(context.object.data.indigo_object, 'emission_scale_measure')
         
         col.separator()    
         col.prop(self, 'em_sampling_mult')
@@ -553,12 +406,12 @@ class IR_F_Emission2(BlendigoNode, Node):
         if self.emit_ies:
             col.prop(self, 'emit_ies_path')
         
-        col.prop(self, 'backface_emit')
+        col.prop(self, 'backface_emit_bool')
     
-    def init( self, context ):
-        self.outputs.new(IR_Color_Socket.__name__, "Output")
-        self.inputs.new(IR_Color_Socket.__name__, "Color")
-        self.inputs.new(IR_Float_Socket.__name__, "Emit Power", identifier="emit_scale_power")
+    def init_inputs( self, context ):
+        self.outputs.new(IR_F_Emission_Socket.__name__, "Output", identifier='emission_bool')
+        self.inputs.new(IR_Color_Socket.__name__, "Color", identifier='emission_SP_rgb')
+        self.inputs.new(IR_Float_Socket.__name__, "Emit Power", identifier="emission_power")
 
 #######
 class IR_BlackBody(BlendigoNode, Node):
@@ -577,8 +430,9 @@ class IR_BlackBody(BlendigoNode, Node):
         row.prop(indigo_material_emission, 'emission_SP_blackbody_gain')
         #
     
-    def init( self, context ):
+    def init_inputs( self, context ):
         self.outputs.new(IR_SP_Socket.__name__, "Output")
+        # super().init()
 
 class IR_Uniform(BlendigoNode, Node):
     bl_label = "Uniform"
@@ -595,7 +449,8 @@ class IR_Uniform(BlendigoNode, Node):
         row.prop(indigo_material_emission, 'emission_SP_uniform_exp')
         #
     
-    def init( self, context ):
+    def init_inputs( self, context ):
+        # super().init()
         self.outputs.new(IR_SP_Socket.__name__, "Output")
 
 class IR_RGB(BlendigoNode, Node):
@@ -603,6 +458,10 @@ class IR_RGB(BlendigoNode, Node):
     
     def draw_buttons( self, context, layout ):
         # mockup.
+        if not hasattr(context.object, 'active_material'):
+            return
+        if not hasattr(context.object.active_material, 'indigo_material'):
+            return
         indigo_material = context.object.active_material.indigo_material
         indigo_material_emission = indigo_material.indigo_material_emission
         
@@ -612,8 +471,9 @@ class IR_RGB(BlendigoNode, Node):
         row.prop(indigo_material_emission, 'emission_SP_rgb')
         #
     
-    def init( self, context ):
+    def init_inputs( self, context ):
         self.outputs.new(IR_Color_Socket.__name__, "Output")
+        # super().init()
 
 #######
 
@@ -639,48 +499,6 @@ class IR_RGB(BlendigoNode, Node):
 #         print("update", self)
 
 
-
-# Custom socket type
-class MyCustomSocket(NodeSocket):
-    # Description string
-    '''Custom node socket type'''
-    # Optional identifier string. If not explicitly defined, the python class name is used.
-    bl_idname = 'CustomSocketType'
-    # Label for nice name display
-    bl_label = "Custom Node Socket"
-
-    # Enum items list
-    my_items = (
-        ('DOWN', "Down", "Where your feet are"),
-        ('UP', "Up", "Where your head should be"),
-        ('LEFT', "Left", "Not right"),
-        ('RIGHT', "Right", "Not left"),
-    )
-
-    my_enum_prop: bpy.props.EnumProperty(
-        name="Direction",
-        description="Just an example",
-        items=my_items,
-        default='UP',
-    )
-
-    # Optional function for drawing the socket input value
-    def draw(self, context, layout, node, text):
-        if self.is_output or self.is_linked:
-            col = layout.column(align=True)
-            col.label(text=text)
-            col.label(text='text 2')
-            if not 'World 2' in node.inputs:
-                s = node.inputs.new('NodeSocketFloat', "World 2")
-            # node.inputs.remove(s)
-        else:
-            layout.prop(self, "my_enum_prop", text=text)
-
-    # Socket color
-    def draw_color(self, context, node):
-        return (1.0, 0.4, 0.216, 0.5)
-
-
 # Derived from the Node base type.
 class IR_NodeMatOutput(BlendigoNode, Node):
     '''Indigo Renderer Material Output'''
@@ -701,8 +519,8 @@ class IR_NodeMatOutput(BlendigoNode, Node):
     # This is the most common place to create the sockets for a node, as shown below.
     # NOTE: this is not the same as the standard __init__ function in Python, which is
     #       a purely internal Python method and unknown to the node system!
-    def init(self, context):
-        self.inputs.new('CustomSocketType', "Hello")
+    def init_inputs(self, context):
+        # self.inputs.new('CustomSocketType', "Hello")
         self.inputs.new('NodeSocketFloat', "World")
         self.inputs.new('NodeSocketVector', "!")
 
@@ -735,39 +553,21 @@ class IR_NodeMatOutput(BlendigoNode, Node):
     def draw_label(self):
         return "I am a custom node"
 
-class IR_NodeDiffuse(BlendigoNode, Node):
-    '''Indigo Renderer Material Output'''
-    # Label for nice name display
-    bl_label = "Diffuse Material"
-    # Icon identifier
-    bl_icon = 'MATERIAL'
-
-    def init(self, context):
-        self.outputs.new('NodeSocketColor', "How")
-
 class BlendigoNodeCategory( NodeCategory ):
     @classmethod
     def poll(cls, context):
         return (context.space_data.type == 'NODE_EDITOR' and
                 context.space_data.tree_type == 'IR_MaterialNodeTree')
 
-# categories = [ BlendigoNodeCategory( "IRNodes", "Indigo Render Nodes", items = [
-#     NodeItem('IR_M_Diffuse'),  # type: ignore
-#     NodeItem('IR_S_Emission'),  # type: ignore
-#     # NodeItem('IR_BlackBody'),
-#     # NodeItem('IR_Uniform'),
-#     # NodeItem('IR_RGB'),
-#     NodeItem('IR_Spectrum'),  # type: ignore
-#     NodeItem('IR_Texture'),  # type: ignore
-#     NodeItem('IR_BlendigoUberShader'),  # type: ignore
-# ] ) ]
 categories = [ BlendigoNodeCategory( "IR_Nodes", "Blendigo Nodes", items = [
     NodeItem(IR_Texture.__name__),
     NodeItem(IR_RGB.__name__),
     NodeItem(IR_Uniform.__name__),
     NodeItem(IR_BlackBody.__name__),
     NodeItem(IR_F_Emission.__name__),
-    NodeItem(IR_F_Emission2.__name__),
+    NodeItem(IR_Diffuse.__name__),
+    NodeItem(IR_MaterialOutput.__name__),
+    NodeItem(IR_Mix.__name__),
 ] ) ]
 
 classes={
@@ -823,14 +623,17 @@ def init_mat_node_tree(node_tree):
 
     nodes = node_tree.nodes
 
-    output = nodes.new("IR_NodeMatOutput")
+    output = nodes.new("IR_MaterialOutput")
     output.location = 300, 200
     output.select = False
 
-    diffuse = nodes.new("IR_NodeDiffuse")
+    diffuse = nodes.new("IR_Diffuse")
     diffuse.location = 50, 200
 
     node_tree.links.new(diffuse.outputs[0], output.inputs[0])
+
+    # node_tree will not be accessible until next re-evaluation
+    bpy.app.timers.register(lambda: node_tree.update())
 
 class IR_OT_material_node_tree_new(bpy.types.Operator):
     bl_idname = "blendigo.material_node_tree_new"
@@ -1026,4 +829,30 @@ class IR_OT_material_select(bpy.types.Operator, _NodeOperator):
 
     def invoke(self, context, event):
         context.window_manager.invoke_search_popup(self)
+        return {'FINISHED'}
+
+class IR_OT_add_node(bpy.types.Operator):
+    bl_idname = "blendigo.add_node"
+    bl_label = "Add"
+    bl_options = {'INTERNAL', 'REGISTER', 'UNDO'}
+
+    node_type: bpy.props.StringProperty()
+    identifier: bpy.props.StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        if not hasattr(context, "node"):
+            return False
+        return context.node and not context.node.id_data.library
+    
+    def execute(self, context: bpy.types.Context):
+        node = context.node
+        node_tree = node.id_data
+        new_node = node_tree.nodes.new(self.node_type)
+        # Place new node a bit to the left and down
+        offset_x = new_node.width + 50
+        new_node.location = (node.location.x - offset_x, node.location.y - 100)
+
+        this_socket = first(s for s in node.inputs if s.identifier == self.identifier)
+        node_tree.links.new(new_node.outputs[0], this_socket)
         return {'FINISHED'}
