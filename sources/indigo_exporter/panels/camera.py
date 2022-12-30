@@ -1,7 +1,7 @@
 import bpy
 import bl_ui
 
-from .. core import BL_IDNAME
+from .. core import RENDERER_BL_IDNAME
 
 
 class INDIGO_PT_ui_camera(bpy.types.Panel):
@@ -12,7 +12,7 @@ class INDIGO_PT_ui_camera(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and context.object.type == 'CAMERA'
+        return context.scene.render.engine == RENDERER_BL_IDNAME and context.object.type == 'CAMERA'
     
     def draw(self, context):
         #if context.object.data.camera is not None:
@@ -75,7 +75,7 @@ class INDIGO_PT_ui_tonemapping(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME and context.object.type == 'CAMERA'
+        return context.scene.render.engine == RENDERER_BL_IDNAME and context.object.type == 'CAMERA'
     
     def draw(self, context):
         #if context.object.data.camera is not None:

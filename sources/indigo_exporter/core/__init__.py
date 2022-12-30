@@ -14,7 +14,9 @@ from .. import operators
 
 from . util import getVersion, getGuiPath, getConsolePath, getInstallPath, count_contiguous
 
-BL_IDNAME = 'indigo_renderer'
+RENDERER_BL_IDNAME = 'indigo_renderer'
+
+BLENDIGO_DEV = os.getenv('BlendigoDev') == '1'
 
 # Add standard Blender Interface elements
 
@@ -45,22 +47,22 @@ def get_panels():
                 panels.append(panel)
 
     # context material list
-    panels.append(bl_ui.properties_material.EEVEE_MATERIAL_PT_context_material)
+    # panels.append(bl_ui.properties_material.EEVEE_MATERIAL_PT_context_material)
     return panels
 
 def register():
     for panel in get_panels():
-        panel.COMPAT_ENGINES.add(BL_IDNAME)
+        panel.COMPAT_ENGINES.add(RENDERER_BL_IDNAME)
 
 def unregister():
     for panel in get_panels():
-        if BL_IDNAME in panel.COMPAT_ENGINES:
-            panel.COMPAT_ENGINES.remove(BL_IDNAME)
+        if RENDERER_BL_IDNAME in panel.COMPAT_ENGINES:
+            panel.COMPAT_ENGINES.remove(RENDERER_BL_IDNAME)
 
 from .. auto_load import force_register 
 @force_register
 class RENDERENGINE_indigo(bpy.types.RenderEngine):
-    bl_idname = BL_IDNAME
+    bl_idname = RENDERER_BL_IDNAME
     bl_label = 'Indigo'
     bl_use_preview = False
     bl_use_shading_nodes_custom = False

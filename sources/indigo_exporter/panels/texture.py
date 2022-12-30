@@ -1,7 +1,7 @@
 import bpy
 import bl_ui
 
-from .. core import BL_IDNAME
+from .. core import RENDERER_BL_IDNAME
 from .. properties.material import PROPERTY_GROUP_USAGE
 
 class texture_subpanel():
@@ -11,7 +11,7 @@ class texture_subpanel():
     
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME \
+        return context.scene.render.engine == RENDERER_BL_IDNAME \
             and context.texture
         # and context.object.active_material 
         # and context.texture

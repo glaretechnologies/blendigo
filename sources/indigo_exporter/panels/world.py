@@ -1,6 +1,6 @@
 import bpy
 
-from .. core import BL_IDNAME
+from .. core import RENDERER_BL_IDNAME
 
 class INDIGO_PT_ui_light_layers(bpy.types.Panel):
     bl_label = "Indigo Light Layers"
@@ -10,7 +10,7 @@ class INDIGO_PT_ui_light_layers(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == BL_IDNAME
+        return context.scene.render.engine == RENDERER_BL_IDNAME
     
     def draw(self, context):
         indigo_engine = context.scene.indigo_engine

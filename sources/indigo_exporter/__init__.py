@@ -19,14 +19,13 @@ bl_info = {
     "name": "Blendigo - Indigo Exporter",
     "description": "This Addon will allow you to render your scenes with the Indigo render engine.",
     "author": "Glare Technologies Ltd.",
-    "version": (4, 3, 4),
+    "version": (5, 0, 0),
     "blender": (2, 93, 0),
     "location": "View3D",
     "wiki_url": "",
     "category": "Render" }
 
-
-import bpy
+import bpy, os
 
 # register
 ##################################
@@ -36,6 +35,15 @@ from . import auto_load, addon_updater_ops
 auto_load.init(ignore=("addon_updater", "addon_updater_ops"), make_annotations=True)
 
 def register():
+    from . core import BLENDIGO_DEV
+    if BLENDIGO_DEV:
+        # To find source of crashes
+        import faulthandler
+        faulthandler.enable()
+        
+        from . nodes import SimpleProfiler
+        SimpleProfiler.enable()
+
     auto_load.register()
 
     # addon updater code and configurations
@@ -73,7 +81,8 @@ def register():
     bpy.types.Scene.indigo_material_medium = bpy.props.PointerProperty(name="Indigo Material Medium Properties", type = Indigo_Material_Medium_Properties)
     bpy.types.Material.indigo_material_medium = bpy.props.PointerProperty(name="Indigo Material Medium Properties", type = Indigo_Material_Medium_Properties)
     
-    from . properties.object import Indigo_Mesh_Properties
+    from . properties.object import Indigo_Mesh_Properties, Indigo_Object_Properties
+    bpy.types.Object.indigo_object = bpy.props.PointerProperty(name="Indigo Object Properties", type = Indigo_Object_Properties)
     bpy.types.Mesh.indigo_mesh = bpy.props.PointerProperty(name="Indigo Mesh Properties", type = Indigo_Mesh_Properties)
     bpy.types.SurfaceCurve.indigo_mesh = bpy.props.PointerProperty(name="Indigo Mesh Properties", type = Indigo_Mesh_Properties)
     bpy.types.TextCurve.indigo_mesh = bpy.props.PointerProperty(name="Indigo Mesh Properties", type = Indigo_Mesh_Properties)
