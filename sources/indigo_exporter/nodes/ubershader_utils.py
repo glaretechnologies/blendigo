@@ -13,6 +13,7 @@ current_uber_name = "_IndigoUberShader_v2"
 @dataclass
 class ParsedNode:
     inputs: dict
+    outputs: dict
     nodes: dict
     links: list
     name: str
@@ -50,7 +51,11 @@ class ParsedNode:
                 for socket, value in zip(node.inputs, default_values):
                     if value is None:
                         continue
-                    socket.default_value = value
+                    try:
+                        socket.default_value = value
+                    except:
+                        # TODO:
+                        print('default_values error', socket, socket.default_value, value)
 
             for key, val in node_dict.items():
                 setattr(node, key, val)
@@ -64,7 +69,19 @@ class ParsedNode:
                             continue
                         setattr(soc, key, val)
             elif bl_idname == 'NodeGroupOutput':
-                soc = new_group.outputs.new('NodeSocketShader', 'Shader')
+                # TODO: compatibility check. soon to delete
+                if not hasattr(self, 'outputs'):
+                    soc = new_group.outputs.new('NodeSocketShader', 'Shader')
+                    continue
+                # ###
+
+                for output_dict in self.outputs:
+                    soc = new_group.outputs.new(output_dict['bl_socket_idname'], output_dict['name'])
+                    for key, val in output_dict.items():
+                        if not hasattr(soc, key): # different Blender version
+                            print(key, 'not found in', soc)
+                            continue
+                        setattr(soc, key, val)
             
         
         # set frames
@@ -97,12 +114,17 @@ def nodes2dict():
     inputs = []
     for input in active_node_group.node_tree.inputs:
         inputs.append( {prop.identifier: _str(getattr(input, prop.identifier)) for prop in input.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'ENUM'}} )
+    
+    outputs = []
+    for output in active_node_group.node_tree.outputs:
+        outputs.append( {prop.identifier: _str(getattr(output, prop.identifier)) for prop in output.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'ENUM'}} )
         
     nodes = []
     for node in active_node_group.node_tree.nodes:
         # nodes.append( {prop.identifier: _str(prop, getattr(node, prop.identifier)) for prop in node.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'POINTER', 'ENUM'} and prop.identifier not in {'node_tree'}} )
         dict_node = {prop.identifier: _str(getattr(node, prop.identifier)) for prop in node.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'POINTER', 'ENUM'} and prop.identifier not in {'node_tree'}}
-        dict_node['default_values'] = [_str(socket.default_value) if hasattr(socket, 'default_value') else None for socket in node.inputs]
+        if not node.bl_idname == "NodeGroupOutput":
+            dict_node['default_values'] = [_str(socket.default_value) if hasattr(socket, 'default_value') else None for socket in node.inputs]
         nodes.append(dict_node)
     
     links = []
@@ -112,8 +134,7 @@ def nodes2dict():
     for link in active_node_group.node_tree.links:
         links.append( ((link.from_node.name, sid(link.from_socket)), (link.to_node.name, sid(link.to_socket))) )
     
-    # parsed = ParsedNode(inputs, nodes, links, current_uber_name)
-    parsed = ParsedNode(inputs, nodes, links, active_node_group.node_tree.name)
+    parsed = ParsedNode(inputs, outputs, nodes, links, active_node_group.node_tree.name)
 #    print(parsed)
     return parsed
 
@@ -138,7 +159,7 @@ class OT_BR_ExportUberShaderNodes(bpy.types.Operator):
         
         with open(path, 'wb') as f:
             pickle.dump(parsed_node, f)
-                
+        print('Exporting finished.')
         return {'FINISHED'}
 
 def first(generator):
@@ -162,7 +183,7 @@ def ensure_ubershader():
         return bpy.data.node_groups[current_uber_name]
     
     # load_ubershader(name='_IndigoDiffuseUberShader_v1').generate_group()
-    parsed_node = load_ubershader()
+    parsed_node = load_ubershader(current_uber_name)
     return parsed_node.generate_group()
 
 class UberShaderException(Exception):
@@ -264,6 +285,7 @@ def _ensure_uv_node(texnode, material):
         links = material.node_tree.links
 
         uv_node = nodes.new('ShaderNodeUVMap')
+        uv_node['blendigo_node'] = True
         links.new(uv_node.outputs[0], texnode.inputs[0])
         return uv_node
 

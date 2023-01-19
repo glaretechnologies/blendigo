@@ -6,12 +6,27 @@ from typing import Generator, TypedDict
 import bpy
 import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem, NodeItemCustom
+from xml.etree import ElementTree as ET
 
 from bpy.types import NodeSocket, Node, ShaderNodeCustomGroup, NodeSocketInterface, NodeTree
 from .. core import RENDERER_BL_IDNAME
 from . ubershader_utils import fast_lookup, get_ubershader, new_eevee_node
 from . simple_profiler import SimpleProfiler
 from .. core import BLENDIGO_DEV
+from enum import Flag, auto
+
+from functools import reduce
+
+# def rgetattr(obj, attr, *args):
+#     def _getattr(obj, attr):
+#         return getattr(obj, attr, *args)
+#     return reduce(_getattr, attr.split('.'), obj)
+
+def rgetattr(obj, attr, default=None):
+    try:
+        reduce(getattr, attr.split('.'), obj)
+    except AttributeError:
+        return default
 
 def first(generator):
     """
@@ -78,6 +93,12 @@ class Color:
 # ██║ ╚████║╚██████╔╝██████╔╝███████╗       ██║   ██║  ██║███████╗███████╗
 # ╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚══════╝       ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
 
+class Update(Flag):
+    PROPERTIES =   0b_001
+    DISCONNECTED = 0b_010
+    SOCKETS =      0b_110
+    ALL =          0b_111
+
 # updated_nodes_cache = []#set()
 updated_nodes_cache = dict()
 class IR_MaterialNodeTree(NodeTree):
@@ -87,6 +108,7 @@ class IR_MaterialNodeTree(NodeTree):
 
     active_output_name: bpy.props.StringProperty()
     LOCK_UPDATE: bpy.props.BoolProperty(default=False)
+    material: bpy.props.PointerProperty(type=bpy.types.Material)
 
     @classmethod
     def poll(cls, context):
@@ -141,8 +163,8 @@ class IR_MaterialNodeTree(NodeTree):
         #     # print('ancest', mat.find_all_ancestors())
         #     print('mat props dict', mat.gather_properties(MaterialFamily))
 
-        if not (bpy.context.object and bpy.context.object.active_material):
-            return
+        # if not (bpy.context.object and bpy.context.object.active_material):
+        #     return
 
         @into_timer
         @SimpleProfiler.sum_time
@@ -159,7 +181,8 @@ class IR_MaterialNodeTree(NodeTree):
                 from . ubershader_utils import recreate_shader_from_blendigo_nodes
                 updated_nodes_cache.clear()
                 update_history_cache.clear()
-                recreate_shader_from_blendigo_nodes(bpy.context.object.active_material, hard_reset=True)
+                # recreate_shader_from_blendigo_nodes(bpy.context.object.active_material, hard_reset=True)
+                recreate_shader_from_blendigo_nodes(self.material, hard_reset=True)
             finally:
                 self.LOCK_UPDATE = False
                 updated_nodes_cache.clear()
@@ -201,6 +224,10 @@ class MaterialFamily(FamilyInterface):
     pass
 
 class MaterialOutputFamily(FamilyInterface):
+    """ Mix-in class to support node-family constraints """
+    pass
+
+class MaterialFeatureFamily(FamilyInterface):
     """ Mix-in class to support node-family constraints """
     pass
 
@@ -294,7 +321,7 @@ class BlendigoNode:
     #     raise NotImplementedError
     
     @SimpleProfiler.measure_this("Property's notify_update")
-    def notify_update(self, context, identifier, value, callback=None):
+    def notify_update(self, context, identifier, value, update, callback=None):
         """
         General node's property and input socket update notification.
         This method should call self.forward_notification_to_material(identifier, value) to propagate changes to material master
@@ -302,7 +329,7 @@ class BlendigoNode:
         # is_timer=True to prevent firing a timer. This update does not involve any socket manipulation.
         if not self.find_successor(IR_MaterialOutputType):
             return
-        self.update_eevee(update_input_name=identifier, is_timer=True, only_disconnected=True, callback=callback)
+        self.update_eevee(update_input_name=identifier, is_timer=True, only_local=True, callback=callback, update_flag=update)
         # print(self, context, identifier)
         # print(self.__dir__(), context.__dir__())
         # self.forward_notification_to_material(identifier, value)
@@ -336,11 +363,15 @@ class BlendigoNode:
                 # yield i, EmptyLink(inp.identifier)
                 yield i, EmptySocket(inp)
             for link in links:
-                if not link.from_socket.is_allowed_input(link.to_socket):
+                # if not link.from_socket.is_allowed_input(link.to_socket): # wrong direction?
+                if not link.to_socket.is_allowed_input(link.from_socket):
                     continue
                 if family_limit and not isinstance(link.from_node, family_limit):
                     continue
                 yield i, link
+    
+    def get_input(self, identifier):
+        return first(inp for inp in self.inputs if inp.identifier==identifier)
     
     def find_successor(self, node_class):
         ''' Takes a class to compare with. Returns a node or None. '''
@@ -392,8 +423,17 @@ class BlendigoNode:
                     setattr(eevee_node, update_input_name, getattr(self, update_input_name, None))
                 return
             
-            for prop_name in (prop for prop in self.bl_rna.__annotations__.keys() if prop not in self.local_props and prop in eevee_node.inputs):
-                eevee_node.inputs[prop_name].default_value = getattr(self, prop_name, 0)
+            # for prop_name in (prop for prop in self.bl_rna.__annotations__.keys() if prop not in self.local_props and prop in eevee_node.inputs):
+            #     eevee_node.inputs[prop_name].default_value = getattr(self, prop_name, 0)
+            
+            for prop_name in (prop for prop in self.bl_rna.__annotations__.keys() if prop not in self.local_props):
+                if prop_name in eevee_node.inputs:
+                    # If prop_name is present in the EEVEE node inputs, then set the value
+                    eevee_node.inputs[prop_name].default_value = getattr(self, prop_name, 0)
+                else:
+                    # If prop_name is not present in the EEVEE node inputs, then trigger property's update function
+                    # to fire the update callback (if present)
+                    setattr(self, prop_name, getattr(self, prop_name))
 
     def _update_socket_props(self, eevee_node, is_timer=True, update_input_name=None):
         for i, link in self.iterate_inputs(empty=True):
@@ -469,10 +509,13 @@ class BlendigoNode:
         self.id = c_hash(self)
     
     def free(self):
-        try:
+        # try:
+        #     material = bpy.context.object.active_material
+        # except:
+        #     return
+        material = self.id_data.material
+        if not material:
             material = bpy.context.object.active_material
-        except:
-            return
         
         eevee_node_tree = material.node_tree
         if material.indigo_material.node_tree is not self.id_data:
@@ -551,7 +594,7 @@ class BlendigoNode:
 
         t1_stop = perf_counter()
         print("     perf:", self.name, t1_stop-t1_start, changed)
-    
+
 
     # @into_timer
     def update_eevee(self, *,
@@ -559,8 +602,10 @@ class BlendigoNode:
             blendigo_link:SocketLink=None,
             is_timer: bool = False,
             update_input_name: str = None,
-            only_disconnected: bool = False,
-            callback = None) -> None:
+            only_local: bool = False, # legacy
+            callback = None,
+            update_flag = Update.ALL,
+            ) -> None:
         '''
         Use this method to update EEVEE node tree from a node.
         :param eevee_parent: Node representing an EEVEE parent node or direct counterpart of the node that this method
@@ -568,19 +613,25 @@ class BlendigoNode:
             Can be None if update is triggered for a non-root node (soft update).
         :type: BlendigoNode
         '''
-        if not only_disconnected:
+        # if not Update.DISCONNECTED in update_flag:
+        if not only_local:
             if ((self.name, None) in update_history_cache
                 or (self.name, update_input_name) in update_history_cache):
                 return
             update_history_cache.add((self.name, update_input_name))
         
-        if eevee_parent:
-            eevee_tree = eevee_parent.id_data
-        else:
+        # if eevee_parent:
+        #     eevee_tree = eevee_parent.id_data
+        # else:
+        #     # material = bpy.context.object.active_material
+        #     # if not material.node_tree:
+        #     #     material.use_nodes = True
+        #     material = self.id_data.material
+        #     eevee_tree = material.node_tree
+        material = self.id_data.material
+        if not material:
             material = bpy.context.object.active_material
-            if not material.node_tree:
-                material.use_nodes = True
-            eevee_tree = material.node_tree
+        eevee_tree = material.node_tree
 
 
         if self.ubername:
@@ -621,14 +672,21 @@ class BlendigoNode:
 
         # update_input_name suggests that this node should be updated only downward.
         # Do not try to check upward connections if update_input_name is not None
-        if not update_input_name and not only_disconnected:
+
+        # if not update_input_name and not only_local:
+        # if not (update_input_name or only_local):
+        if not (update_input_name or (Update.DISCONNECTED in update_flag and Update.SOCKETS not in update_flag)):
             self.ensure_eevee_upward_links(eevee_node, eevee_parent, blendigo_link)
 
         # gather annotated props
-        self._update_annotated_props(eevee_node, update_input_name)
+        if Update.PROPERTIES in update_flag:
+            self._update_annotated_props(eevee_node, update_input_name)
+            if callback:
+                callback(self, eevee_node, update_input_name)
   
         # gather input sockets
-        self._update_socket_props(eevee_node, is_timer, update_input_name)
+        if Update.SOCKETS & Update.DISCONNECTED & update_flag:
+            self._update_socket_props(eevee_node, is_timer, update_input_name)
 
         # print('DISABLE LOCK: ',self)
         # self.id_data.LOCK_UPDATE = False
@@ -639,7 +697,7 @@ class BlendigoNode:
     def ensure_eevee_upward_links(self, eevee_node, eevee_parent, blendigo_link):
         '''
         Overload this method to define how the eevee node should connect itself to parent eevee node.
-        For most of the nodes these standard method should suffice.
+        For most of the nodes this standard method should suffice.
 
         Names of EEVEE sockets should match Blendigo sockets for ease of use.
 
@@ -771,12 +829,29 @@ class IR_MaterialOutputType(BlendigoNode, MaterialOutputFamily):
             node_tree = self.id_data
             node_tree.active_output_name = self.name
         super().update()
+        
+        
+        
+        # TODO: delete
+        from xml.dom import minidom
+        from . import processed_materials
+        processed_materials.clear()
+        xmls = self.build_xml() # this
+        for xml in xmls:
+            print(ET.dump(xml)) # this
+            
+            rough_string = ET.tostring(xml, 'utf-8')
+            reparsed = minidom.parseString(rough_string)
+            print(reparsed.toprettyxml(indent="\t"))
     
     def init(self, context):
         self.use_custom_color = True
         self.disable_other_outputs()
         self.set_active(True)
         super().init(context)
+    
+    def build_xml(self) -> list[ET.Element]:
+        raise NotImplementedError
 
 
 # ███████╗ ██████╗  ██████╗██╗  ██╗███████╗████████╗███████╗
@@ -798,7 +873,7 @@ class IR_NodeSocket:
 
     def notify_update(self, context, identifier=None):
         identifier = identifier if identifier else self.identifier
-        self.node.notify_update(context, identifier, self.default_value if hasattr(self, 'default_value') else None)
+        self.node.notify_update(context, identifier, self.default_value if hasattr(self, 'default_value') else None, Update.DISCONNECTED)
 
     def draw_prop(self, context, layout, node, text):
         """
@@ -820,7 +895,7 @@ class IR_NodeSocket:
     def draw(self, context, layout, node, text):
         # Check if the socket linked to this socket is in the set of allowed input socket classes.
         link = get_link(self)
-        if link and hasattr(self, "allowed_inputs"):
+        if not self.is_output and link and hasattr(self, "allowed_inputs"):
             if not self.is_allowed_input(link.from_socket):
                 layout.label(text="Wrong Input!", icon='ERROR')
                 return
@@ -858,22 +933,32 @@ class IR_NodeSocket:
 class WrongInputError(Exception):
     pass
 
-def NodeProperty(type, /, *, update_node=None, identifier, **opts):
-    ''' Wrap normal property and its update function with additional function updating the node (sockets etc.). Also calls node's general property update '''
+def NodeProperty(type, /, *, update_node=None, identifier, notify_callback = None, **opts):
+    '''
+    Wrap normal property and its update function with additional function updating the node (sockets etc.). Also calls node's general property update
+    :param type: type of property to construct
+    :type: property class from bpy.props
+    :param update_node: function that is called just before property update function. Use to update node's interface.
+    :type: Callable[[self: BlendigoNode, identifier: str], None]
+    :param identifier: should be the same as the name of the variable holding reference to this property. Used internally to find this property in the node object.
+    :type: str
+    :param notify_callback: function that is called after proccessing properties in node's eevee_update
+    :type: Callable[[self: BlendigoNode, eevee_node: ShaderNode, update_input_name: str], None]
+    '''
     if 'update' in opts and update_node:
         foreign_f = opts['update']
-        def f(self, context):
+        def f(self: BlendigoNode, context):
             update_node(self, context)
             foreign_f(self, context)
-            self.notify_update(context, identifier, getattr(self, identifier))
+            self.notify_update(context, identifier, getattr(self, identifier), Update.PROPERTIES, callback=notify_callback)
         opts['update'] = f
     elif update_node:
-        def f(self, context):
+        def f(self: BlendigoNode, context):
             update_node(self, context)
-            self.notify_update(context, identifier, getattr(self, identifier))
+            self.notify_update(context, identifier, getattr(self, identifier), Update.PROPERTIES, callback=notify_callback)
         opts['update'] = f
     else:
-        opts['update'] = lambda self, context: self.notify_update(context, identifier, getattr(self, identifier))
+        opts['update'] = lambda self, context: self.notify_update(context, identifier, getattr(self, identifier), Update.PROPERTIES, callback=notify_callback)
     return type(**opts)
 
 def SocketProperty(type, /, *, update_node=None, identifier=None, **opts):
@@ -898,13 +983,13 @@ class IR_Float_Socket(IR_NodeSocket, NodeSocket):
     bl_label = "Float"
     color = Color.float_texture
     default_value: SocketProperty(bpy.props.FloatProperty)
-    allowed_inputs = {'NodeSocketColor', 'IR_Color_Socket', 'IR_Float_Socket', 'IR_Slider_Socket'}
+    allowed_inputs = {'NodeSocketColor', 'IR_Color_Socket', 'IR_TX_Socket', 'IR_Float_Socket', 'IR_Slider_Socket'}
 
 class IR_Slider_Socket(IR_NodeSocket, NodeSocket):
     bl_label = "Slider"
     color = Color.float_texture
     default_value: SocketProperty(bpy.props.FloatProperty, min=0, max=1)
-    allowed_inputs = {'NodeSocketColor', 'IR_Color_Socket', 'IR_Float_Socket', 'IR_Slider_Socket'}
+    allowed_inputs = {'NodeSocketColor', 'IR_Color_Socket', 'IR_TX_Socket', 'IR_Float_Socket', 'IR_Slider_Socket'}
 
 # class IR_Slider_SocketInterface(bpy.types.NodeSocketInterface):
 #     bl_idname = 'IR_Slider_SocketInterface'
@@ -961,7 +1046,20 @@ class IR_Color_Socket(IR_NodeSocket, NodeSocket):
     bl_label = "Texture"
     color = Color.color_texture
     default_value: SocketProperty(bpy.props.FloatVectorProperty, subtype='COLOR', min=0, max=1)
-    allowed_inputs = {'NodeSocketColor', 'IR_Color_Socket', 'IR_SP_Socket'}
+    allowed_inputs = {'NodeSocketColor', 'IR_Color_Socket', 'IR_TX_Socket', 'IR_SP_Socket', 'IR_TX_Socket'}
+
+class IR_TX_Socket(IR_NodeSocket, NodeSocket):
+    bl_label = "Texture"
+    color = Color.color_texture
+    default_value: SocketProperty(bpy.props.FloatVectorProperty, subtype='COLOR', min=0, max=1)
+    allowed_inputs = {'IR_TX_SH_Input_Socket', 'IR_Color_Socket', 'IR_TX_Socket'}
+    hidden_value = True
+
+class IR_TX_SH_Input_Socket(IR_NodeSocket, NodeSocket):
+    bl_label = "Texture"
+    color = Color.color_texture
+    default_value: SocketProperty(bpy.props.FloatVectorProperty, subtype='COLOR', min=0, max=1)
+    allowed_inputs = {'IR_TX_Socket', 'IR_SH_Socket'}
 
 class IR_SP_Socket(IR_NodeSocket, NodeSocket):
     bl_label = "Texture"

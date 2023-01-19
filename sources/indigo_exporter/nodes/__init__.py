@@ -63,8 +63,10 @@ Two possible paths:
 import bpy
 import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem, NodeItemCustom
+from xml.etree import ElementTree as ET
 
 from bpy.types import NodeSocket, Node, ShaderNodeCustomGroup, NodeSocketInterface, NodeTree
+from . import xml_utils as _xml
 from .. core import RENDERER_BL_IDNAME
 from . ubershader_utils import fast_lookup, get_ubershader, new_eevee_node
 from . tree import *
@@ -232,17 +234,49 @@ class IR_Spectrum(InputShard, Node):
 
 
 ####################
+# TODO: gamma/ABC node to alter texture's ABC
+# eevee node can take Original ABC output of eevee texture node.
+# blendigo node can look for Alter ABC parent node of blendigo texture
+# override ensure_eevee_upward_links in IR_Texture to connect ABC Original to Alter ABC
 
 class IR_Texture(BlendigoNode, Node):
     bl_label = "Texture"
-    ubername = "ShaderNodeTexImage"
+    # ubername = "ShaderNodeTexImage"
+    ubername = "_IndigoTextureUberShader_v1"
 
-    image: NodeProperty(bpy.props.PointerProperty, identifier='image', type=bpy.types.Image)
+    def image_notify_callback(self, eevee_node, update_input_name):
+        eevee_tex = eevee_node.node_tree.nodes['Image Texture']
+        new_image = getattr(self, update_input_name)
+        if eevee_tex.image is new_image:
+            return
+        eevee_tex.image = new_image
+        if new_image:
+            new_image.colorspace_settings.name = 'Raw'
+
+    image: NodeProperty(bpy.props.PointerProperty, identifier='image', notify_callback=image_notify_callback, type=bpy.types.Image)
     TX_A: NodeProperty(bpy.props.FloatProperty, identifier='TX_A', name='(A) Brightness', precision=5,)
-    TX_B: NodeProperty(bpy.props.FloatProperty, identifier='TX_B', name='(B) Scale', precision=5,)
+    TX_B: NodeProperty(bpy.props.FloatProperty, identifier='TX_B', name='(B) Scale', precision=5, default=1)
     TX_C: NodeProperty(bpy.props.FloatProperty, identifier='TX_C', name='(C) Offset', precision=5,)
-    TX_uvset: NodeProperty(bpy.props.StringProperty, identifier='TX_uvset')
-    TX_abc_from_tex: NodeProperty(bpy.props.BoolProperty, identifier='TX_abc_from_tex', name='Use texture A,B,C')
+    TX_exponent: NodeProperty(bpy.props.FloatProperty, identifier='TX_exponent', name='Gamma', precision=5, default=2.2, min=0.001)
+    
+    # def TX_uvset_notify_callback(self, eevee_node, update_input_name):
+    #     print(self, eevee_node, update_input_name)
+    #     try:
+    #         from .ubershader_utils import _ensure_uv_node
+    #         material = bpy.context.object.active_material
+    #         uv_node = _ensure_uv_node(eevee_node, material)
+    #         uv_node.uv_map = getattr(self, update_input_name)
+    #     except:
+    #         import traceback
+    #         traceback.print_exc()
+    def TX_uvset_notify_callback(self, eevee_node, update_input_name):
+        eevee_uv = eevee_node.node_tree.nodes['UV Map']
+        new_uv_map = getattr(self, update_input_name)
+        if eevee_uv.uv_map != new_uv_map:
+            eevee_uv.uv_map = new_uv_map
+
+    TX_uvset: NodeProperty(bpy.props.StringProperty, identifier='TX_uvset', notify_callback=TX_uvset_notify_callback)
+    # TX_abc_from_tex: NodeProperty(bpy.props.BoolProperty, identifier='TX_abc_from_tex', name='Use texture A,B,C')
     TX_smooth: NodeProperty(bpy.props.BoolProperty, identifier='TX_smooth', name='Smooth', description='Smooth the texture by up-converting from 8bit to 16bit (for bumpmaps etc)',)
     
     def draw_buttons( self, context, layout ):
@@ -254,18 +288,28 @@ class IR_Texture(BlendigoNode, Node):
         col.prop(self, 'TX_A')
         col.prop(self, 'TX_B')
         col.prop(self, 'TX_C')
-        col.enabled = self.TX_abc_from_tex == False
+        col.prop(self, 'TX_exponent')
+        # col.enabled = self.TX_abc_from_tex == False
 
         col = layout.column()
         col.prop_search(self, 'TX_uvset', context.object.data, 'uv_layers', text="UV Set")
 
         row = col.row(align=True)
-        row.prop(self, 'TX_abc_from_tex')
+        # row.prop(self, 'TX_abc_from_tex')
         row.prop(self, 'TX_smooth')
     
     def init_inputs( self, context ):
-        self.outputs.new(IR_Color_Socket.__name__, "Color", identifier='colour_SP_rgb')
+        self.outputs.new(IR_TX_Socket.__name__, "Texture", identifier='colour_SP_rgb')
         # self.inputs.new(IR_Color_Socket.__name__, "Input")
+    
+    def complete_xml(self, material_xml:_xml.XMLElement, mat_data:_xml.XMLElement):
+        ''' Emission XML '''
+        texture = mat_data.append_tag('texture')
+        texture.append_tag('path', getattr(self.image, 'filepath', ''))
+        texture.append_tag('a', self.TX_A)
+        texture.append_tag('b', self.TX_B)
+        texture.append_tag('c', self.TX_C)
+        texture.append_tag('exponent', self.TX_exponent)
 
 class IR_Diffuse(IR_MaterialType, Node):
     bl_label = "Diffuse Material"
@@ -290,6 +334,63 @@ class IR_Diffuse(IR_MaterialType, Node):
         self.inputs.new(IR_F_Bump_Socket.__name__, "Bump", identifier='bump_bool')
         self.inputs.new(IR_F_Normal_Socket.__name__, "Normal", identifier='normal_bool')
         self.inputs.new(IR_F_Displacement_Socket.__name__, "Displacement", identifier='displacement_bool')
+    
+    def build_xml(self):
+        ''' Diffuse xml '''
+        mat_uid = get_uid(self)
+        material = _xml.XMLElement('material')
+        material.append_tag('uid', mat_uid)
+        material.append_tag('name', self.id_data.material.name)
+
+        # diffuse_transmitter
+        # diffuse
+        # oren_nayar sigma
+        if self.shadow_catcher:
+            material.append_tag('shadow_catcher', self.shadow_catcher)
+        
+        if self.transmitter:
+            mat_data = material.append_tag('diffuse_transmitter')
+        elif self.sigma != 0:
+            mat_data = material.append_tag('oren_nayar')
+            mat_data.append_tag('sigma', self.sigma)
+        else:
+            mat_data = material.append_tag('diffuse')
+
+        connected_sockets = set()
+        for i, link in self.iterate_inputs():
+            identifier = link.to_socket.identifier
+            connected_sockets.add(identifier)
+            if isinstance(link.from_node, MaterialFeatureFamily):
+                link.from_node.complete_xml(material, mat_data)
+            elif identifier == 'colour_SP_rgb':
+                albedo = mat_data.append_tag('albedo')
+                link.from_node.complete_xml(material, albedo)
+        print(connected_sockets)
+
+        if 'colour_SP_rgb' not in connected_sockets:
+            constant = mat_data.append_tag(('albedo', 'constant'))
+            rgb = constant.append_tag('rgb')
+            rgb.append_tag('rgb', _xml.wrap.RGB(self.get_input('colour_SP_rgb').default_value[:]))
+            rgb.append_tag('gamma', 1)
+
+        
+        return (material.etree_element,)
+
+processed_materials = dict()
+class AlreadyProcessedException(Exception):
+    def __init__(self, uid, message="UID already exists"):
+        super().__init__(message)
+        self.uid = uid
+
+def get_uid(obj, offset=0):
+    global processed_materials
+    objhash = hash(obj)
+    if objhash in processed_materials:
+        # already processed
+        raise AlreadyProcessedException(processed_materials[objhash])
+    
+    uid = processed_materials[objhash] = 10000 + len(processed_materials)
+    return uid
 
 class IR_Mix(IR_MaterialType, Node):
     bl_label = "Mix Materials"
@@ -308,6 +409,48 @@ class IR_Mix(IR_MaterialType, Node):
         self.inputs.new(IR_Slider_Socket.__name__, "Blend Amount", identifier="blend_amount").slider=True
         self.inputs.new(IR_Material_Socket.__name__, "Material B", identifier="material_B")
         self.inputs.new(IR_Material_Socket.__name__, "Material A", identifier="material_A")
+    
+    def build_xml(self) -> list[ET.Element]:
+        ''' Blend XML '''
+        mat_uid = get_uid(self)
+
+        material = _xml.XMLElement('material')
+        material.append_tag('uid', mat_uid)
+        material.append_tag('name', self.id_data.material.name)
+        mat_data = material.append_tag('blend')
+        mat_data.append_tag('step_blend', self.step_blend)
+
+        materials = [material.etree_element,]
+
+        for i, link in self.iterate_inputs(empty=True):
+            if isinstance(link, EmptySocket):
+                if link.identifier == 'blend_amount':
+                    mat_data.append_tag(('blend', 'constant'), link.default_value)
+                elif link.identifier == 'material_B':
+                    mat_data.append_tag('b_name', 'blendigo_null')
+                elif link.identifier == 'material_A':
+                    mat_data.append_tag('a_name', 'blendigo_null')
+                
+                continue
+
+            identifier = link.to_socket.identifier
+
+            if identifier == 'blend_amount':
+                blend = mat_data.append_tag('blend')
+                link.from_node.complete_xml(material, blend)
+                continue
+
+            # only identifier material_B or material_A are left
+
+            sub_mats = link.from_node.build_xml()
+            sub_mat = sub_mats[0]
+            sub_mat_uid = int(sub_mat.find('uid').text)
+            ab_mat_uid = 'b_mat_uid' if identifier == 'material_B' else 'a_mat_uid'
+            mat_data.append_tag(ab_mat_uid, sub_mat_uid)
+            materials.extend(sub_mats)
+        
+        return materials
+
 
 class IR_MaterialOutput(IR_MaterialOutputType, Node):
     bl_label = "Material Output"
@@ -315,18 +458,52 @@ class IR_MaterialOutput(IR_MaterialOutputType, Node):
     
     def init_inputs(self, context):
         self.inputs.new(IR_Material_Socket.__name__, "Material")
-        self.inputs.new(IR_Material_Socket.__name__, "Material 2")
+    
+    def build_xml(self):
+        ''' Start building xml from this node. '''
+        # only one input
+        for i, link in self.iterate_inputs():
+            # return list of xml materials
+            return link.from_node.build_xml()
 
-class IR_F_Emission(BlendigoNode, Node, MaterialFamily):
+class IR_F_Displacement(BlendigoNode, Node, MaterialFamily, MaterialFeatureFamily):
+    bl_label = "Feature: Displacement Map"
+    bl_icon = 'DISC'
+
+    def init_inputs( self, context ):
+        self.outputs.new(IR_F_Displacement_Socket.__name__, "Output", identifier='displacement_bool')
+        self.inputs.new(IR_TX_Socket.__name__, "Texture", identifier='displacement_SP_rgb')
+
+class IR_F_Normal(BlendigoNode, Node, MaterialFamily, MaterialFeatureFamily):
+    bl_label = "Feature: Normal Map"
+    bl_icon = 'DISC'
+
+    def init_inputs( self, context ):
+        self.outputs.new(IR_F_Normal_Socket.__name__, "Output", identifier='normal_bool')
+        self.inputs.new(IR_TX_Socket.__name__, "Texture", identifier='normal_SP_rgb')
+
+class IR_F_Bump(BlendigoNode, Node, MaterialFamily, MaterialFeatureFamily):
+    bl_label = "Feature: Bump Map"
+    bl_icon = 'DISC'
+
+    def init_inputs( self, context ):
+        self.outputs.new(IR_F_Bump_Socket.__name__, "Output", identifier='bump_bool')
+        self.inputs.new(IR_TX_Socket.__name__, "Texture", identifier='bump_SP_rgb')
+    
+    def complete_xml(self, material_xml:_xml.XMLElement, mat_data:_xml.XMLElement):
+        ''' Emission XML '''
+        pass
+    
+class IR_F_Emission(BlendigoNode, Node, MaterialFamily, MaterialFeatureFamily):
     bl_label = "Feature: Emission"
     bl_icon = 'DISC'
 
     emission_bool: bpy.props.BoolProperty(default=True)
 
     emit_layer: bpy.props.StringProperty(name="Light Layer", description="lightlayer; leave blank to use default")
-    emit_power: bpy.props.FloatProperty(name="Power", description="Power", default=1500.0, min=0.0, max=1000000.0, update=lambda s,c: s.set_strength(c.material))
-    emit_gain_val: bpy.props.FloatProperty(name="Gain", description="Gain", default=1.0, min=0.0, max=1.0, update=lambda s,c: s.set_strength(c.material))
-    emit_gain_exp: bpy.props.IntProperty(name="*10^", description="Exponent", default=0, min=-30, max=30, update=lambda s,c: s.set_strength(c.material))
+    # emit_power: bpy.props.FloatProperty(name="Power", description="Power", default=1500.0, min=0.0, max=1000000.0)
+    emit_gain_val: bpy.props.FloatProperty(name="Gain", description="Gain", default=1.0, min=0.0, max=1.0)
+    emit_gain_exp: bpy.props.IntProperty(name="*10^", description="Exponent", default=0, min=-30, max=30)
     # emission_scale: bpy.props.BoolProperty(name="Emission scale", description="Emission scale", default=False, update=lambda s,c: s.set_strength(c.material))
 
     def emission_scale_un(self, context):
@@ -346,20 +523,17 @@ class IR_F_Emission(BlendigoNode, Node, MaterialFamily):
         elif self.emission_scale_source in {'OBJECT', 'DATA'}:
             if emission_scale_value_socket:
                 self.inputs.remove(emission_scale_value_socket)
-    
-    def set_strength(self, m):
-        print('set_strength', self, m)
 
     # emission_scale: bpy.props.BoolProperty(name="Emission scale", description="Emission scale", default=False, update=lambda s,c: s.set_strength(c.material))
-    emission_scale: NodeProperty(bpy.props.BoolProperty, identifier='emission_scale', update_node=emission_scale_un, name="Emission scale", description="Emission scale", default=False, update=lambda s,c: s.set_strength(c.material))
+    emission_scale: NodeProperty(bpy.props.BoolProperty, identifier='emission_scale', update_node=emission_scale_un, name="Emission scale", description="Emission scale", default=False)
     emission_scale_measure: bpy.props.EnumProperty(name="Unit", description="Units for emission scale", default="luminous_flux", items=[
         ('luminous_flux', 'lm', 'Luminous flux'),
         ('luminous_intensity', 'cd', 'Luminous intensity (lm/sr)'),
         ('luminance', 'nits', 'Luminance (lm/sr/m/m)'),
         ('luminous_emittance', 'lux', 'Luminous emittance (lm/m/m)')
     ])
-    emission_scale_value: bpy.props.FloatProperty(name="Value", description="Emission scale value", default=1.0, min=0.0, soft_min=0.0, max=10.0, soft_max=10.0, update=lambda s,c: s.set_strength(c.material))
-    emission_scale_exp: bpy.props.IntProperty(name="*10^", description="Emission scale exponent", default=0, min=-30, max=30, update=lambda s,c: s.set_strength(c.material))
+    emission_scale_value: bpy.props.FloatProperty(name="Value", description="Emission scale value", default=1.0, min=0.0, soft_min=0.0, max=10.0, soft_max=10.0)
+    emission_scale_exp: bpy.props.IntProperty(name="*10^", description="Emission scale exponent", default=0, min=-30, max=30)
     # emission_scale_source: bpy.props.EnumProperty(name="Origin", description="Where emission scale is stored", default="MATERIAL", items=[
     emission_scale_source: NodeProperty(bpy.props.EnumProperty, identifier='emission_scale_source', update_node=emission_scale_source_update_node, name="Origin", description="Where emission scale is stored", default="MATERIAL", items=[
         ('MATERIAL', 'Material', 'One per Material'),
@@ -412,6 +586,30 @@ class IR_F_Emission(BlendigoNode, Node, MaterialFamily):
         self.outputs.new(IR_F_Emission_Socket.__name__, "Output", identifier='emission_bool')
         self.inputs.new(IR_Color_Socket.__name__, "Color", identifier='emission_SP_rgb')
         self.inputs.new(IR_Float_Socket.__name__, "Emit Power", identifier="emission_power")
+    
+    def complete_xml(self, material_xml:_xml.XMLElement, mat_data:_xml.XMLElement):
+        ''' Emission XML '''
+
+        material_xml.append_tag('emission_sampling_factor', self.em_sampling_mult)
+        material_xml.append_tag('backface_emit', self.backface_emit_bool)
+        
+        power = self.get_input('emission_power').default_value**self.emit_gain_exp * self.emit_gain_val
+        mat_data.append_tag(('base_emission', 'constant', 'uniform', 'value'), power)
+        if self.emit_layer:
+            layers = bpy.context.scene.indigo_lightlayers.enumerate()
+            if self.emit_layer in layers:
+                mat_data.append_tag('layer', bpy.context.scene.indigo_lightlayers.enumerate()[self.emit_layer])
+        rgb = mat_data.append_tag(('emission', 'constant', 'rgb'))
+        rgb.append_tag('rgb', _xml.wrap.RGB(self.get_input('emission_SP_rgb').default_value[:]))
+        rgb.append_tag('gamma', 1)
+        # TODO: get value of linked float/int inputs. These values can be extracted by simple getters.
+        # E.g.: getattr(math_node, 'get_output_value_'+math_node_output.identifier)
+        # Right now we don't have any float/int output node so it's pointless.
+
+        # TODO: ies profiles. it should be saved in model2 tag.
+        # Should ies profile be saved either in material (affects all objects)
+        # or in the object data (only object), like emission scale?
+
 
 #######
 class IR_BlackBody(BlendigoNode, Node):
@@ -559,16 +757,25 @@ class BlendigoNodeCategory( NodeCategory ):
         return (context.space_data.type == 'NODE_EDITOR' and
                 context.space_data.tree_type == 'IR_MaterialNodeTree')
 
-categories = [ BlendigoNodeCategory( "IR_Nodes", "Blendigo Nodes", items = [
-    NodeItem(IR_Texture.__name__),
-    NodeItem(IR_RGB.__name__),
-    NodeItem(IR_Uniform.__name__),
-    NodeItem(IR_BlackBody.__name__),
-    NodeItem(IR_F_Emission.__name__),
-    NodeItem(IR_Diffuse.__name__),
-    NodeItem(IR_MaterialOutput.__name__),
-    NodeItem(IR_Mix.__name__),
-] ) ]
+categories = [
+    BlendigoNodeCategory( "IR_Materials", "Materials", items = [
+        NodeItem(IR_Diffuse.__name__),
+        NodeItem(IR_MaterialOutput.__name__),
+        NodeItem(IR_Mix.__name__),
+    ] ),
+    BlendigoNodeCategory( "IR_Other", "Other Nodes", items = [
+        NodeItem(IR_Texture.__name__),
+        NodeItem(IR_RGB.__name__),
+        NodeItem(IR_Uniform.__name__),
+        NodeItem(IR_BlackBody.__name__),
+        NodeItem(IR_MaterialOutput.__name__),
+    ] ),
+    BlendigoNodeCategory( "IR_Features", "Material Features", items = [
+        NodeItem(IR_F_Emission.__name__),
+        NodeItem(IR_F_Bump.__name__),
+        NodeItem(IR_F_Normal.__name__),
+    ] ),
+]
 
 classes={
     # IR_M_Diffuse,
@@ -618,8 +825,9 @@ class IR_OT_material_show_node_tree(bpy.types.Operator):
         self.report({"ERROR"}, "Open a node editor first")
         return {"CANCELLED"}
 
-def init_mat_node_tree(node_tree):
+def init_mat_node_tree(node_tree, material):
     node_tree.use_fake_user = True # TODO: check if still needed in the current Blender
+    node_tree.material = material
 
     nodes = node_tree.nodes
 
@@ -653,7 +861,7 @@ class IR_OT_material_node_tree_new(bpy.types.Operator):
             name = "IR Material Node Tree"
 
         node_tree = bpy.data.node_groups.new(name=name, type="IR_MaterialNodeTree")
-        init_mat_node_tree(node_tree)
+        init_mat_node_tree(node_tree, mat)
 
         if mat:
             mat.indigo_material.node_tree = node_tree
@@ -683,7 +891,7 @@ class IR_OT_mat_nodetree_new(bpy.types.Operator, _NodeOperator):
             name = "IR Material Node Tree"
 
         node_tree = bpy.data.node_groups.new(name=name, type="IR_MaterialNodeTree")
-        init_mat_node_tree(node_tree)
+        init_mat_node_tree(node_tree, mat)
 
         if mat:
             mat.indigo_material.node_tree = node_tree
@@ -701,7 +909,7 @@ class IR_OT_material_new(bpy.types.Operator, _NodeOperator):
         mat = bpy.data.materials.new(name="Material")
         tree_name = make_nodetree_name(mat.name)
         node_tree = bpy.data.node_groups.new(name=tree_name, type="IR_MaterialNodeTree")
-        init_mat_node_tree(node_tree)
+        init_mat_node_tree(node_tree, mat)
         mat.indigo_material.node_tree = node_tree
 
         obj = context.active_object
