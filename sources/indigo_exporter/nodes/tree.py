@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import partial
 from bpy import utils
 from itertools import chain
-from typing import Generator, TypedDict
+from typing import Callable, Generator, TypedDict
 import bpy
 import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem, NodeItemCustom
@@ -10,7 +10,7 @@ from xml.etree import ElementTree as ET
 
 from bpy.types import NodeSocket, Node, ShaderNodeCustomGroup, NodeSocketInterface, NodeTree
 from .. core import RENDERER_BL_IDNAME
-from . ubershader_utils import fast_lookup, get_ubershader, new_eevee_node
+from . ubershader_utils import get_ubershader, new_eevee_node
 from . simple_profiler import SimpleProfiler
 from .. core import BLENDIGO_DEV
 from enum import Flag, auto
@@ -280,7 +280,18 @@ class BlendigoNode:
     id: bpy.props.IntProperty()
     local_props = set()
     ubername = None
-
+    # eevee_on_create = None # Callable[self: BlendigoNode, eevee_node]
+    def eevee_on_create(self, eevee_node: bpy.types.ShaderNode):
+        '''
+        Callback method after creation of EEVEE node.
+        Use it to create and connect other nodes that the newly created node depends on (e.g. texture/uv node pair).
+        '''
+        pass
+    
+    inputs_translation = {
+        "Material": (((0,0),), None),
+    }
+    
     def finalize_init(self):
         self.update()
 
@@ -449,6 +460,9 @@ class BlendigoNode:
                 eevee_input_link = first(l for l in eevee_socket.links)
                 if eevee_input_link:
                     source_node = eevee_input_link.from_node
+                    cb = self.input_detach_callbacks.get(link.identifier)
+                    if cb:
+                        cb(self, eevee_node, link.identifier)
                     eevee_node.id_data.links.remove(eevee_input_link)
                     # remove the node if the node is not connected
                     if not any(socket for socket in source_node.outputs if socket.is_linked):
@@ -513,29 +527,34 @@ class BlendigoNode:
         #     material = bpy.context.object.active_material
         # except:
         #     return
+        from .ubershader_utils import get_material_group
         material = self.id_data.material
         if not material:
-            material = bpy.context.object.active_material
-        
-        eevee_node_tree = material.node_tree
+            return
+            # material = bpy.context.object.active_material
         if material.indigo_material.node_tree is not self.id_data:
             return
         
+        group_node_tree = get_material_group(material)
+
         # Only independent nodes (with self.ubername) should be deleted so
         # nodes without self.ubername like Emission cannot delete their parents.
         if self.ubername:
             # Do not delete the eevee node so its children can still be used.
             # The node itself will get deleted later anyway. It's enough to delete the reference from fast_lookup
-            
-            # eevee_node = fast_lookup(eevee_node_tree, self.id)
-            # if eevee_node:
-            #     eevee_node_tree.nodes.remove(eevee_node)
-            fast_lookup(eevee_node_tree, self.id, clear=True)
+            self.fast_lookup(group_node_tree, clear=True)
         
         # This is a good place to clear unconnected EEVEE nodes
-        nodes_to_delete = [n for n in eevee_node_tree.nodes if 'blendigo_node' in n and not any(True for s in n.outputs if s.is_linked)]
+        # look in material group
+        
+        nodes_to_delete = [n for n in group_node_tree.nodes if n.type != 'GROUP_OUTPUT' and 'blendigo_node' in n and not any(True for s in n.outputs if s.is_linked)]
         for eevee_node in nodes_to_delete:
-            eevee_node_tree.nodes.remove(eevee_node)
+            group_node_tree.nodes.remove(eevee_node)
+        
+        # look in the main material's node tree
+        nodes_to_delete = [n for n in material.node_tree.nodes if 'blendigo_node' in n and not any(True for s in n.outputs if s.is_linked)]
+        for eevee_node in nodes_to_delete:
+            material.node_tree.nodes.remove(eevee_node)
 
     def update(self):
         '''
@@ -614,6 +633,7 @@ class BlendigoNode:
         :type: BlendigoNode
         '''
         # if not Update.DISCONNECTED in update_flag:
+        # if Update.PROPERTIES == update_flag:
         if not only_local:
             if ((self.name, None) in update_history_cache
                 or (self.name, update_input_name) in update_history_cache):
@@ -629,16 +649,21 @@ class BlendigoNode:
         #     material = self.id_data.material
         #     eevee_tree = material.node_tree
         material = self.id_data.material
-        if not material:
+        if not material: # TODO: is this if necessary?
             material = bpy.context.object.active_material
-        eevee_tree = material.node_tree
+        # eevee_tree = material.node_tree
+        from . ubershader_utils import get_material_group
+        eevee_tree = get_material_group(material)
 
 
         if self.ubername:
             # Node that creates independent EEVEE node (e.g.: diffuse, mix, phong)
             eevee_node = self.fast_lookup(eevee_tree)
             if not eevee_node and eevee_parent:
-                eevee_node = new_eevee_node(eevee_tree.nodes, self.ubername)
+                # on_create = self.eevee_on_create
+                # if self.eevee_on_create:
+                #     on_create = partial(self.eevee_on_create, self)
+                eevee_node = new_eevee_node(eevee_tree.nodes, self.ubername, on_create=self.eevee_on_create)
                 self.fast_lookup(eevee_tree, eevee_node)
             elif not eevee_node and not eevee_parent:
                 # should not happen
@@ -673,9 +698,20 @@ class BlendigoNode:
         # update_input_name suggests that this node should be updated only downward.
         # Do not try to check upward connections if update_input_name is not None
 
+        # check upward link if:
+        # - update_input_name not defined. Otherwise we are focused only on this input
+        # - Update.SOCKETS or not Update.DISCONNECTED
+        #   SOCKETS/ALL + undefined input -> check everything, output socket included
+        #   not DISCONNECTED + undefined input:
+        #       DISCONNECTED is flagged by NodeSocket property. It means that user changed input of an unconnected socket.
+        #       We want to focus only on property of the changed, disconnected socket, not the parent nodes.
+        #       This also catches cases like PROPERTIES (not SOCKET and not DISCONNECTED). Actually DISCONNECTED socket property is the only case when this should give False
+        
         # if not update_input_name and not only_local:
         # if not (update_input_name or only_local):
-        if not (update_input_name or (Update.DISCONNECTED in update_flag and Update.SOCKETS not in update_flag)):
+        # if not (update_input_name or (Update.DISCONNECTED in update_flag and Update.SOCKETS not in update_flag)):
+        if (not update_input_name 
+            and (Update.SOCKETS in update_flag or Update.DISCONNECTED not in update_flag)):
             self.ensure_eevee_upward_links(eevee_node, eevee_parent, blendigo_link)
 
         # gather annotated props
@@ -684,19 +720,16 @@ class BlendigoNode:
             if callback:
                 callback(self, eevee_node, update_input_name)
   
-        # gather input sockets
-        if Update.SOCKETS & Update.DISCONNECTED & update_flag:
+        # gather input sockets (connected and disconnected)
+        if Update.SOCKETS & update_flag:
             self._update_socket_props(eevee_node, is_timer, update_input_name)
 
         # print('DISABLE LOCK: ',self)
         # self.id_data.LOCK_UPDATE = False
-    
-    inputs_translation = {
-        "Material": 0,
-    }
+
     def ensure_eevee_upward_links(self, eevee_node, eevee_parent, blendigo_link):
         '''
-        Overload this method to define how the eevee node should connect itself to parent eevee node.
+        Override this method to define how the eevee node should connect itself to parent eevee node.
         For most of the nodes this standard method should suffice.
 
         Names of EEVEE sockets should match Blendigo sockets for ease of use.
@@ -708,10 +741,14 @@ class BlendigoNode:
             return
         # Diffuse, Mix can be linked to Mix, Material Output
         eevee_tree = eevee_node.id_data
-        socket_name = self.inputs_translation.get(blendigo_link.to_socket.identifier, blendigo_link.to_socket.identifier)
-        # socket_name = self.inputs_translation[blendigo_link.to_socket.identifier]
-        if not first(l for l in eevee_node.outputs[0].links if l.to_node == eevee_parent and l.to_socket.identifier == socket_name):
-            eevee_tree.links.new(eevee_node.outputs[0], eevee_parent.inputs[socket_name])
+        links, link_callback = self.inputs_translation.get(blendigo_link.to_socket.identifier, (((0, blendigo_link.to_socket.identifier),), None))
+        for in_socket_name, out_socket_name in links:
+            # in_socket_name, out_socket_name = self.inputs_translation.get(blendigo_link.to_socket.identifier, (0, blendigo_link.to_socket.identifier))
+            # socket_name = self.inputs_translation[blendigo_link.to_socket.identifier]
+            if not any(l for l in eevee_node.outputs[in_socket_name].links if l.to_node == eevee_parent and l.to_socket.identifier == out_socket_name):
+                eevee_tree.links.new(eevee_node.outputs[in_socket_name], eevee_parent.inputs[out_socket_name])
+        if link_callback:
+            link_callback(self, eevee_node, eevee_parent, blendigo_link)
     
     # def _get_eevee_node(self, eevee_tree):
     #     if not self.ubername:
@@ -768,9 +805,13 @@ class IR_MaterialOutputType(BlendigoNode, MaterialOutputFamily):
         fast_lookup does not create nodes but in this case let's make an exception, as the existence of
         the output is my invariant.
         '''
-        eevee_root = material_node_tree.get_output_node('ALL')
-        if not eevee_root:
-            eevee_root = material_node_tree.new('ShaderNodeOutputMaterial')
+        # eevee_root = material_node_tree.get_output_node('ALL')
+        # if not eevee_root:
+        #     eevee_root = material_node_tree.nodes.new('ShaderNodeOutputMaterial')
+        if 'Group Output' in material_node_tree.nodes:
+            eevee_root = material_node_tree.nodes['Group Output']
+        else:
+            eevee_root = material_node_tree.nodes.new('NodeGroupOutput')
         
         return eevee_root
     
@@ -820,7 +861,7 @@ class IR_MaterialOutputType(BlendigoNode, MaterialOutputFamily):
                 break
 
     def copy(self, orig_node):
-        super().copy()
+        super().copy(orig_node)
         self.disable_other_outputs()
 
     def update(self):
@@ -933,7 +974,7 @@ class IR_NodeSocket:
 class WrongInputError(Exception):
     pass
 
-def NodeProperty(type, /, *, update_node=None, identifier, notify_callback = None, **opts):
+def NodeProperty(type, /, *, update_node:Callable[[BlendigoNode, str], None]=None, identifier, notify_callback:Callable[[BlendigoNode, bpy.types.ShaderNode, str], None] = None, **opts):
     '''
     Wrap normal property and its update function with additional function updating the node (sockets etc.). Also calls node's general property update
     :param type: type of property to construct

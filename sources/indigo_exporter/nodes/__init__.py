@@ -68,77 +68,9 @@ from xml.etree import ElementTree as ET
 from bpy.types import NodeSocket, Node, ShaderNodeCustomGroup, NodeSocketInterface, NodeTree
 from . import xml_utils as _xml
 from .. core import RENDERER_BL_IDNAME
-from . ubershader_utils import fast_lookup, get_ubershader, new_eevee_node
+from . ubershader_utils import get_ubershader, new_eevee_node, get_material_group, ensure_node
 from . tree import *
 
-"""
-
-class OptionShard:
-    '''Mix-in class'''
-    pass
-
-class InputShard:
-    '''Mix-in class'''
-    pass
-
-class IR_OptionShardSocket(NodeSocket):
-    # Description string
-    '''Indigo Material Options'''
-    # Label for nice name display
-    bl_label = "Material Option Socket"
-    
-    def __init__(self):
-        # In Blender 3.3.0 is_multi_input is read only but it may change soon
-        if not self.rna_type.properties['is_multi_input'].is_readonly:
-            self.is_multi_input= True
-        self.link_limit = 0
-        self.display_shape = 'SQUARE' #  [CIRCLE, SQUARE, DIAMOND, CIRCLE_DOT, SQUARE_DOT, DIAMOND_DOT]
-        # self.type = 'CUSTOM' # CUSTOM, VALUE, INT, BOOLEAN, VECTOR, STRING, RGBA, SHADER, OBJECT, IMAGE, GEOMETRY, COLLECTION, TEXTURE, MATERIAL
-
-    # Optional function for drawing the socket input value
-    def draw(self, context, layout, node, text):
-        layout.label(text=text)
-        return
-        if self.is_output or self.is_linked:
-            layout.label(text=text)
-        else:
-            layout.label(text=text)
-
-    # Socket color
-    def draw_color(self, context, node):
-        return (0.25, 0.205, 0.974, 1.0)
-    
-    def socket_value_update(context):
-        print('socket_value_update', context)
-
-class IR_OptionShardSocketInterface(NodeSocketInterface):
-    bl_socket_idname = IR_OptionShardSocket.__name__ # required, Blender will complain if it is missing
-    # those are (at least) used under Interface in N-menu in
-    # node editor when viewing a node group, for input and output sockets
-    def draw(self, context, layout):
-        pass
-    def draw_color(self, context):
-        return (0,1,1,1)
-
-class IR_MaterialSpectrumSocket(NodeSocket):
-    '''Indigo Material Spectrum Type'''
-    bl_label = "Indigo Spectrum"
-    
-    def __init__(self):
-        self.link_limit = 1
-        self.display_shape = 'SQUARE' #  [CIRCLE, SQUARE, DIAMOND, CIRCLE_DOT, SQUARE_DOT, DIAMOND_DOT]
-
-    # Optional function for drawing the socket input value
-    def draw(self, context, layout, node, text):
-        if self.is_output or self.is_linked:
-            layout.label(text=text)
-        else:
-            layout.label(text=text)
-
-    # Socket color
-    def draw_color(self, context, node):
-        return (0.9, 0.9, 0.1, 1.0)
-"""
 """
 class IR_BlackBody(InputShard, Node):
     '''Indigo Render Emission Shard'''
@@ -239,13 +171,51 @@ class IR_Spectrum(InputShard, Node):
 # blendigo node can look for Alter ABC parent node of blendigo texture
 # override ensure_eevee_upward_links in IR_Texture to connect ABC Original to Alter ABC
 
+class IR_AlterABC(BlendigoNode, Node):
+    bl_label = "(A) Brightness/(B) Scale/(C) Offset/Gamma"
+    ubername = "_IndigoABCUberShader_v1"
+
+    # TX_A: NodeProperty(bpy.props.FloatProperty, identifier='TX_A', name='(A) Brightness', precision=5,)
+    # TX_B: NodeProperty(bpy.props.FloatProperty, identifier='TX_B', name='(B) Scale', precision=5, default=1)
+    # TX_C: NodeProperty(bpy.props.FloatProperty, identifier='TX_C', name='(C) Offset', precision=5,)
+    # TX_exponent: NodeProperty(bpy.props.FloatProperty, identifier='TX_exponent', name='Gamma', precision=5, default=2.2, min=0.001)
+
+    inputs_translation = {
+        "original_ABC_TX_rgb": ((('original_ABC', 'original_ABC_TX_rgb'),), None),
+    }
+
+    def init_inputs( self, context ):
+        self.outputs.new(IR_TX_Socket.__name__, "Texture", identifier='out_TX_rgb')
+        self.inputs.new(IR_TX_Socket.__name__, "Input", identifier='original_ABC_TX_rgb')
+        self.inputs.new(IR_Float_Socket.__name__, '(A) Brightness', identifier="TX_A")
+        self.inputs.new(IR_Float_Socket.__name__, '(B) Scale', identifier="TX_B").default_value = 1
+        self.inputs.new(IR_Float_Socket.__name__, '(C) Offset', identifier="TX_C")
+        self.inputs.new(IR_Float_Socket.__name__, 'Gamma', identifier="TX_exponent").default_value = 2.2
+    
+    def complete_xml(self, material_xml:_xml.XMLElement, mat_data:_xml.XMLElement):
+        ''' ABC XML '''
+        # this node accepts only TX sockets, so let the texture complete the XML and then edit values.
+        for i, link in self.iterate_inputs():
+            link.from_node.complete_xml(material_xml, mat_data)
+        
+        # print('______35463574878538+')
+        # print(ET.dump(mat_data.etree_element))
+        # print(ET.dump(mat_data.find('a').etree_element))
+        mat_data.find('.//a').etree_element.text = str(self.get_input('TX_A').default_value)
+        mat_data.find('.//b').etree_element.text = str(self.get_input('TX_B').default_value)
+        mat_data.find('.//c').etree_element.text = str(self.get_input('TX_C').default_value)
+        mat_data.find('.//exponent').etree_element.text = str(self.get_input('TX_exponent').default_value)
+
 class IR_Texture(BlendigoNode, Node):
     bl_label = "Texture"
-    # ubername = "ShaderNodeTexImage"
-    ubername = "_IndigoTextureUberShader_v1"
+    ubername = "_IndigoTextureABCUberShader_v1"
+
+    inputs_translation = {
+        "original_ABC_TX_rgb": ((('original_ABC', 'original_ABC_TX_rgb'),), None),
+    }
 
     def image_notify_callback(self, eevee_node, update_input_name):
-        eevee_tex = eevee_node.node_tree.nodes['Image Texture']
+        eevee_tex = ensure_node(eevee_node, 'ShaderNodeTexImage', ((0, 'in_TX_rgb'),))
         new_image = getattr(self, update_input_name)
         if eevee_tex.image is new_image:
             return
@@ -259,21 +229,16 @@ class IR_Texture(BlendigoNode, Node):
     TX_C: NodeProperty(bpy.props.FloatProperty, identifier='TX_C', name='(C) Offset', precision=5,)
     TX_exponent: NodeProperty(bpy.props.FloatProperty, identifier='TX_exponent', name='Gamma', precision=5, default=2.2, min=0.001)
     
-    # def TX_uvset_notify_callback(self, eevee_node, update_input_name):
-    #     print(self, eevee_node, update_input_name)
-    #     try:
-    #         from .ubershader_utils import _ensure_uv_node
-    #         material = bpy.context.object.active_material
-    #         uv_node = _ensure_uv_node(eevee_node, material)
-    #         uv_node.uv_map = getattr(self, update_input_name)
-    #     except:
-    #         import traceback
-    #         traceback.print_exc()
     def TX_uvset_notify_callback(self, eevee_node, update_input_name):
-        eevee_uv = eevee_node.node_tree.nodes['UV Map']
-        new_uv_map = getattr(self, update_input_name)
-        if eevee_uv.uv_map != new_uv_map:
-            eevee_uv.uv_map = new_uv_map
+        print(self, eevee_node, update_input_name)
+        try:
+            from .ubershader_utils import ensure_node
+            tex_node = ensure_node(eevee_node, 'ShaderNodeTexImage', ((0, 'in_TX_rgb'),))
+            uv_node = ensure_node(tex_node, 'ShaderNodeUVMap')
+            uv_node.uv_map = getattr(self, update_input_name)
+        except:
+            import traceback
+            traceback.print_exc()
 
     TX_uvset: NodeProperty(bpy.props.StringProperty, identifier='TX_uvset', notify_callback=TX_uvset_notify_callback)
     # TX_abc_from_tex: NodeProperty(bpy.props.BoolProperty, identifier='TX_abc_from_tex', name='Use texture A,B,C')
@@ -299,11 +264,11 @@ class IR_Texture(BlendigoNode, Node):
         row.prop(self, 'TX_smooth')
     
     def init_inputs( self, context ):
-        self.outputs.new(IR_TX_Socket.__name__, "Texture", identifier='colour_SP_rgb')
+        self.outputs.new(IR_TX_Socket.__name__, "Texture", identifier='out_TX_rgb')
         # self.inputs.new(IR_Color_Socket.__name__, "Input")
     
     def complete_xml(self, material_xml:_xml.XMLElement, mat_data:_xml.XMLElement):
-        ''' Emission XML '''
+        ''' Texture XML '''
         texture = mat_data.append_tag('texture')
         texture.append_tag('path', getattr(self.image, 'filepath', ''))
         texture.append_tag('a', self.TX_A)
@@ -311,11 +276,31 @@ class IR_Texture(BlendigoNode, Node):
         texture.append_tag('c', self.TX_C)
         texture.append_tag('exponent', self.TX_exponent)
 
-class IR_Diffuse(IR_MaterialType, Node):
+class _MaterialBlendingCallback:
+    '''
+    Mix-in class to handle null_A/B mix node inputs.
+    Indigo treats null material as transparent while Blender see it as a solid black.
+    This callback sets additional null_A/B parameter to tell mix shader whether input shader is connected.
+
+    This is a callback for material node that is attaching to a mix node (in ensure_eevee_upward_links method).
+    Mix node has to define its own set of callbacks when blendigo link is severed.
+    '''
+    inputs_translation = BlendigoNode.inputs_translation.copy()
+    
+    def material_AB_attach(self, eevee_node, eevee_parent, blendigo_link):
+        letter = blendigo_link.to_socket.identifier[-1:]
+        eevee_parent.inputs['null_'+letter].default_value = 0
+
+    inputs_translation.update({
+        "material_B": (((0, 'material_B'),), material_AB_attach),
+        "material_A": (((0, 'material_A'),), material_AB_attach),
+    })
+
+class IR_Diffuse(_MaterialBlendingCallback, IR_MaterialType, Node):
     bl_label = "Diffuse Material"
     bl_icon = 'NODE_MATERIAL'
     ubername = "_IndigoDiffuseUberShader_v1"
-
+    
     shadow_catcher: NodeProperty(bpy.props.BoolProperty, identifier='shadow_catcher')
     sigma: NodeProperty(bpy.props.FloatProperty, identifier='sigma')
     transmitter: NodeProperty(bpy.props.BoolProperty, identifier='transmitter')
@@ -376,6 +361,8 @@ class IR_Diffuse(IR_MaterialType, Node):
         
         return (material.etree_element,)
 
+class MaterialLoopException(Exception):
+    pass
 processed_materials = dict()
 class AlreadyProcessedException(Exception):
     def __init__(self, uid, message="UID already exists"):
@@ -392,16 +379,74 @@ def get_uid(obj, offset=0):
     uid = processed_materials[objhash] = 10000 + len(processed_materials)
     return uid
 
+class IR_MaterialInput(IR_MaterialType, Node):
+    bl_label = "Material Input"
+    bl_icon = 'NODE_MATERIAL'
+    ubername = "ShaderNodeGroup"
+
+    def eevee_on_create(self, eevee_node):
+        eevee_node.node_tree = bpy.data.node_groups[f'Blendigo {hash(self.material)}']
+
+    def material_notify_callback(self: BlendigoNode, eevee_node: bpy.types.ShaderNode, update_input_name:str):
+        print(self, eevee_node, update_input_name)
+
+    material: NodeProperty(bpy.props.PointerProperty,
+        identifier='material',
+        notify_callback=material_notify_callback,
+        type=bpy.types.Material,
+        poll=lambda self, object: not object.is_grease_pencil and object.indigo_material.node_tree,
+        name="Material",
+        description="Material to use as input"
+        )
+
+    def draw_buttons(self, context, layout):
+        # layout.use_property_split=True
+        layout.prop(self, 'material', text='')
+        # layout.prop_search(self, 'material', bpy.data, 'materials')
+        
+        # TODO: can be extended with eye-droper to select object to take material from.
+        # ray casting can be used to find choosen face and its material
+
+        if self.material and self.material is self.id_data.material:
+            layout.label(text="Material loop detected.", icon="ERROR")
+
+    def init_inputs(self, context):
+        self.outputs.new(IR_Material_Socket.__name__, "Material", identifier='material')
+    
+    def build_xml(self):
+        ''' Start building xml from this node. '''
+        if not self.material:
+            # TODO: currently this is uid of null material.
+            raise AlreadyProcessedException(uid=5)
+            # but this shouldn't be hardcoded
+        
+        if self.material is self.id_data.material:
+            raise MaterialLoopException
+        
+        self.material.indigo_material.node_tree
+        output = first(n for n in self.material.indigo_material.node_tree.get_output_nodes() if n.is_active_output)
+        return output.build_xml()
+
 class IR_Mix(IR_MaterialType, Node):
     bl_label = "Mix Materials"
     bl_icon = 'NODE_MATERIAL'
     ubername = "_IndigoBlendedUberShader_v1"
 
     step_blend: NodeProperty(bpy.props.BoolProperty, identifier='step_blend', description="Disables partial blends so the result is either material A or B, depending on whether the blend amount (constant or map) is >= 0.5.")
+
+    def material_AB_detach(self, eevee_node, identifier):
+        letter = identifier[-1:]
+        eevee_node.inputs['null_'+letter].default_value = 1
+
+    input_detach_callbacks = {
+        "material_B": material_AB_detach,
+        "material_A": material_AB_detach,
+    }
     
     def draw_buttons(self, context, layout):
-        col = layout.column()
-        col.prop(self, 'step_blend')
+        # col = layout.column()
+        # col.prop(self, 'step_blend')
+        layout.prop(self, 'step_blend')
     
     def init_inputs(self, context):
         self.outputs.new(IR_Material_Socket.__name__, "Material")
@@ -423,6 +468,7 @@ class IR_Mix(IR_MaterialType, Node):
         materials = [material.etree_element,]
 
         for i, link in self.iterate_inputs(empty=True):
+            # no link
             if isinstance(link, EmptySocket):
                 if link.identifier == 'blend_amount':
                     mat_data.append_tag(('blend', 'constant'), link.default_value)
@@ -433,6 +479,7 @@ class IR_Mix(IR_MaterialType, Node):
                 
                 continue
 
+            # link
             identifier = link.to_socket.identifier
 
             if identifier == 'blend_amount':
@@ -442,12 +489,15 @@ class IR_Mix(IR_MaterialType, Node):
 
             # only identifier material_B or material_A are left
 
-            sub_mats = link.from_node.build_xml()
-            sub_mat = sub_mats[0]
-            sub_mat_uid = int(sub_mat.find('uid').text)
             ab_mat_uid = 'b_mat_uid' if identifier == 'material_B' else 'a_mat_uid'
-            mat_data.append_tag(ab_mat_uid, sub_mat_uid)
-            materials.extend(sub_mats)
+            try:
+                sub_mats = link.from_node.build_xml()
+                sub_mat = sub_mats[0]
+                sub_mat_uid = int(sub_mat.find('uid').text)
+                mat_data.append_tag(ab_mat_uid, sub_mat_uid)
+                materials.extend(sub_mats)
+            except AlreadyProcessedException as e:
+                mat_data.append_tag(ab_mat_uid, e.uid)
         
         return materials
 
@@ -762,9 +812,11 @@ categories = [
         NodeItem(IR_Diffuse.__name__),
         NodeItem(IR_MaterialOutput.__name__),
         NodeItem(IR_Mix.__name__),
+        NodeItem(IR_MaterialInput.__name__),
     ] ),
     BlendigoNodeCategory( "IR_Other", "Other Nodes", items = [
         NodeItem(IR_Texture.__name__),
+        NodeItem(IR_AlterABC.__name__),
         NodeItem(IR_RGB.__name__),
         NodeItem(IR_Uniform.__name__),
         NodeItem(IR_BlackBody.__name__),
@@ -956,6 +1008,7 @@ class IR_OT_material_copy(bpy.types.Operator, _NodeOperator):
             new_node_tree = new_mat.indigo_material.node_tree = current_node_tree.copy()
             new_node_tree.name = make_nodetree_name(new_mat.name)
             new_node_tree.use_fake_user = True
+            new_node_tree.material = new_mat
 
         context.active_object.active_material = new_mat
 
