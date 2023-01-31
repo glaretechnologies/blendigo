@@ -13,6 +13,7 @@ current_uber_name = "_IndigoUberShader_v2"
 @dataclass
 class ParsedNode:
     inputs: dict
+    outputs: dict
     nodes: dict
     links: list
     name: str
@@ -50,7 +51,11 @@ class ParsedNode:
                 for socket, value in zip(node.inputs, default_values):
                     if value is None:
                         continue
-                    socket.default_value = value
+                    try:
+                        socket.default_value = value
+                    except:
+                        # TODO:
+                        print('default_values error', socket, socket.default_value, value)
 
             for key, val in node_dict.items():
                 setattr(node, key, val)
@@ -64,7 +69,19 @@ class ParsedNode:
                             continue
                         setattr(soc, key, val)
             elif bl_idname == 'NodeGroupOutput':
-                soc = new_group.outputs.new('NodeSocketShader', 'Shader')
+                # TODO: compatibility check. soon to delete
+                if not hasattr(self, 'outputs'):
+                    soc = new_group.outputs.new('NodeSocketShader', 'Shader')
+                    continue
+                # ###
+
+                for output_dict in self.outputs:
+                    soc = new_group.outputs.new(output_dict['bl_socket_idname'], output_dict['name'])
+                    for key, val in output_dict.items():
+                        if not hasattr(soc, key): # different Blender version
+                            print(key, 'not found in', soc)
+                            continue
+                        setattr(soc, key, val)
             
         
         # set frames
@@ -97,12 +114,17 @@ def nodes2dict():
     inputs = []
     for input in active_node_group.node_tree.inputs:
         inputs.append( {prop.identifier: _str(getattr(input, prop.identifier)) for prop in input.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'ENUM'}} )
+    
+    outputs = []
+    for output in active_node_group.node_tree.outputs:
+        outputs.append( {prop.identifier: _str(getattr(output, prop.identifier)) for prop in output.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'ENUM'}} )
         
     nodes = []
     for node in active_node_group.node_tree.nodes:
         # nodes.append( {prop.identifier: _str(prop, getattr(node, prop.identifier)) for prop in node.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'POINTER', 'ENUM'} and prop.identifier not in {'node_tree'}} )
         dict_node = {prop.identifier: _str(getattr(node, prop.identifier)) for prop in node.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'POINTER', 'ENUM'} and prop.identifier not in {'node_tree'}}
-        dict_node['default_values'] = [_str(socket.default_value) if hasattr(socket, 'default_value') else None for socket in node.inputs]
+        if not node.bl_idname == "NodeGroupOutput":
+            dict_node['default_values'] = [_str(socket.default_value) if hasattr(socket, 'default_value') else None for socket in node.inputs]
         nodes.append(dict_node)
     
     links = []
@@ -112,8 +134,7 @@ def nodes2dict():
     for link in active_node_group.node_tree.links:
         links.append( ((link.from_node.name, sid(link.from_socket)), (link.to_node.name, sid(link.to_socket))) )
     
-    # parsed = ParsedNode(inputs, nodes, links, current_uber_name)
-    parsed = ParsedNode(inputs, nodes, links, active_node_group.node_tree.name)
+    parsed = ParsedNode(inputs, outputs, nodes, links, active_node_group.node_tree.name)
 #    print(parsed)
     return parsed
 
@@ -138,7 +159,7 @@ class OT_BR_ExportUberShaderNodes(bpy.types.Operator):
         
         with open(path, 'wb') as f:
             pickle.dump(parsed_node, f)
-                
+        print('Exporting finished.')
         return {'FINISHED'}
 
 def first(generator):
@@ -162,7 +183,7 @@ def ensure_ubershader():
         return bpy.data.node_groups[current_uber_name]
     
     # load_ubershader(name='_IndigoDiffuseUberShader_v1').generate_group()
-    parsed_node = load_ubershader()
+    parsed_node = load_ubershader(current_uber_name)
     return parsed_node.generate_group()
 
 class UberShaderException(Exception):
@@ -264,8 +285,42 @@ def _ensure_uv_node(texnode, material):
         links = material.node_tree.links
 
         uv_node = nodes.new('ShaderNodeUVMap')
+        uv_node['blendigo_node'] = True
         links.new(uv_node.outputs[0], texnode.inputs[0])
         return uv_node
+
+def _ensure_tex_node(parentnode, socket='Color'):
+    color_links = parentnode.inputs[socket].links
+    if color_links and color_links[0].from_node.bl_idname == 'ShaderNodeUVMap':
+        return color_links[0].from_node
+    else:
+        node_tree = parentnode.id_data
+        nodes = node_tree.nodes
+        links = node_tree.links
+
+        tex_node = nodes.new('ShaderNodeTexImage')
+        tex_node['blendigo_node'] = True
+        links.new(tex_node.outputs[0], parentnode.inputs[socket])
+        return tex_node
+
+def ensure_node(parentnode, bl_idname, socket_links:tuple[tuple[int|str, int|str]]=None):
+    if not socket_links:
+        socket_links = ((0,0),)
+
+    color_links = parentnode.inputs[socket_links[0][1]].links
+    # TODO: all links should be checked, not only the first one
+    if color_links and color_links[0].from_node.bl_idname == bl_idname:
+        return color_links[0].from_node
+    else:
+        node_tree = parentnode.id_data
+        nodes = node_tree.nodes
+        links = node_tree.links
+
+        new_node = nodes.new(bl_idname)
+        new_node['blendigo_node'] = True
+        for link in socket_links:
+            links.new(new_node.outputs[link[0]], parentnode.inputs[link[1]])
+        return new_node
 
 def switch_uv(material, element, value):
     print('switch_uv', material, element, value)
@@ -303,29 +358,29 @@ if __name__ == "__main__":
 ################# UBERSHADER MANAGER #################
 ######################################################
 ######################################################
-def fast_lookup(eevee_node_tree, id, eevee_node=None, clear=False):
-    id = str(id)
-    # if not material_node_tree:
-    #     material.use_nodes = True
-        # material.use_nodes = True
-    if not 'lookup_table' in eevee_node_tree:
-        eevee_node_tree['lookup_table'] = dict()
+# def fast_lookup(eevee_node_tree, id, eevee_node=None, clear=False):
+#     id = str(id)
+#     # if not material_node_tree:
+#     #     material.use_nodes = True
+#         # material.use_nodes = True
+#     if not 'lookup_table' in eevee_node_tree:
+#         eevee_node_tree['lookup_table'] = dict()
 
-    if eevee_node:
-        eevee_node_tree['lookup_table'][id] = eevee_node.name
-        return
+#     if eevee_node:
+#         eevee_node_tree['lookup_table'][id] = eevee_node.name
+#         return
     
-    if id in eevee_node_tree['lookup_table']:
-        if clear:
-            del eevee_node_tree['lookup_table'][id]
-            return None
-        # return material_node_tree['lookup_table'][id]
-        node_name = eevee_node_tree['lookup_table'][id]
-        if node_name in eevee_node_tree.nodes:
-            return eevee_node_tree.nodes[node_name]
-        del eevee_node_tree['lookup_table'][id]
-        return None
-    return None
+#     if id in eevee_node_tree['lookup_table']:
+#         if clear:
+#             del eevee_node_tree['lookup_table'][id]
+#             return None
+#         # return material_node_tree['lookup_table'][id]
+#         node_name = eevee_node_tree['lookup_table'][id]
+#         if node_name in eevee_node_tree.nodes:
+#             return eevee_node_tree.nodes[node_name]
+#         del eevee_node_tree['lookup_table'][id]
+#         return None
+#     return None
 
 def recreate_shader_from_blendigo_nodes(material, hard_reset=False):
     if not material.node_tree:
@@ -369,12 +424,64 @@ def get_ubershader(type_name):
     print("Parsed new node:", type_name)
     return parsed_node.generate_group()
 
-def new_eevee_node(nodes, ubername):
+def new_eevee_node(nodes, ubername, on_create=None):
+    '''
+    :param on_create: callback function after creation of eevee node
+    :param type: Callable[[BlendigoNode,], None]
+    '''
     if ubername.startswith('_'):
         eevee_node = nodes.new('ShaderNodeGroup')
+        eevee_node.name = 'G_'+ubername
         eevee_node.node_tree = get_ubershader(ubername)
         # eevee_node.update()
     else:
         eevee_node = nodes.new(ubername)
+        if on_create:
+            on_create(eevee_node)
     eevee_node['blendigo_node']=True
     return eevee_node
+
+def get_material_group(material):
+    if not material.use_nodes:
+        material.use_nodes = True
+
+    mat_group_name = f"Blendigo {hash(material)}"
+
+    material_output = material.node_tree.get_output_node('ALL')
+    if not material_output:
+        material_output = material.node_tree.nodes.new('ShaderNodeOutputMaterial')
+
+
+    # material_output = first(n for n in node_tree_nodes(material) if n.type=='OUTPUT_MATERIAL' and n.is_active_output)
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+    out_links = material_output.inputs[0].links
+    try:
+        if not out_links:
+            raise UberShaderException
+        mat_group_node = out_links[0].from_node
+        if mat_group_node.type != 'GROUP':
+            if mat_group_node['blendigo_node'] == True:
+                # blendigo node outside of a group. this should never happen
+                nodes.remove(mat_group_node)
+            raise UberShaderException
+        if not (mat_group_node.node_tree and mat_group_node.node_tree.name == mat_group_name):
+            if mat_group_node['blendigo_node'] == True:
+                # blendigo group node but name does not match. can happen after duplication
+                nodes.remove(mat_group_node)
+            raise UberShaderException
+    except UberShaderException:
+        # create IR_BlendigoUberShader and link
+        # ubernode = nodes.new('IR_BlendigoUberShader')
+        mat_group_node = nodes.new('ShaderNodeGroup')
+        mat_group_node['blendigo_node']=True
+        if mat_group_name in bpy.data.node_groups:
+            new_group_tree = bpy.data.node_groups[mat_group_name]
+        else:
+            new_group_tree = bpy.data.node_groups.new(mat_group_name, 'ShaderNodeTree')
+            new_group_tree.outputs.new('NodeSocketShader', 'Shader')
+            out = new_group_tree.nodes.new("NodeGroupOutput")
+            out['blendigo_node']=True
+        mat_group_node.node_tree = new_group_tree
+        links.new(mat_group_node.outputs[0], material_output.inputs[0])
+    return mat_group_node.node_tree
