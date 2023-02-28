@@ -12,6 +12,7 @@ class ClayMaterial(xml_builder):
             context,
             {
                 'name': ['blendigo_clay'],
+                'uid': [4],
                 'diffuse': {
                     'albedo': {
                         'constant':  rgb([0.8, 0.8, 0.8])
@@ -33,6 +34,7 @@ class NullMaterialDummy(xml_builder):
             context,
             {
                 'name': ['blendigo_null'],
+                'uid': [5],
                 'null_material': {}
             },
             xml

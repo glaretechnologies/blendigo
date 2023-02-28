@@ -57,6 +57,27 @@ class ParsedNode:
                         # TODO:
                         print('default_values error', socket, socket.default_value, value)
 
+            if 'color_ramp' in node_dict:
+                color_ramp = node_dict.pop('color_ramp')
+                for key, val in color_ramp.items():
+                    if node.color_ramp.bl_rna.properties[key].is_readonly:
+                        continue
+                    setattr(node.color_ramp, key, val)
+                
+                # need 1 element on start
+                node.color_ramp.elements.remove(node.color_ramp.elements[1])
+                
+                elements = color_ramp['elements']
+                for i, element_dict in enumerate(elements):
+                    if i == 0:
+                        element = node.color_ramp.elements[0]
+                    else:
+                        element = node.color_ramp.elements.new(element_dict['position'])
+                    
+                    element.color = element_dict['color']
+            
+            # ####
+            
             for key, val in node_dict.items():
                 setattr(node, key, val)
 
@@ -121,10 +142,19 @@ def nodes2dict():
         
     nodes = []
     for node in active_node_group.node_tree.nodes:
-        # nodes.append( {prop.identifier: _str(prop, getattr(node, prop.identifier)) for prop in node.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'POINTER', 'ENUM'} and prop.identifier not in {'node_tree'}} )
         dict_node = {prop.identifier: _str(getattr(node, prop.identifier)) for prop in node.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'POINTER', 'ENUM'} and prop.identifier not in {'node_tree'}}
         if not node.bl_idname == "NodeGroupOutput":
             dict_node['default_values'] = [_str(socket.default_value) if hasattr(socket, 'default_value') else None for socket in node.inputs]
+        
+        if node.bl_idname == "ShaderNodeValToRGB":
+            dict_node['color_ramp'] = {prop.identifier: _str(getattr(node.color_ramp, prop.identifier)) for prop in node.color_ramp.rna_type.properties if not prop.is_readonly and prop.type in {'STRING', 'INT', 'BOOLEAN', 'FLOAT', 'POINTER', 'ENUM'} and prop.identifier not in {'node_tree'}}
+            dict_node['color_ramp']['elements'] = []
+            for element in node.color_ramp.elements:
+                element_dict = {}
+                element_dict['position'] = _str(element.position)
+                element_dict['color'] = _str(element.color[:])
+                dict_node['color_ramp']['elements'].append(element_dict)
+        
         nodes.append(dict_node)
     
     links = []
@@ -135,7 +165,7 @@ def nodes2dict():
         links.append( ((link.from_node.name, sid(link.from_socket)), (link.to_node.name, sid(link.to_socket))) )
     
     parsed = ParsedNode(inputs, outputs, nodes, links, active_node_group.node_tree.name)
-#    print(parsed)
+    print(parsed)
     return parsed
 
 
@@ -445,7 +475,8 @@ def get_material_group(material):
     if not material.use_nodes:
         material.use_nodes = True
 
-    mat_group_name = f"Blendigo {hash(material)}"
+    # mat_group_name = f"Blendigo {hash(material)}"
+    mat_group_name = f"Blendigo {material.indigo_material.node_tree.id}"
 
     material_output = material.node_tree.get_output_node('ALL')
     if not material_output:
@@ -461,12 +492,12 @@ def get_material_group(material):
             raise UberShaderException
         mat_group_node = out_links[0].from_node
         if mat_group_node.type != 'GROUP':
-            if mat_group_node['blendigo_node'] == True:
+            if 'blendigo_node' in mat_group_node and mat_group_node['blendigo_node'] == True:
                 # blendigo node outside of a group. this should never happen
                 nodes.remove(mat_group_node)
             raise UberShaderException
         if not (mat_group_node.node_tree and mat_group_node.node_tree.name == mat_group_name):
-            if mat_group_node['blendigo_node'] == True:
+            if 'blendigo_node' in mat_group_node and mat_group_node['blendigo_node'] == True:
                 # blendigo group node but name does not match. can happen after duplication
                 nodes.remove(mat_group_node)
             raise UberShaderException

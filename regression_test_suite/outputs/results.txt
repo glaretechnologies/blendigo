@@ -4,101 +4,11 @@ All Tests complete!
 
 Test                           Time         Result
 ********************************************************************************
-AbsoluteTexturePath            6.90 sec     ME = 1.4494  OK
-Animation                      5.43 sec     ME = 0.1349  OK
-BackgroundSet                  9.99 sec     ME = 0.0000  OK
-CoatingMaterial                6.12 sec     ME = 1.3093  OK
-ComplexUVMap                   8.10 sec     ME = 0.7276  OK
-CurveObject                    6.90 sec     ME = 0.4046  OK
-DoubleSidedThin                8.65 sec     ME = 1.4850  OK
-EXREnvironment                 5.52 sec     ME = 0.1471  OK
-EmittingParticles              6.56 sec     ME = 0.1636  OK
-ExternalMaterial               10.78 sec    ME = 3.7934  OK
-FindCRF                        6.63 sec     ME = 0.0000  OK
-Focus_CurveAnim                7.66 sec     ME = 1.3204  OK
-Group_Instances_mb             7.08 sec     ME = 0.0000  OK
-HighSubdiv                     6.13 sec     ME = 0.4610  OK
-ISL_01                         7.36 sec     ME = 4.3115  ****** HIGH VALUE ******
-InstanceMaterials              6.48 sec     ME = 1.4098  OK
-InvisibleToCameraObject        5.31 sec     ME = 0.1222  OK
-LinkedBackgroundSet            10.08 sec    ME = 0.0000  OK
-ModifiedCurve                  5.83 sec     ME = 1.9341  OK
-MotionBlur                     7.93 sec     ME = 0.4636  OK
-MultipleUVSets                 6.63 sec     ME = 0.2903  OK
-NestedGroups                   7.12 sec     ME = 1.6141  OK
-PackedImage                    7.03 sec     ME = 0.8248  OK
-ParentObjectTransforms         6.37 sec     ME = 1.3872  OK
-ParticleSystem_01              5.74 sec     ME = 0.0000  OK
-ParticleSystem_02              5.74 sec     ME = 0.0000  OK
-ParticleSystem_03              5.66 sec     ME = 0.0000  OK
-ParticleSystem_04              5.36 sec     ME = 0.0000  OK
-RelativeTexturePath            6.97 sec     ME = 0.8248  OK
-ShadowCatcher                  12.13 sec    ME = 1.4443  OK
-SpherePrimitive                7.95 sec     ME = 58.9849  ****** HIGH VALUE ******
-SunAndEnvMap                   8.10 sec     ME = 0.5499  OK
-TexturedEmission               5.95 sec     ME = 20.1948  ****** HIGH VALUE ******
-TriangleMesh                   5.32 sec     ME = 0.5312  OK
-dupligroup-error               5.59 sec     ME = 0.2372  OK
-glossy_roughness_transparent_nk 11.66 sec    ME = 3.4434  OK
-hemi_blackbody                 6.44 sec     ME = 0.3049  OK
-hemi_rgb                       6.35 sec     ME = 0.6245  OK
-hemi_uniform                   6.43 sec     ME = 0.3761  OK
-ies_dupli                      5.89 sec     ME = 0.0358  OK
-light_color                    6.29 sec     ME = 2.0104  OK
-lightlayers                    7.55 sec     ME = 0.0764  OK
-motion_blur_dupli_instances    12.38 sec    ME = 11.1134  ****** HIGH VALUE ******
-motion_blur_particles_simple   7.40 sec     ME = 0.0000  OK
-null_fastsss                   6.86 sec     ME = 0.5700  OK
+Ngon                           6.14 sec     FAILED: [Errno 2] No such file or directory: 'e:/Blender/myaddons/blendigo_styriam/regression_test_suite\\references\\Ngon.png'
 ********************************************************************************
 
 
-Failures: 4
-All Tests complete!
-
-********************************************************************************
-multifile0189.png              OK
-multifile0189_\d+\.igi         OK
-multifile0189_channels.exr     OK
-multifile0189_tonemapped.exr   OK
-multifile0189_untonemapped.exr OK
-********************************************************************************
-All Tests complete!
-
-********************************************************************************
-multifile0189.png              OK
-multifile0189_\d+\.igi         OK
-multifile0189_channels.exr     OK
-multifile0189_tonemapped.exr   OK
-multifile0189_untonemapped.exr OK
-multifile0190.png              OK
-multifile0190_\d+\.igi         OK
-multifile0190_channels.exr     OK
-multifile0190_tonemapped.exr   OK
-multifile0190_untonemapped.exr OK
-********************************************************************************
-All Tests complete!
-
-********************************************************************************
-multifile0189.png              OK
-multifile0189_\d+\.igi         OK
-multifile0189_channels.exr     OK
-multifile0189_tonemapped.exr   OK
-multifile0189_untonemapped.exr OK
-********************************************************************************
-All Tests complete!
-
-********************************************************************************
-multifile0189.png              OK
-multifile0189_\d+\.igi         OK
-multifile0189_channels.exr     OK
-multifile0189_tonemapped.exr   OK
-multifile0189_untonemapped.exr OK
-multifile0190.png              OK
-multifile0190_\d+\.igi         OK
-multifile0190_channels.exr     OK
-multifile0190_tonemapped.exr   OK
-multifile0190_untonemapped.exr OK
-********************************************************************************
-Blendigo Version: 4.3.3
+Failures: 1
+Blendigo Version: 5.0.0
 Indigo Version: 4.6.0
-Blender Version: 3.2.2
+Blender Version: 3.4.1

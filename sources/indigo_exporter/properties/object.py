@@ -178,7 +178,7 @@ class Indigo_Mesh_Properties(bpy.types.PropertyGroup, xml_builder):
         return self.mesh_proxy and os.path.exists(proxy_path)
     
     # xml_builder members
-    def build_xml_element(self, obj, filename, use_shading_normals, exported_name=""):
+    def build_xml_element(self, obj, filename, use_shading_normals, exported_uid, exported_name=""):
         
         if exported_name == "":
             exported_name = obj.data.name
@@ -186,6 +186,7 @@ class Indigo_Mesh_Properties(bpy.types.PropertyGroup, xml_builder):
         xml = self.Element('mesh')
         
         xml_format = {
+            'uid': [exported_uid],
             'name': [exported_name],
             'normal_smoothing': [str(use_shading_normals and (not self.disable_smoothing)).lower()],
             'scale': [1.0],

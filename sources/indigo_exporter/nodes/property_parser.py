@@ -1,18 +1,90 @@
+def updated_event(self, context):
+    try:
+        self.material_name, self.emission_enabled = get_material_filename_and_emission_from_external_mat(self, context)
+    except:
+        pass
 attrs = [
         {
-            'attr': 'emit_layer',
             'type': 'string',
-            'name': 'Light Layer',
-            'description': 'lightlayer; leave blank to use default'
+            'subtype': 'FILE_PATH',
+            'attr': 'filename',
+            'name': 'IGM or PIGM file',
+            'description': 'IGM or PIGM file',
+            'default': '',
+            'update': updated_event
         },
         {
-            'type': 'prop_search',
-            'attr': 'lightlayer_chooser',
-            'src': lambda s,c: s.scene.indigo_lightlayers,
-            'src_attr': 'lightlayers',
-            'trg': lambda s,c: c.indigo_material_emission,
-            'trg_attr': 'emit_layer',
-            'name': 'Light Layer'
+            'type': 'string',
+            'attr': 'material_name',
+            'name': 'Name'
+        },
+        # NOTE: is_valid is not used any more.
+        {
+            'type': 'bool',
+            'attr': 'is_valid',
+            'default': False
+        },
+        # ies profile (exports with geometry)
+        {
+            'type': 'bool',
+            'attr': 'emit_ies',
+            'name': 'IES Profile',
+            'description': 'IES Profile',
+            'default': False,
+        },
+        {
+            'type': 'string',
+            'subtype': 'FILE_PATH',
+            'attr': 'emit_ies_path',
+            'name': ' IES Path',
+            'description': ' IES Path',
+            'default': '',
+        },
+        {
+            'type': 'bool',
+            'attr': 'emission_enabled',
+            'default': False
+        },
+        # emission scale (exports with geometry)
+        {
+            'type': 'bool',
+            'attr': 'emission_scale',
+            'name': 'Emission scale',
+            'description': 'Emission scale',
+            'default': False,
+        },
+        {
+            'type': 'enum',
+            'attr': 'emission_scale_measure',
+            'name': 'Unit',
+            'description': 'Units for emission scale',
+            'default': 'luminous_flux',
+            'items': [
+                ('luminous_flux', 'lm', 'Luminous flux'),
+                ('luminous_intensity', 'cd', 'Luminous intensity (lm/sr)'),
+                ('luminance', 'nits', 'Luminance (lm/sr/m/m)'),
+                ('luminous_emittance', 'lux', 'Luminous emittance (lm/m/m)')
+            ],
+        },
+        {
+            'type': 'float',
+            'attr': 'emission_scale_value',
+            'name': 'Value',
+            'description': 'Emission scale value',
+            'default': 1.0,
+            'min': 0.0,
+            'soft_min': 0.0,
+            'max': 10.0,
+            'soft_max': 10.0,
+        },
+        {
+            'type': 'int',
+            'attr': 'emission_scale_exp',
+            'name': '*10^',
+            'description': 'Emission scale exponent',
+            'default': 0,
+            'min': -30,
+            'max': 30
         },
 ]
 

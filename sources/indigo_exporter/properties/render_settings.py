@@ -20,27 +20,33 @@ def indigo_scene_load_render_settings(context):
     also reset the output path if it doesn't exist on the local machine
     '''
     for s in bpy.data.scenes:
-        # If the Indigo path in the scene doesn't exist.
-        if not os.path.exists(s.indigo_engine.install_path):
-            # Find Indigo.
-            indigo_path = find_indigo()
+        try:
+            # If the Indigo path in the scene doesn't exist.
+            if not os.path.exists(s.indigo_engine.install_path):
+                # Find Indigo.
+                indigo_path = find_indigo()
 
-            # If Indigo was found.
-            if indigo_path != '' and os.path.exists(indigo_path):
-                export.indigo_log("Scene '%s' Indigo install path was adjusted for local machine" % s.name)
-                s.indigo_engine.install_path = indigo_path
-            else:
-                export.indigo_log("Failed %s to find Indigo installation" % s.name)
+                # If Indigo was found.
+                if indigo_path != '' and os.path.exists(indigo_path):
+                    export.indigo_log("Scene '%s' Indigo install path was adjusted for local machine" % s.name)
+                    s.indigo_engine.install_path = indigo_path
+                else:
+                    export.indigo_log("Failed %s to find Indigo installation" % s.name)
 
-        # Get the output path for frame 1. s.render.filepath will return the raw
-        # output path, potentially including # characters. s.render.frame_path(1)
-        # handles # characters correctly. Not handling them correctly will result
-        # in false positives for the output path adjusting.
-        output_dir = os.path.dirname(s.render.frame_path(frame=1))
+            # Get the output path for frame 1. s.render.filepath will return the raw
+            # output path, potentially including # characters. s.render.frame_path(1)
+            # handles # characters correctly. Not handling them correctly will result
+            # in false positives for the output path adjusting.
+            output_dir = os.path.dirname(s.render.frame_path(frame=1))
 
-        if not os.path.exists(output_dir):
-            export.indigo_log("Scene '%s' output path was adjusted for local machine" % s.name)
-            s.render.filepath = bpy.app.tempdir
+            if not os.path.exists(output_dir):
+                export.indigo_log("Scene '%s' output path was adjusted for local machine" % s.name)
+                # TODO: AttributeError: Writing to ID classes in this context is not allowed: Scene, Scene datablock, error setting RenderSettings.filepath
+                def f():
+                    s.render.filepath = bpy.app.tempdir
+                bpy.app.timers.register(f)
+        except:
+            pass
 
 if hasattr(bpy.app, 'handlers') and hasattr(bpy.app.handlers, 'load_post'):
     bpy.app.handlers.load_post.append(indigo_scene_load_render_settings)
