@@ -10,9 +10,11 @@ def IR_mat_template_ID(layout, material):
 
     if material:
         row.prop(material, "name", text="")
-        if material.users > 1:
+        # -1 user because material has reference to istself in material.indigo_material.node_tree.material
+        material_users = material.users - 1
+        if material_users > 1:
             sub = row.row()
-            sub.operator("blendigo.material_copy", text=str(material.users))
+            sub.operator("blendigo.material_copy", text=str(material_users))
             sub.ui_units_x = 2
         row.prop(material, "use_fake_user", text="")
         row.operator("blendigo.material_copy", text="", icon='DUPLICATE')

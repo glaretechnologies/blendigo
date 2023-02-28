@@ -62,14 +62,20 @@ class xml_builder(object):
             
             # dictionary provides nested elements
             if type(d[key]) is dict:
+                print(key, d[key], x)
                 self.build_subelements(context, d[key], x)
                 
             # list provides direct value insertion
             elif type(d[key]) is list:
-                x.text = ' '.join([str(i) for i in d[key]])
+                if d[key] and isinstance(d[key][0], dict):
+                    for sd in d[key]:
+                        self.build_subelements(context, sd, x)
+                else:
+                    x.text = ' '.join([str(i) for i in d[key]])
             
             # else look up property
             else:
+                print(self, key)
                 for p in self.properties:
                     if d[key] == p['attr']:
                         if 'compute' in p.keys():

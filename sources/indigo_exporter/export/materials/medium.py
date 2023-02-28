@@ -19,7 +19,8 @@ class medium_xml(xml_builder):
         
         fmt = {
             'name': [self.medium_name + '_medium'],
-            'uid': [self.medium_index + 10000 ],
+            # 'uid': [self.medium_index + 10000 ],
+            'uid': [self.medium_data.indigo_export_uid],
             'precedence': [self.medium_data.precedence],
             self.medium_data.medium_type: {}
         }

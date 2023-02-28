@@ -83,4 +83,4 @@ class IR_MATERIAL_PT_context_material(bpy.types.Panel, MaterialButtonsPanel):
             layout.template_ID(space, "pin_id")
 
         if mat and not mat.indigo_material.node_tree:
-            layout.operator("blendigo.material_node_tree_new", icon='NODETREE', text="Use Blendigo Material Nodes")
+            layout.operator("blendigo.mat_nodetree_new", icon='NODETREE', text="Use Blendigo Material Nodes")

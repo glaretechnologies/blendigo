@@ -1785,13 +1785,58 @@ class Indigo_Material_Properties(bpy.types.PropertyGroup):
     
     # xml element factory
     
+    # def factory(self, obj, mat, scene):
+    #     out_elements = []
+        
+    #     # Gather elements from features compatible with current mat type
+    #     if self.type in MATERIAL_FEATURES.keys():
+    #         for feature in MATERIAL_FEATURES[self.type]:
+    #             fpg = getattr(self, 'indigo_material_%s'%feature)
+    #             print(fpg)
+    #             out = fpg.get_output(obj, self, mat, scene)
+    #             print(fpg, out)
+    #             out_elements.extend( out )
+        
+    #     print(out_elements)
+    #     print(MATERIAL_FEATURES)
+    #     # TODO: delete this
+    #     from xml.dom import minidom
+    #     # from . import processed_materials
+    #     # processed_materials.clear()
+    #     # xmls = self.build_xml() # this
+    #     for xml in out_elements:
+    #         print(ET.dump(xml)) # this
+            
+    #         rough_string = ET.tostring(xml, 'utf-8')
+    #         reparsed = minidom.parseString(rough_string)
+    #         print(reparsed.toprettyxml(indent="\t"))
+    #     return out_elements
+    
     def factory(self, obj, mat, scene):
-        out_elements = []
+        # out_elements = []
         
         # Gather elements from features compatible with current mat type
-        if self.type in MATERIAL_FEATURES.keys():
-            for feature in MATERIAL_FEATURES[self.type]:
-                fpg = getattr(self, 'indigo_material_%s'%feature)
-                out_elements.extend( fpg.get_output(obj, self, mat, scene) )
+        # if self.type in MATERIAL_FEATURES.keys():
+        #     for feature in MATERIAL_FEATURES[self.type]:
+        #         fpg = getattr(self, 'indigo_material_%s'%feature)
+        #         print(fpg)
+        #         out = fpg.get_output(obj, self, mat, scene)
+        #         print(fpg, out)
+        #         out_elements.extend( out )
         
-        return out_elements
+        # print(out_elements)
+        from xml.dom import minidom
+        # from . import processed_materials
+        # processed_materials.clear()
+        # TODO: create node tree for old files
+        # bpy.ops.blendigo.mat_nodetree_new()
+        output = self.node_tree.nodes[self.node_tree.active_output_name]
+        xmls = output.build_xml()
+        for xml in xmls:
+            print(ET.dump(xml)) # this
+            
+            rough_string = ET.tostring(xml, 'utf-8')
+            reparsed = minidom.parseString(rough_string)
+            print(reparsed.toprettyxml(indent="\t"))
+
+        return xmls

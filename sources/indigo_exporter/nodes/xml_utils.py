@@ -39,7 +39,24 @@ class XMLElement:
     def __getattr__(self, __name: str):
         return getattr(self.etree_element, __name)
 
+    @property
+    def text(self):
+        return self.etree_element.text
+    
+    @text.setter
+    def text(self, value):
+        self.etree_element.text = value
+
 class wrap:
     @staticmethod
     def RGB(rgb: tuple[float]):
         return ' '.join(str(i) for i in rgb)
+
+if __name__ == '__main__':
+    main = XMLElement('main', 'test')
+    sub = main.append_tag('sub', 'foo')
+    
+    assert sub.text == 'foo'
+    found = main.find('.//sub')
+    found.text = 'bar'
+    assert sub.text == 'bar'

@@ -21,7 +21,7 @@ print(annotations_data)
 import bpy
 from indigo_exporter.core import getConsolePath
 from indigo_exporter.core.util import getVersion
-BLENDER_BINARY = os.path.join(bpy.utils.script_paths()[0].split(os.sep)[0]+os.sep, *bpy.utils.script_paths()[0].split(os.sep)[1:-3], 'blender.exe')
+BLENDER_BINARY = bpy.app.binary_path
 INDIGO_PATH = os.path.split(getConsolePath())[0]
 
 def image_analysis(ref_file, tst_file):
@@ -73,7 +73,6 @@ def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
         try:
             shutil.rmtree(output_path)
         except: pass
-        
         try:
             # run blender
             args = [BLENDER_BINARY, '-noaudio']
@@ -84,6 +83,7 @@ def regression_test(filter_list=None, BLENDIGO_VERSION='0.0.0'):
             args.append('--install-path=%s' % INDIGO_PATH)
             args.append('--test-name=%s' % name)
             args.append('--blendigo-version=%s' % BLENDIGO_VERSION)
+            print(args)
             exit_code = subprocess.call(args, env=os.environ)
             
             if exit_code < 0:

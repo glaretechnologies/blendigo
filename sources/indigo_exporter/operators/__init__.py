@@ -205,6 +205,11 @@ class _Impl_OT_indigo(_Impl_operator):
         master_scene = depsgraph.scene_eval
         # master_scene = depsgraph.scene
         try:
+            from .. nodes.tree import clean_before_export
+            from .. export import uid_manager
+            clean_before_export()
+            uid_manager.reset()
+            
             if master_scene is None:
                 #indigo_log('Scene context is invalid')
                 raise Exception('Scene context is invalid')
@@ -389,7 +394,7 @@ class _Impl_OT_indigo(_Impl_operator):
                 # 10200137
             basic_medium = ET.fromstring("""
                                 <medium>
-                                   <uid>9999</uid>
+                                   <uid>8</uid>
                                    <name>basic</name>
                                    <precedence>10</precedence>
                                    <basic>
@@ -424,7 +429,7 @@ class _Impl_OT_indigo(_Impl_operator):
             if self.verbose: indigo_log('Exporting meshes')
             mesh_count = 0
             for ck, ci in geometry_exporter.MeshesOnDisk.items():
-                mesh_name, xml = ci
+                mesh_name, xml, uid = ci
                 self.scene_xml.append(xml)
                 mesh_count += 1
             if self.verbose: indigo_log('Exported %i meshes' % mesh_count)
@@ -438,25 +443,27 @@ class _Impl_OT_indigo(_Impl_operator):
                 
                 if obj_type == 'OBJECT':
                     obj = ci[1]
-                    mesh_name = ci[2]
-                    obj_matrices = ci[3]
-                    scene = ci[4]
+                    mesh_uid = ci[2]
+                    mesh_name = ci[3]
+                    obj_matrices = ci[4]
+                    scene = ci[5]
                     
-                    xml = geometry.model_object(scene).build_xml_element(obj, mesh_name, obj_matrices)
+                    xml = geometry.model_object(scene).build_xml_element(obj, mesh_uid, mesh_name, obj_matrices)
                 else:
                     xml = ci[1]
-                scene_data_xml.append(xml)
+                # scene_data_xml.append(xml)
+                self.scene_xml.append(xml)
                 oc += 1
             
-            objects_file_name = '%s/objects.igs' % (
-                frame_dir
-            )
-            objects_file = open(objects_file_name, 'wb')
-            ET.ElementTree(element=scene_data_xml).write(objects_file, encoding='utf-8')
-            objects_file.close()
+            # objects_file_name = '%s/objects.igs' % (
+            #     frame_dir
+            # )
+            # objects_file = open(objects_file_name, 'wb')
+            # ET.ElementTree(element=scene_data_xml).write(objects_file, encoding='utf-8')
+            # objects_file.close()
             # indigo_log('Exported %i object instances to %s' % (oc,objects_file_name))
-            scene_data_include = include.xml_include( efutil.path_relative_to_export(objects_file_name) )
-            self.scene_xml.append( scene_data_include.build_xml_element(master_scene) )
+            # scene_data_include = include.xml_include( efutil.path_relative_to_export(objects_file_name) )
+            # self.scene_xml.append( scene_data_include.build_xml_element(master_scene) )
             
             #------------------------------------------------------------------------------
             # Write formatted XML for settings, materials and meshes
@@ -603,6 +610,8 @@ class INDIGO_OT_medium_add(bpy.types.Operator):
         me.add()
         new_me = me[len(me) - 1]
         new_me.name = self.properties.new_medium_name
+        from .. export.uid_manager import new_uid
+        new_me.uid = new_uid()
         return {'FINISHED'}
     
 class INDIGO_OT_medium_remove(bpy.types.Operator):

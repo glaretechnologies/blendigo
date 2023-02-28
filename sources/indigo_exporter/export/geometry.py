@@ -13,15 +13,16 @@ from ..extensions_framework import util as efutil
 
 from .. core.util import get_worldscale
 from .. export import ( indigo_log,
-                            xml_builder,
+                            xml_builder, xml_multichild,
                             SceneIterator, OBJECT_ANALYSIS,
                             exportutil
                             )
 from .. export.igmesh import igmesh_writer
 from . import ExportCache
+from . uid_manager import new_uid
 
 class model_base(xml_builder):
-    element_type = 'model'
+    element_type = 'model2'
 
     def __init__(self, scene):
         self.scene = scene
@@ -37,23 +38,37 @@ class model_base(xml_builder):
             matrix = None
 
         xml_format = {
-            'mesh_name': [mesh_name],
+            'name': [mesh_name],
             # scale == 1.0 because scale data is included in rot matrix
             'scale': [1.0],
+            'materials': self.get_materials(obj),
         }
 
         xml_format.update(exportutil.getTransform(self.scene, obj, matrix))
         xml_format.update(self.get_additional_elements(obj))
         return xml_format
 
-    def build_xml_element(self, obj, mesh_name, matrix_list):
+    def build_xml_element(self, obj, mesh_uid, mesh_name, matrix_list):
         xml = self.Element(self.element_type)
 
-        xml_format = self.get_format(obj, mesh_name, matrix_list)
-
+        xml_format = self.get_format(obj, mesh_uid, mesh_name, matrix_list)
+        print(xml_format)
         self.build_subelements(obj, xml_format, xml)
 
         return xml
+    
+    def get_materials(self, obj):
+        m = []
+        for ms in obj.material_slots:
+            mat = ms.material
+            if mat == None:
+                m.append({'uid':[4]}) # clay material
+                continue
+            # TODO: validate blendigo material. parse legacy materials that do not have the node_tree
+            m.append({'uid':[mat.indigo_material.node_tree.get_output_node().get_main_mat_uid()]})
+            # uid_type, uid = mat.indigo_material.node_tree.get_output_node().get_main_mat_uid()
+            # m.append({uid_type:[uid]})
+        return m
 
 class model_object(model_base):
 
@@ -91,20 +106,64 @@ class model_object(model_base):
             if mat.indigo_material.type == 'external':
                 ie = mat.indigo_material.indigo_material_external
                 if ie.emission_enabled and ie.emission_scale:
-                    d['emission_scale'] = {
+                    if 'emission_scale' not in d:
+                        d['emission_scale'] = xml_multichild()
+                    d['emission_scale'].append({
                         'material_name': [ie.material_name],
                         'measure': [ie.emission_scale_measure],
                         'value': [ie.emission_scale_value * 10**ie.emission_scale_exp]
-                    }
+                    })
+                    # d['emission_scale'] = {
+                    #     'material_name': [ie.material_name],
+                    #     'measure': [ie.emission_scale_measure],
+                    #     'value': [ie.emission_scale_value * 10**ie.emission_scale_exp]
+                    # }
                 continue
 
             ie = mat.indigo_material.indigo_material_emission
             if ie.emission_enabled and ie.emission_scale:
-                d['emission_scale'] = {
+                if 'emission_scale' not in d:
+                        d['emission_scale'] = xml_multichild()
+                d['emission_scale'].append({
                     'material_name': [mat.name],
                     'measure': [ie.emission_scale_measure],
                     'value': [ie.emission_scale_value * 10**ie.emission_scale_exp]
-                }
+                })
+                # d['emission_scale'] = {
+                #     'material_name': [mat.name],
+                #     'measure': [ie.emission_scale_measure],
+                #     'value': [ie.emission_scale_value * 10**ie.emission_scale_exp]
+                # }
+            # TODO: this dict can't store multiple scales.
+            # put emission scale ui the side material panel including bool toggle
+            # check if main mat has emission node linked
+            # 
+            print('# 4949909890 Emission SCALE MODEL')
+            mat_tree = mat.indigo_material.node_tree
+            main_mat = mat_tree.get_output_node().get_main_material()
+            # emit_node_path = mat_tree['emission_scaled_materials'].get(mat_tree.get_output_node().get_main_mat_uid())
+            # if emit_node_path:
+            #     emission_node = bpy.data.node_groups[mat_path[0]].nodes[mat_path[1]]
+            # if main_mat.is_valid_light:
+            #     d['emission_scale'] = {
+            #         'material_uid': [uid],
+            #         'measure': [node.emission_scale_measure],
+            #         'value': [node.emission_scale_value * 10**node.emission_scale_exp]
+            #     }
+
+            # ver 1. export each sub-material. not working. indigo bug or feature?
+            # if mat_tree.is_valid_light and mat_tree['emission_scaled_materials']:
+            #     for uid, mat_path in mat_tree['emission_scaled_materials'].items():
+            #         node = bpy.data.node_groups[mat_path[0]].nodes[mat_path[1]]
+            #         if 'emission_scale' not in d:
+            #             d['emission_scale'] = xml_multichild()
+            #         d['emission_scale'].append({
+            #             'material_uid': [uid],
+            #             'measure': [node.emission_scale_measure],
+            #             'value': [node.emission_scale_value * 10**node.emission_scale_exp]
+            #         })
+
+            
 
 
         if(obj.data != None and obj.data.indigo_mesh.invisible_to_camera):
@@ -112,11 +171,13 @@ class model_object(model_base):
 
         return d
 
-    def get_format(self, obj, mesh_name, matrix_list):
+    def get_format(self, obj, mesh_uid, mesh_name, matrix_list):
         xml_format = {
-            'mesh_name': [mesh_name],
+            'name': [mesh_name],
+            'geometry_uid': [mesh_uid],
             # scale == 1.0 because scale data is included in rot matrix
             'scale': [1.0],
+            'materials': self.get_materials(obj),
         }
 
         # Add a base static rotation.
@@ -248,6 +309,10 @@ class LightingChecker:
                     mat_test &= (iem.emit_power > 0.0 and iem.emit_gain_val > 0.0)
                 mat_test &= self.geometry_exporter.scene.indigo_lightlayers.is_enabled(iem.emit_layer)
             emitting_object |= mat_test
+
+            # for material_node in ms.material.indigo_material.node_tree['emission_scaled_materials']:
+            # emitting_object = ms.material.indigo_material.node_tree['is_emitting']
+
 
 
         self.ObjectsChecked.add(obj, obj)
@@ -474,9 +539,10 @@ class GeometryExporter(SceneIterator):
             if full_mesh_path in self.mesh_uses_shading_normals:
                 shading_normals = self.mesh_uses_shading_normals[full_mesh_path]
 
-            xml = obj.data.indigo_mesh.build_xml_element(obj, filename, shading_normals, exported_name=exported_mesh_name)
+            exported_uid = new_uid()
+            xml = obj.data.indigo_mesh.build_xml_element(obj, filename, shading_normals, exported_uid, exported_name=exported_mesh_name)
 
-            mesh_definition = (exported_mesh_name, xml)
+            mesh_definition = (exported_mesh_name, xml, exported_uid)
             
             self.MeshesOnDisk[exported_mesh_name] = mesh_definition
             self.ExportedMeshes[obj] = mesh_definition
@@ -495,7 +561,7 @@ class GeometryExporter(SceneIterator):
 
         if OBJECT_ANALYSIS: indigo_log('exportModelElements: %s, %s' % (obj, mesh_definition))
         # If this object was instanced by a DupliObject, hash the DupliObject's persistent_id
-        key = hash((ob_inst, *ob_inst.persistent_id, ob_inst.random_id, obj.name, obj.data.name)) # the more the merrier. ob_insts can have identical hash and random_id... 
+        key = hash((*ob_inst.persistent_id, ob_inst.random_id, obj.name, obj.data.name)) # the more the merrier. ob_insts can have identical hash and random_id... 
         
         # If the model (object) was already exported, only update the keyframe list.
         emodel = self.ExportedObjects.get(key)
@@ -526,6 +592,7 @@ class GeometryExporter(SceneIterator):
             return
 
         mesh_name = mesh_definition[0]
+        mesh_uid = mesh_definition[2]
         
         # Special handling for exit portals
         if obj.type == 'MESH' and obj.data.indigo_mesh.exit_portal:
@@ -540,7 +607,7 @@ class GeometryExporter(SceneIterator):
         # Create list of (time, matrix) tuples.
         obj_matrices = [(self.normalised_time, matrix)]
 
-        model_definition = ('OBJECT', obj, mesh_name, obj_matrices, self.scene)
+        model_definition = ('OBJECT', obj, mesh_uid, mesh_name, obj_matrices, self.scene)
 
         self.ExportedObjects[key] = model_definition
         self.object_id += 1
