@@ -21,16 +21,17 @@ def indigo_scene_load_render_settings(context):
     '''
     for s in bpy.data.scenes:
         # If the Indigo path in the scene doesn't exist.
-        if not os.path.exists(s.indigo_engine.install_path):
-            # Find Indigo.
-            indigo_path = find_indigo()
+        if hasattr(s, 'indigo_engine') and hasattr(s.indigo_engine, 'install_path'):
+            if not os.path.exists(str(s.indigo_engine.install_path)):
+                # Find Indigo.
+                indigo_path = find_indigo()
 
-            # If Indigo was found.
-            if indigo_path != '' and os.path.exists(indigo_path):
-                export.indigo_log("Scene '%s' Indigo install path was adjusted for local machine" % s.name)
-                s.indigo_engine.install_path = indigo_path
-            else:
-                export.indigo_log("Failed %s to find Indigo installation" % s.name)
+                # If Indigo was found.
+                if indigo_path != '' and os.path.exists(indigo_path):
+                    export.indigo_log("Scene '%s' Indigo install path was adjusted for local machine" % s.name)
+                    s.indigo_engine.install_path = indigo_path
+                else:
+                    export.indigo_log("Failed %s to find Indigo installation" % s.name)
 
         # Get the output path for frame 1. s.render.filepath will return the raw
         # output path, potentially including # characters. s.render.frame_path(1)

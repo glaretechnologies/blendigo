@@ -97,7 +97,7 @@ class igmesh_writer(object):
         bmesh.ops.triangulate(bm, faces=ngons)
         bm.to_mesh(mesh)
         #####################
-        mesh.calc_normals_split()
+        #mesh.calc_normals_split()  # NOTE: not supported in Blender 5.0.  But seems to not be needed.
     
         profile = False
         

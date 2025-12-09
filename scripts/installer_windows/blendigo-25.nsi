@@ -76,7 +76,7 @@ LangString MUI_TEXT_INSTALLING_SUBTITLE ${LANG_ENGLISH} "Version ${BLENDIGO_VERS
 !define MUI_LICENSEPAGE_RADIOBUTTONS
 
 ; Directory page
-!define MUI_DIRECTORYPAGE_TEXT_TOP "Choose the Blendigo installation directory.$\n$\nNote: Must be the directory of the version you intend to install for, e.g. .../Blender/2.79 ."
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Choose the Blendigo installation directory.$\n$\nNote: Must be the directory of the version you intend to install for, e.g. .../Blender/5.0 ."
 
 ; Installation page
 !define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "Blendigo ${BLENDIGO_VERSION} for Blender Installation Complete"
@@ -91,6 +91,12 @@ RequestExecutionLevel admin
 ;--------------------------------
 
 Function DetectInstallPath
+	IfFileExists "$APPDATA\Blender Foundation\Blender\5.0" 0 AppData3_40
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\5.0\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\5.0"
+		Return
+	
+	AppData3_40:
 	IfFileExists "$APPDATA\Blender Foundation\Blender\3.4" 0 AppData3_20
 		CreateDirectory "$APPDATA\Blender Foundation\Blender\3.4\scripts\addons"
 		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\3.4"

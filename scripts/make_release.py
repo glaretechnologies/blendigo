@@ -5,11 +5,11 @@ def signProgram(app_name, exe_path):
 	
 	max_retries = 3
 	
-	code_sign_dir = "N:/code_signing"
-	code_signing_password = open(code_sign_dir + "/code_signing_password.txt").read().strip()
 
 	signtool_path = "C:/Program Files (x86)/Windows Kits/10/App Certification Kit/signtool.exe"
-	command = "\"" + signtool_path + "\" sign /f " + code_sign_dir + "/Glare-Technologies-Limited-Glare.p12 /p " + code_signing_password + " /d \"" + app_name + "\" /du http://www.indigorenderer.com /t http://timestamp.comodoca.com/authenticode \"" + exe_path + "\""
+
+	# The new eToken thumb drive cert thing doesn't need a command line password.  Also not sure how to explictly select it, but this seems to work.
+	command = "\"" + signtool_path + "\" sign /fd SHA256 /d \"" + app_name + "\" /du http://www.indigorenderer.com /t http://timestamp.comodoca.com/authenticode \"" + exe_path + "\""
 
 	num_retries = 0
 	while(num_retries < max_retries):
@@ -27,7 +27,7 @@ def signProgram(app_name, exe_path):
 
 if __name__ == '__main__':
 	
-	try:
+	#try:
 		if len(sys.argv) < 2:
 			raise Exception('Not enough args, need server upload username')
 		
@@ -49,10 +49,11 @@ if __name__ == '__main__':
 		print("BL_VERSION: " + BL_VERSION);
 		
 		proc = subprocess.Popen('git log --pretty=format:%h -n 1 ..', stdout=subprocess.PIPE)
-		HASH, errs = proc.communicate()
+		hashprop, errs = proc.communicate()
+		HASH = hashprop.decode('ascii')
 		print("HASH: " + HASH);
 
-		BRANCH = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).strip()
+		BRANCH = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('ascii').strip()
 		print("BRANCH: " + BRANCH);
 		
 		ZIP_NAME = "blendigo-%s-%s-%s.zip" % (TAG, HASH, BRANCH)
@@ -102,5 +103,5 @@ if __name__ == '__main__':
 		else:
 			print("%s was not created, cannot upload!" % ZIP_NAME)
 	
-	except Exception as err:
-		print('Release aborted: %s' % err)
+	#except Exception as err:
+	#	print('Release aborted: %s' % err)
