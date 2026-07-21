@@ -217,8 +217,9 @@ def switch_bool(material, element, value: bool):
     material.blend_method = 'HASHED'
 
 def switch_texture(material, element, value):
+    '''value is a bpy.types.Image (or None).'''
     ubernode = _get_ubernode(material)
-    
+
     name = f'{element}_SP_rgb'
     # print(element, name, value)
     if name in ubernode.inputs:
@@ -226,15 +227,11 @@ def switch_texture(material, element, value):
         if link:
             # TODO: assert node type image
             texnode = link.from_node
-            if value in bpy.data.textures:
-                texnode.image = bpy.data.textures[value].image
-            else:
-                texnode.image = None
+            texnode.image = value
         else:
             print('create image node')
             im = material.node_tree.nodes.new('ShaderNodeTexImage')
-            if value in bpy.data.textures:
-                im.image = bpy.data.textures[value].image
+            im.image = value
             material.node_tree.links.new(im.outputs[0], ubernode.inputs[name])
 
 def switch_rgb(material, element, value):

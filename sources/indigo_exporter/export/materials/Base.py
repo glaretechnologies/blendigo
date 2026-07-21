@@ -84,46 +84,35 @@ class MaterialBase(xml_builder):
                 }
         
         elif channel_type == 'texture':
-            tex_name = getattr(property_group, channel_prop_name + '_TX_texture')
-            
-            if tex_name: # string is not empty
+            img = getattr(property_group, channel_prop_name + '_TX_image', None)
+
+            if img is not None:
                 if channel_prop_name not in self.found_texture_indices:
                     self.found_texture_indices.append(channel_prop_name)
-                    
-                    if not tex_name in bpy.data.textures:
-                        raise Exception("Texture \"%s\" assigned to material \"%s\" doesn't exist!" %(tex_name, self.material_name))
-                    
-                    tex_property_group = bpy.data.textures[tex_name].indigo_texture
-                    
-                    if tex_property_group.image_ref == 'file':
-                        relative_texture_path = efutil.path_relative_to_export(
-                            getattr(tex_property_group, 'path')
+
+                    tex_property_group = img.indigo_image
+
+                    if img.filepath == '':
+                        bl_img_path = 'blendigo_extracted_image_%s.png' % bpy.path.clean_name(img.name)
+                    else:
+                        bl_img_path = img.filepath
+
+                    # Generated or packed images have no usable file on disk, so
+                    # write one out next to the exported scene.
+                    if img.source != 'FILE' or img.packed_file:
+                        bl_file_formatted = os.path.splitext(os.path.basename(bl_img_path))[0]
+                        bl_file_formatted = '%s.%s' % (bl_file_formatted, self.scene.render.image_settings.file_format)
+                        bl_img_path = os.path.join(
+                            efutil.export_path,
+                            efutil.scene_filename(),
+                            bpy.path.clean_name(self.scene.name),
+                            '%05d' % self.scene.frame_current,
+                            bl_file_formatted
                         )
-                    elif tex_property_group.image_ref == 'blender':
-                        if not tex_property_group.image in bpy.data.images:
-                            raise Exception("Error with image reference on texture \"%s\"" % tex_name)
-                        
-                        img = bpy.data.images[tex_property_group.image]
-                        
-                        if img.filepath == '':
-                            bl_img_path = 'blendigo_extracted_image_%s.png' % bpy.path.clean_name(tex_name)
-                        else:
-                            bl_img_path = img.filepath
-                        
-                        if img.source != 'FILE' or img.packed_file:
-                            bl_file_formatted = os.path.splitext(os.path.basename(bl_img_path))[0]
-                            bl_file_formatted = '%s.%s' % (bl_file_formatted, self.scene.render.image_settings.file_format)
-                            bl_img_path = os.path.join(
-                                efutil.export_path,
-                                efutil.scene_filename(),
-                                bpy.path.clean_name(self.scene.name),
-                                '%05d' % self.scene.frame_current,
-                                bl_file_formatted
-                            )
-                            img.save_render(bl_img_path, scene=self.scene)
-                        
-                        relative_texture_path = efutil.path_relative_to_export(bl_img_path)
-                    
+                        img.save_render(bl_img_path, scene=self.scene)
+
+                    relative_texture_path = efutil.path_relative_to_export(bl_img_path)
+
                     if not getattr(property_group, channel_prop_name + '_TX_abc_from_tex'):
                         abc_property_group = property_group
                         abc_prefix = channel_prop_name + '_TX_'

@@ -267,37 +267,51 @@ class Texture(object):
     
     def set_texture(self, s, c):
         # print(self.channel_name)
-        ubershader_utils.switch_texture(c.material, self.channel_name, getattr(s, self.name+'_texture'))
+        material = getattr(c, 'material', None)
+        if material is None:
+            # No material in context (e.g. when the migration handler assigns
+            # the image on file load), so there is no ubershader to update.
+            return
+        ubershader_utils.switch_texture(material, self.channel_name, getattr(s, self.name+'_image'))
         self.set_uv(s, c)
     
     def set_uv(self, s, c):
         # print(self.channel_name, getattr(s, self.name+'_uvset'))
-        ubershader_utils.switch_uv(c.material, self.channel_name, getattr(s, self.name+'_uvset'))
+        material = getattr(c, 'material', None)
+        if material is None:
+            return
+        ubershader_utils.switch_uv(material, self.channel_name, getattr(s, self.name+'_uvset'))
     
     def get_properties(self):
         return [
             {
-                'type': 'prop_search',
-                'attr': self.name + '_texture_chooser',
-                'name': 'Texture',
-                'description': 'Texture',
-                'src': lambda s,c: s.material,
-                'src_attr': 'texture_slots',
-                'trg': lambda s, c: getattr(c, 'indigo_material_' + self.channel_name),
-                'trg_attr': self.name + '_texture',
+                # A real ID pointer, not a name string: Blender only counts
+                # pointers as users, and datablocks with no users are dropped
+                # from the .blend on save.  Storing the name here (as Blendigo
+                # used to) meant the assigned texture was silently discarded
+                # every time the file was saved.
+                'type': 'pointer',
+                'ptype': bpy.types.Image,
+                'attr': self.name + '_image',
+                'name': 'Image',
+                'description': 'Image used for this channel',
+                'update': lambda s, c: self.set_texture(s, c)
             },
             {
-                # this is a hidden attr that is fed by the UI list above
+                # Legacy: name of a bpy.data.textures entry, as written by
+                # older versions of Blendigo.  Kept only so that
+                # properties/migrate.py can convert old files; cleared once
+                # migrated.
                 'type': 'string',
                 'attr': self.name + '_texture',
-                'name': 'Texture',
-                'description': 'Texture',
-                'update': lambda s, c: self.set_texture(s, c)
+                'name': 'Texture (legacy)',
+                'description': 'Legacy texture reference, migrated to the image above on file load',
             },
             {
                 'type': 'bool',
                 'attr': self.name+'_abc_from_tex',
-                'name': 'Use texture A,B,C',
+                'name': 'Use image A,B,C',
+                'description': 'Take A, B and C from the image instead of this channel, so they are shared by every material using that image',
                 'default': False
             },
             {
@@ -358,7 +372,58 @@ class Texture(object):
 
 @register_properties_dict
 @force_register
+class Indigo_Image_Properties(bpy.types.PropertyGroup):
+    '''Per-image Indigo settings, attached to bpy.types.Image as indigo_image.
+
+    These used to live on a legacy bpy.types.Texture datablock (see
+    Indigo_Texture_Properties below), which modern Blender gives users no
+    sensible way to create or keep alive.
+    '''
+    properties = [
+        {
+            'type': 'float',
+            'attr': 'gamma',
+            'name': 'Gamma',
+            'description':'Gamma',
+            'default': 2.2,
+            'precision': 5,
+        },
+        {
+            'type': 'float',
+            'attr': 'A',
+            'name': '(A) Brightness',
+            'description': '(A) Brightness',
+            'default': 0.0,
+            'precision': 5,
+        },
+        {
+            'type': 'float',
+            'attr': 'B',
+            'name': '(B) Scale',
+            'description': '(B) Scale',
+            'default': 1.0,
+            'precision': 5,
+        },
+        {
+            'type': 'float',
+            'attr': 'C',
+            'name': '(C) Offset',
+            'description': '(C) Offset',
+            'default': 0.0,
+            'precision': 5,
+        }
+    ]
+
+
+@register_properties_dict
+@force_register
 class Indigo_Texture_Properties(bpy.types.PropertyGroup):
+    '''Legacy per-Texture settings, read only by properties/migrate.py.
+
+    Still attached to bpy.types.Texture so that textures saved by older
+    versions of Blendigo can be converted to images on file load.  Nothing
+    draws these any more.
+    '''
     properties = [
         {
             'type': 'enum',
@@ -533,10 +598,13 @@ class MaterialChannel(object):
     def set_colour(self, s, c):
         ch_name = getattr(s, self.name + '_type')
         print(s, self.name, self.name, ch_name)
+        material = getattr(c, 'material', None)
+        if material is None:
+            return
         if ch_name == 'spectrum':
-            ubershader_utils.switch_rgb(c.material, self.name+'_SP', getattr(s, self.name + '_SP_rgb'))
+            ubershader_utils.switch_rgb(material, self.name+'_SP', getattr(s, self.name + '_SP_rgb'))
         elif ch_name == 'texture':
-            ubershader_utils.switch_texture(c.material, self.name, getattr(s, self.name+'_TX_texture'))
+            ubershader_utils.switch_texture(material, self.name, getattr(s, self.name+'_TX_image'))
             
     
 
@@ -1723,6 +1791,15 @@ class indigo_material_fastsss(indigo_material_feature):
 
 from .. nodes import ubershader_utils
 
+def _switch_material_type(self, context):
+    # context.material only exists when the properties editor is showing a
+    # material; setting the type from a script or handler has no ubershader
+    # to update.
+    material = getattr(context, 'material', None)
+    if material is None:
+        return
+    ubershader_utils.switch_enum(material, self.type, {'diffuse', 'phong', 'coating', 'doublesidedthin', 'specular', 'blended', 'external', 'null', 'fastsss'})
+
 @register_properties_dict
 class Indigo_Material_Properties(bpy.types.PropertyGroup):
 
@@ -1745,7 +1822,7 @@ class Indigo_Material_Properties(bpy.types.PropertyGroup):
                 ('null', 'Null', 'null'),
                 ('fastsss', 'Fast SSS', 'fastsss'),
             ],
-            'update': lambda self, context: ubershader_utils.switch_enum(context.material, self.type, {'diffuse', 'phong', 'coating', 'doublesidedthin', 'specular', 'blended', 'external', 'null', 'fastsss'})
+            'update': lambda self, context: _switch_material_type(self, context)
         },
         {
             'type': 'int',

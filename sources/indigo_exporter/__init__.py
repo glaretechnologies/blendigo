@@ -75,10 +75,13 @@ def register():
     bpy.types.Light.indigo_lamp_sun = bpy.props.PointerProperty(name="Indigo Lamp Sun Properties", type = Indigo_Lamp_Sun_Properties)
     bpy.types.Light.indigo_lamp_hemi = bpy.props.PointerProperty(name="Indigo Lamp Hemi Properties", type = Indigo_Lamp_Hemi_Properties)
     
-    from . properties.material import Indigo_Material_Properties, Indigo_Texture_Properties
+    from . properties.material import Indigo_Material_Properties, Indigo_Texture_Properties, Indigo_Image_Properties
     register_class(Indigo_Material_Properties)
     register_class(Indigo_Texture_Properties)
+    register_class(Indigo_Image_Properties)
     bpy.types.Material.indigo_material = bpy.props.PointerProperty(name="Indigo Material Properties", type = Indigo_Material_Properties)
+    bpy.types.Image.indigo_image = bpy.props.PointerProperty(name="Indigo Image Properties", type = Indigo_Image_Properties)
+    # Legacy, kept so that older files can be migrated on load (properties/migrate.py).
     bpy.types.Texture.indigo_texture = bpy.props.PointerProperty(name="Indigo Texture Properties", type = Indigo_Texture_Properties)
     
     from . properties.medium import Indigo_Material_Medium_Properties

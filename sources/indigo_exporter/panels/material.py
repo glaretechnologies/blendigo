@@ -4,6 +4,42 @@ import bl_ui
 from .. core import BL_IDNAME
 from .. properties.material import PROPERTY_GROUP_USAGE
 
+def draw_texture_channel(layout, context, property_group, channel):
+    '''Draw the image selector and texture settings for one material channel.
+
+    The image is picked with template_ID so that it can be created, opened and
+    unlinked here; there is no longer any need to visit the Texture properties
+    tab (which modern Blender only shows for brushes and modifiers).
+    '''
+    prefix = channel + '_TX_'
+    abc_from_image = getattr(property_group, prefix + 'abc_from_tex')
+
+    col = layout.column()
+    col.template_ID(property_group, prefix + 'image', new='image.new', open='image.open')
+
+    img = getattr(property_group, prefix + 'image')
+    if img is not None:
+        col = layout.column()
+        col.prop(img.indigo_image, 'gamma')
+
+    # A, B and C come either from the image (shared by every material using it)
+    # or from this channel.
+    for abc in ('A', 'B', 'C'):
+        col = layout.column()
+        if img is not None and abc_from_image:
+            col.prop(img.indigo_image, abc)
+        else:
+            col.prop(property_group, prefix + abc)
+            col.enabled = not abc_from_image
+
+    col = layout.column()
+    col.prop_search(property_group, prefix + 'uvset', context.object.data, 'uv_layers')
+
+    row = layout.row()
+    row.prop(property_group, prefix + 'abc_from_tex')
+    row.prop(property_group, prefix + 'smooth')
+
+
 class material_subpanel():
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -58,27 +94,7 @@ class INDIGO_PT_ui_material_colour(material_subpanel, bpy.types.Panel):
 
 
         elif indigo_material_colour.colour_type == 'texture':
-            col = self.layout.column()
-            col.prop_search(indigo_material_colour, 'colour_TX_texture', bpy.data, 'textures')
-            
-            col = self.layout.column()
-            col.prop(indigo_material_colour, 'colour_TX_A')
-            col.enabled = indigo_material_colour.colour_TX_abc_from_tex == False
-
-            col = self.layout.column()
-            col.prop(indigo_material_colour, 'colour_TX_B')
-            col.enabled = indigo_material_colour.colour_TX_abc_from_tex == False
-
-            col = self.layout.column()
-            col.prop(indigo_material_colour, 'colour_TX_C')
-            col.enabled = indigo_material_colour.colour_TX_abc_from_tex == False
-
-            col = self.layout.column()
-            col.prop_search(indigo_material_colour, 'colour_TX_uvset', context.object.data, 'uv_layers')
-
-            row = self.layout.row()
-            row.prop(indigo_material_colour, 'colour_TX_abc_from_tex')
-            row.prop(indigo_material_colour, 'colour_TX_smooth')
+            draw_texture_channel(self.layout, context, indigo_material_colour, 'colour')
 
             
         elif indigo_material_colour.colour_type == 'shader':
@@ -216,27 +232,7 @@ class INDIGO_PT_ui_material_transmittance(material_subpanel, bpy.types.Panel):
         col.prop(indigo_material_transmittance, 'transmittance_type')
         
         if indigo_material_transmittance.transmittance_type == 'texture':
-            col = self.layout.column()
-            col.prop_search(indigo_material_transmittance, 'transmittance_TX_texture', bpy.data, 'textures')
-            
-            col = self.layout.column()
-            col.prop(indigo_material_transmittance, 'transmittance_TX_A')
-            col.enabled = indigo_material_transmittance.transmittance_TX_abc_from_tex == False
-
-            col = self.layout.column()
-            col.prop(indigo_material_transmittance, 'transmittance_TX_B')
-            col.enabled = indigo_material_transmittance.transmittance_TX_abc_from_tex == False
-
-            col = self.layout.column()
-            col.prop(indigo_material_transmittance, 'transmittance_TX_C')
-            col.enabled = indigo_material_transmittance.transmittance_TX_abc_from_tex == False
-
-            col = self.layout.column()
-            col.prop_search(indigo_material_transmittance, 'transmittance_TX_uvset', context.object.data, 'uv_layers')
-
-            row = self.layout.row()
-            row.prop(indigo_material_transmittance, 'transmittance_TX_abc_from_tex')
-            row.prop(indigo_material_transmittance, 'transmittance_TX_smooth')
+            draw_texture_channel(self.layout, context, indigo_material_transmittance, 'transmittance')
         elif indigo_material_transmittance.transmittance_type == 'spectrum':
             col.prop(indigo_material_transmittance, 'transmittance_SP_type')
             if indigo_material_transmittance.transmittance_SP_type == 'rgb':
@@ -264,27 +260,7 @@ class INDIGO_PT_ui_material_absorption(material_subpanel, bpy.types.Panel):
         col.prop(indigo_material_absorption, 'absorption_type')
         
         if indigo_material_absorption.absorption_type == 'texture':
-            col = self.layout.column()
-            col.prop_search(indigo_material_absorption, 'absorption_TX_texture', bpy.data, 'textures')
-            
-            col = self.layout.column()
-            col.prop(indigo_material_absorption, 'absorption_TX_A')
-            col.enabled = indigo_material_absorption.absorption_TX_abc_from_tex == False
-
-            col = self.layout.column()
-            col.prop(indigo_material_absorption, 'absorption_TX_B')
-            col.enabled = indigo_material_absorption.absorption_TX_abc_from_tex == False
-
-            col = self.layout.column()
-            col.prop(indigo_material_absorption, 'absorption_TX_C')
-            col.enabled = indigo_material_absorption.absorption_TX_abc_from_tex == False
-
-            col = self.layout.column()
-            col.prop_search(indigo_material_absorption, 'absorption_TX_uvset', context.object.data, 'uv_layers')
-
-            row = self.layout.row()
-            row.prop(indigo_material_absorption, 'absorption_TX_abc_from_tex')
-            row.prop(indigo_material_absorption, 'absorption_TX_smooth')
+            draw_texture_channel(self.layout, context, indigo_material_absorption, 'absorption')
         elif indigo_material_absorption.absorption_type == 'spectrum':
             col.prop(indigo_material_absorption, 'absorption_SP_type')
             if indigo_material_absorption.absorption_SP_type == 'rgb':
@@ -318,27 +294,7 @@ class INDIGO_PT_ui_material_absorption_layer(material_subpanel, bpy.types.Panel)
             col.prop(indigo_material_absorption_layer, 'absorption_layer_type')
             
             if indigo_material_absorption_layer.absorption_layer_type == 'texture':
-                col = self.layout.column()
-                col.prop_search(indigo_material_absorption_layer, 'absorption_layer_TX_texture', bpy.data, 'textures')
-                
-                col = self.layout.column()
-                col.prop(indigo_material_absorption_layer, 'absorption_layer_TX_A')
-                col.enabled = indigo_material_absorption_layer.absorption_layer_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_absorption_layer, 'absorption_layer_TX_B')
-                col.enabled = indigo_material_absorption_layer.absorption_layer_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_absorption_layer, 'absorption_layer_TX_C')
-                col.enabled = indigo_material_absorption_layer.absorption_layer_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop_search(indigo_material_absorption_layer, 'absorption_layer_TX_uvset', context.object.data, 'uv_layers')
-
-                row = self.layout.row()
-                row.prop(indigo_material_absorption_layer, 'absorption_layer_TX_abc_from_tex')
-                row.prop(indigo_material_absorption_layer, 'absorption_layer_TX_smooth')
+                draw_texture_channel(self.layout, context, indigo_material_absorption_layer, 'absorption_layer')
             elif indigo_material_absorption_layer.absorption_layer_type == 'spectrum':
                 col.prop(indigo_material_absorption_layer, 'absorption_layer_SP_type')
                 if indigo_material_absorption_layer.absorption_layer_SP_type == 'rgb':
@@ -458,27 +414,7 @@ class INDIGO_PT_ui_material_bumpmap(material_subpanel, bpy.types.Panel):
             col = self.layout.column()
             col.prop(indigo_material_bumpmap, 'bumpmap_type')
             if indigo_material_bumpmap.bumpmap_type == 'texture':
-                col = self.layout.column()
-                col.prop_search(indigo_material_bumpmap, 'bumpmap_TX_texture', bpy.data, 'textures')
-                
-                col = self.layout.column()
-                col.prop(indigo_material_bumpmap, 'bumpmap_TX_A')
-                col.enabled = indigo_material_bumpmap.bumpmap_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_bumpmap, 'bumpmap_TX_B')
-                col.enabled = indigo_material_bumpmap.bumpmap_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_bumpmap, 'bumpmap_TX_C')
-                col.enabled = indigo_material_bumpmap.bumpmap_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop_search(indigo_material_bumpmap, 'bumpmap_TX_uvset', context.object.data, 'uv_layers')
-
-                row = self.layout.row()
-                row.prop(indigo_material_bumpmap, 'bumpmap_TX_abc_from_tex')
-                row.prop(indigo_material_bumpmap, 'bumpmap_TX_smooth')
+                draw_texture_channel(self.layout, context, indigo_material_bumpmap, 'bumpmap')
             elif indigo_material_bumpmap.bumpmap_type == 'shader':
                 col.prop(indigo_material_bumpmap, 'bumpmap_SH_text', text="Shader Text")
                 
@@ -501,27 +437,7 @@ class INDIGO_PT_ui_material_normalmap(material_subpanel, bpy.types.Panel):
             col = self.layout.column()
             col.prop(indigo_material_normalmap, 'normalmap_type')
             if indigo_material_normalmap.normalmap_type == 'texture':
-                col = self.layout.column()
-                col.prop_search(indigo_material_normalmap, 'normalmap_TX_texture', bpy.data, 'textures')
-                
-                col = self.layout.column()
-                col.prop(indigo_material_normalmap, 'normalmap_TX_A')
-                col.enabled = indigo_material_normalmap.normalmap_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_normalmap, 'normalmap_TX_B')
-                col.enabled = indigo_material_normalmap.normalmap_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_normalmap, 'normalmap_TX_C')
-                col.enabled = indigo_material_normalmap.normalmap_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop_search(indigo_material_normalmap, 'normalmap_TX_uvset', context.object.data, 'uv_layers')
-
-                row = self.layout.row()
-                row.prop(indigo_material_normalmap, 'normalmap_TX_abc_from_tex')
-                row.prop(indigo_material_normalmap, 'normalmap_TX_smooth')
+                draw_texture_channel(self.layout, context, indigo_material_normalmap, 'normalmap')
             elif indigo_material_normalmap.normalmap_type == 'shader':
                 col.prop(indigo_material_normalmap, 'normalmap_SH_text', text="Shader Text")
                 
@@ -544,27 +460,7 @@ class INDIGO_PT_ui_material_displacement(material_subpanel, bpy.types.Panel):
             col = self.layout.column()
             col.prop(indigo_material_displacement, 'displacement_type')
             if indigo_material_displacement.displacement_type == 'texture':
-                col = self.layout.column()
-                col.prop_search(indigo_material_displacement, 'displacement_TX_texture', bpy.data, 'textures')
-                
-                col = self.layout.column()
-                col.prop(indigo_material_displacement, 'displacement_TX_A')
-                col.enabled = indigo_material_displacement.displacement_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_displacement, 'displacement_TX_B')
-                col.enabled = indigo_material_displacement.displacement_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_displacement, 'displacement_TX_C')
-                col.enabled = indigo_material_displacement.displacement_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop_search(indigo_material_displacement, 'displacement_TX_uvset', context.object.data, 'uv_layers')
-
-                row = self.layout.row()
-                row.prop(indigo_material_displacement, 'displacement_TX_abc_from_tex')
-                row.prop(indigo_material_displacement, 'displacement_TX_smooth')
+                draw_texture_channel(self.layout, context, indigo_material_displacement, 'displacement')
             elif indigo_material_displacement.displacement_type == 'shader':
                 col.prop(indigo_material_displacement, 'displacement_SH_text', text="Shader Text")
 
@@ -595,27 +491,7 @@ class INDIGO_PT_ui_material_roughness(material_subpanel, bpy.types.Panel):
             col = self.layout.column()
             col.prop(indigo_material_roughness, 'roughness_type')
             if indigo_material_roughness.roughness_type == 'texture':
-                col = self.layout.column()
-                col.prop_search(indigo_material_roughness, 'roughness_TX_texture', bpy.data, 'textures')
-                
-                col = self.layout.column()
-                col.prop(indigo_material_roughness, 'roughness_TX_A')
-                col.enabled = indigo_material_roughness.roughness_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_roughness, 'roughness_TX_B')
-                col.enabled = indigo_material_roughness.roughness_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_roughness, 'roughness_TX_C')
-                col.enabled = indigo_material_roughness.roughness_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop_search(indigo_material_roughness, 'roughness_TX_uvset', context.object.data, 'uv_layers')
-
-                row = self.layout.row()
-                row.prop(indigo_material_roughness, 'roughness_TX_abc_from_tex')
-                row.prop(indigo_material_roughness, 'roughness_TX_smooth')
+                draw_texture_channel(self.layout, context, indigo_material_roughness, 'roughness')
             elif indigo_material_roughness.roughness_type == 'shader':
                 col.prop(indigo_material_roughness, 'roughness_SH_text', text="Shader Text")
                 
@@ -638,27 +514,7 @@ class INDIGO_PT_ui_material_fresnel_scale(material_subpanel, bpy.types.Panel):
             col = self.layout.column()
             col.prop(indigo_material_fresnel_scale, 'fresnel_scale_type')
             if indigo_material_fresnel_scale.fresnel_scale_type == 'texture':
-                col = self.layout.column()
-                col.prop_search(indigo_material_fresnel_scale, 'fresnel_scale_TX_texture', bpy.data, 'textures')
-                
-                col = self.layout.column()
-                col.prop(indigo_material_fresnel_scale, 'fresnel_scale_TX_A')
-                col.enabled = indigo_material_fresnel_scale.fresnel_scale_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_fresnel_scale, 'fresnel_scale_TX_B')
-                col.enabled = indigo_material_fresnel_scale.fresnel_scale_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_fresnel_scale, 'fresnel_scale_TX_C')
-                col.enabled = indigo_material_fresnel_scale.fresnel_scale_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop_search(indigo_material_fresnel_scale, 'fresnel_scale_TX_uvset', context.object.data, 'uv_layers')
-
-                row = self.layout.row()
-                row.prop(indigo_material_fresnel_scale, 'fresnel_scale_TX_abc_from_tex')
-                row.prop(indigo_material_fresnel_scale, 'fresnel_scale_TX_smooth')
+                draw_texture_channel(self.layout, context, indigo_material_fresnel_scale, 'fresnel_scale')
             elif indigo_material_fresnel_scale.fresnel_scale_type == 'shader':
                 col.prop(indigo_material_fresnel_scale, 'fresnel_scale_SH_text', text="Shader Text")
                 
@@ -681,27 +537,7 @@ class INDIGO_PT_ui_material_blendmap(material_subpanel, bpy.types.Panel):
             col = self.layout.column()
             col.prop(indigo_material_blendmap, 'blendmap_type')
             if indigo_material_blendmap.blendmap_type == 'texture':
-                col = self.layout.column()
-                col.prop_search(indigo_material_blendmap, 'blendmap_TX_texture', bpy.data, 'textures')
-                
-                col = self.layout.column()
-                col.prop(indigo_material_blendmap, 'blendmap_TX_A')
-                col.enabled = indigo_material_blendmap.blendmap_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_blendmap, 'blendmap_TX_B')
-                col.enabled = indigo_material_blendmap.blendmap_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_blendmap, 'blendmap_TX_C')
-                col.enabled = indigo_material_blendmap.blendmap_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop_search(indigo_material_blendmap, 'blendmap_TX_uvset', context.object.data, 'uv_layers')
-
-                row = self.layout.row()
-                row.prop(indigo_material_blendmap, 'blendmap_TX_abc_from_tex')
-                row.prop(indigo_material_blendmap, 'blendmap_TX_smooth')
+                draw_texture_channel(self.layout, context, indigo_material_blendmap, 'blendmap')
             elif indigo_material_blendmap.blendmap_type == 'shader':
                 col.prop(indigo_material_blendmap, 'blendmap_SH_text', text="Shader Text")
                 
@@ -726,27 +562,7 @@ class INDIGO_PT_ui_material_emission(material_subpanel, bpy.types.Panel):
             col.prop(indigo_material_emission, 'emission_type')
             
             if indigo_material_emission.emission_type == 'texture':
-                col = self.layout.column()
-                col.prop_search(indigo_material_emission, 'emission_TX_texture', bpy.data, 'textures')
-                
-                col = self.layout.column()
-                col.prop(indigo_material_emission, 'emission_TX_A')
-                col.enabled = indigo_material_emission.emission_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_emission, 'emission_TX_B')
-                col.enabled = indigo_material_emission.emission_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop(indigo_material_emission, 'emission_TX_C')
-                col.enabled = indigo_material_emission.emission_TX_abc_from_tex == False
-
-                col = self.layout.column()
-                col.prop_search(indigo_material_emission, 'emission_TX_uvset', context.object.data, 'uv_layers')
-
-                row = col.row()
-                row.prop(indigo_material_emission, 'emission_TX_abc_from_tex')
-                row.prop(indigo_material_emission, 'emission_TX_smooth')
+                draw_texture_channel(self.layout, context, indigo_material_emission, 'emission')
             elif indigo_material_emission.emission_type == 'spectrum':
                 col.prop(indigo_material_emission, 'emission_SP_type')
                 if indigo_material_emission.emission_SP_type == 'rgb':
