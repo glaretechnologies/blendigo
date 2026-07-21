@@ -2,6 +2,7 @@
 --------
 * Bugfix: material textures were lost when saving and reopening a .blend file. Channels now reference images directly, so they are saved with the file. Textures in older files are converted automatically when the file is opened.
 * Texture settings moved out of the Texture properties tab and into the material panels, where the image can be created, opened and browsed directly
+* Bugfix: File > Export Indigo Scene and File > Export Indigo Mesh both failed on Blender 5.0
 
 5.0.0
 --------

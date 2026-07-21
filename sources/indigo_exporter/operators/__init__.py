@@ -19,13 +19,21 @@ from .. import eprofiler as ep
 
 class _Impl_operator(object):
     
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
-        Set member vars via keyword arguments
+        Set member vars via keyword arguments.
+
+        When used as an Operator, Blender instantiates the class with the RNA
+        pointer as a positional argument, which must be handed on to
+        bpy.types.Operator or the instance is left invalid.  When used
+        directly (see core.RENDERENGINE_indigo.render) there are no positional
+        args and object.__init__ takes over.
         """
+        if args:
+            super().__init__(*args)
         for k,v in kwargs.items():
             setattr(self,k,v)
-    
+
     def __getattr__(self, a):
         """
         If using the _Impl* object directly and not as operator,
@@ -553,7 +561,9 @@ class _Impl_OT_indigo(_Impl_operator):
 class EXPORT_OT_indigo(_Impl_OT_indigo, bpy.types.Operator):
     def execute(self, context):
         self.set_report(self.report)
-        return super().execute(context.scene)
+        # When rendering, the first argument is the RenderEngine; here there is
+        # none, and the Scene provides the frame_set() that it is used for.
+        return super().execute(context.scene, context.evaluated_depsgraph_get())
     
 menu_func = lambda self, context: self.layout.operator("export.indigo", text="Export Indigo Scene...")
 bpy.types.TOPBAR_MT_file_export.append(menu_func)
