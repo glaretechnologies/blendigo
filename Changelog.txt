@@ -1,8 +1,11 @@
+5.0.1
+--------
+* Bugfix: material textures were lost when saving and reopening a .blend file. Channels now reference images directly, so they are saved with the file. Textures in older files are converted automatically when the file is opened.
+* Texture settings moved out of the Texture properties tab and into the material panels, where the image can be created, opened and browsed directly
+
 5.0.0
 --------
 * Compatible with Blender 5.0
-* Bugfix: material textures were lost when saving and reopening a .blend file. Channels now reference images directly, so they are saved with the file. Textures in older files are converted automatically when the file is opened.
-* Texture settings moved out of the Texture properties tab and into the material panels, where the image can be created, opened and browsed directly
 * Bugfix: rebuild mesh edge data after n-gons are triangulated during export (thanks eneen)
 * Auto-updater temporarily disabled
 
