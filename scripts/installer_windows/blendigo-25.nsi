@@ -91,6 +91,18 @@ RequestExecutionLevel admin
 ;--------------------------------
 
 Function DetectInstallPath
+	IfFileExists "$APPDATA\Blender Foundation\Blender\5.2" 0 AppData5_10
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\5.2\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\5.2"
+		Return
+	
+	AppData5_10:
+	IfFileExists "$APPDATA\Blender Foundation\Blender\5.1" 0 AppData5_00
+		CreateDirectory "$APPDATA\Blender Foundation\Blender\5.1\scripts\addons"
+		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\5.1"
+		Return
+	
+	AppData5_00:
 	IfFileExists "$APPDATA\Blender Foundation\Blender\5.0" 0 AppData3_40
 		CreateDirectory "$APPDATA\Blender Foundation\Blender\5.0\scripts\addons"
 		StrCpy $INSTDIR "$APPDATA\Blender Foundation\Blender\5.0"
