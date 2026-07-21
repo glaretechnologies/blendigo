@@ -100,6 +100,10 @@ if __name__ == '__main__':
 			#	BL_VERSION,
 			#	rt_log
 			#)
+
+			print("Uploaded to server.  public URLS:")
+			print("https://downloads.indigorenderer.com/dist/exporters/blendigo/" + ZIP_NAME);
+			print("https://downloads.indigorenderer.com/dist/exporters/blendigo/" + INSTALLER_NAME);
 		else:
 			print("%s was not created, cannot upload!" % ZIP_NAME)
 	
